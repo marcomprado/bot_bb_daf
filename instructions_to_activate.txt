@@ -1,0 +1,3 @@
+to activate the virtual environment write in the terminal : 
+    source venv/bin/activate -> For MacOS
+    \venv\Scripts\activate -> For Windows
