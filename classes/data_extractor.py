@@ -35,11 +35,6 @@ class DataExtractor:
         
         # Cria o diretório de saída se não existir
         self._criar_diretorio_saida()
-        
-        print(f"📊 DataExtractor inicializado")
-        print(f"📁 Diretório base: {self.diretorio_base}")
-        print(f"📅 Data de hoje: {self.data_hoje}")
-        print(f"📁 Diretório de saída: {self.diretorio_saida}")
     
     def _criar_diretorio_saida(self):
         """
@@ -51,17 +46,13 @@ class DataExtractor:
             # Cria o diretório base se não existir
             if not os.path.exists(self.diretorio_base):
                 os.makedirs(self.diretorio_base)
-                print(f"✅ Diretório base '{self.diretorio_base}' criado")
             
             # Cria a subpasta da data atual se não existir
             if not os.path.exists(self.diretorio_saida):
                 os.makedirs(self.diretorio_saida)
-                print(f"✅ Diretório da data '{self.diretorio_saida}' criado")
-            else:
-                print(f"📁 Diretório da data '{self.diretorio_saida}' já existe")
                 
-        except Exception as e:
-            print(f"⚠️ Aviso: Erro ao criar diretório: {e}")
+        except Exception:
+            pass
     
     def extrair_html_pagina(self, navegador):
         """
@@ -74,20 +65,15 @@ class DataExtractor:
             str: HTML completo da página ou None em caso de erro
         """
         try:
-            print("🔍 Extraindo HTML da página de resultados...")
-            
             # Obtém o HTML completo da página atual
             html_completo = navegador.page_source
             
             if html_completo:
-                print(f"✅ HTML extraído com sucesso ({len(html_completo)} caracteres)")
                 return html_completo
             else:
-                print("❌ Erro: HTML da página está vazio")
                 return None
                 
-        except Exception as e:
-            print(f"❌ Erro ao extrair HTML da página: {e}")
+        except Exception:
             return None
     
     def analisar_estrutura_tabela(self, html):
@@ -101,8 +87,6 @@ class DataExtractor:
             BeautifulSoup: Objeto soup com a página analisada ou None
         """
         try:
-            print("🔍 Analisando estrutura da tabela com Beautiful Soup...")
-            
             # Cria objeto BeautifulSoup para análise do HTML
             soup = BeautifulSoup(html, 'html.parser')
             
@@ -112,29 +96,23 @@ class DataExtractor:
             # Estratégia 1: Tabelas HTML tradicionais
             tabelas_html = soup.find_all('table')
             tabelas_encontradas.extend(tabelas_html)
-            print(f"📋 Encontradas {len(tabelas_html)} tabelas HTML tradicionais")
             
             # Estratégia 2: Divs com classes relacionadas a tabelas/dados
             divs_tabela = soup.find_all('div', class_=lambda x: x and any(
                 palavra in str(x).lower() for palavra in ['table', 'grid', 'data', 'row', 'list']
             ))
-            print(f"📋 Encontradas {len(divs_tabela)} divs com classes de tabela")
             
             # Estratégia 3: Procurar por texto específico que indica dados
             elementos_com_data = soup.find_all(text=lambda text: text and any(
                 palavra in str(text).lower() for palavra in ['data', 'parcela', 'valor', 'distribuído']
             ))
-            print(f"📋 Encontrados {len(elementos_com_data)} elementos com texto relacionado aos dados")
             
             if tabelas_html or divs_tabela or elementos_com_data:
-                print("✅ Estrutura da página analisada com sucesso")
                 return soup
             else:
-                print("❌ Erro: Nenhuma estrutura de tabela encontrada")
                 return None
                 
-        except Exception as e:
-            print(f"❌ Erro ao analisar estrutura da tabela: {e}")
+        except Exception:
             return None
     
     def extrair_dados_tabela(self, soup):
@@ -148,31 +126,25 @@ class DataExtractor:
             list: Lista de dicionários com os dados extraídos
         """
         try:
-            print("🔍 Extraindo dados da tabela...")
             dados = []
             
             # Estratégia 1: Tabelas HTML tradicionais
             tabelas = soup.find_all('table')
             for tabela in tabelas:
-                print(f"📋 Analisando tabela HTML...")
                 dados_tabela = self._extrair_de_tabela_html(tabela)
                 dados.extend(dados_tabela)
             
             # Estratégia 2: Estruturas baseadas em divs
             if not dados:
-                print("📋 Tentando extrair de estruturas baseadas em divs...")
                 dados = self._extrair_de_divs(soup)
             
             # Estratégia 3: Busca por padrões de texto
             if not dados:
-                print("📋 Tentando extrair por padrões de texto...")
                 dados = self._extrair_por_padroes_texto(soup)
             
-            print(f"✅ {len(dados)} registros extraídos da tabela")
             return dados
             
-        except Exception as e:
-            print(f"❌ Erro ao extrair dados da tabela: {e}")
+        except Exception:
             return []
     
     def _extrair_de_tabela_html(self, tabela):
@@ -210,8 +182,8 @@ class DataExtractor:
                     if any(valor for valor in registro.values()):
                         dados.append(registro)
             
-        except Exception as e:
-            print(f"⚠️ Erro ao extrair de tabela HTML: {e}")
+        except Exception:
+            pass
         
         return dados
     
@@ -244,8 +216,8 @@ class DataExtractor:
                     if componentes:
                         dados.append(componentes)
         
-        except Exception as e:
-            print(f"⚠️ Erro ao extrair de divs: {e}")
+        except Exception:
+            pass
         
         return dados
     
@@ -275,8 +247,8 @@ class DataExtractor:
                     if componentes:
                         dados.append(componentes)
         
-        except Exception as e:
-            print(f"⚠️ Erro ao extrair por padrões de texto: {e}")
+        except Exception:
+            pass
         
         return dados
     
@@ -352,8 +324,7 @@ class DataExtractor:
             
             return None
             
-        except Exception as e:
-            print(f"⚠️ Erro ao extrair componentes da linha: {e}")
+        except Exception:
             return None
     
     def salvar_dados_excel(self, dados, cidade, data_consulta=None):
@@ -371,10 +342,7 @@ class DataExtractor:
         """
         try:
             if not dados:
-                print("⚠️ Aviso: Nenhum dado para salvar")
                 return None
-            
-            print(f"💾 Salvando {len(dados)} registros em Excel para '{cidade}'...")
             
             # Cria DataFrame apenas com as 3 colunas principais
             df = pd.DataFrame(dados)
@@ -395,13 +363,9 @@ class DataExtractor:
             # Salva no Excel com formatação personalizada
             self._salvar_excel_formatado(df_final, caminho_arquivo, cidade)
             
-            print(f"✅ Arquivo salvo: {caminho_arquivo}")
-            print(f"📊 Registros salvos: {len(dados)}")
-            
             return caminho_arquivo
             
-        except Exception as e:
-            print(f"❌ Erro ao salvar dados em Excel: {e}")
+        except Exception:
             return None
     
     def _salvar_excel_formatado(self, df, caminho_arquivo, cidade):
@@ -521,12 +485,9 @@ class DataExtractor:
             
             # Salva o arquivo
             wb.save(caminho_arquivo)
-            print(f"🎨 Excel formatado salvo com cores e layout personalizados")
             
-        except Exception as e:
+        except Exception:
             # Fallback: salva sem formatação se houver erro
-            print(f"⚠️ Erro na formatação personalizada: {e}")
-            print("💾 Salvando versão básica...")
             df.to_excel(caminho_arquivo, index=False, engine='openpyxl')
     
     def processar_pagina_resultados(self, navegador, cidade):
@@ -541,8 +502,6 @@ class DataExtractor:
             dict: Resultado do processamento com estatísticas
         """
         try:
-            print(f"\n📊 Iniciando extração de dados para '{cidade}'...")
-            
             # Passo 1: Extrair HTML da página
             html = self.extrair_html_pagina(navegador)
             if not html:
@@ -586,12 +545,9 @@ class DataExtractor:
             str: Caminho do arquivo consolidado ou None
         """
         try:
-            print(f"\n📋 Gerando relatório consolidado...")
-            
             cidades_com_sucesso = [r for r in resultados_cidades if r.get('sucesso')]
             
             if not cidades_com_sucesso:
-                print("⚠️ Nenhuma cidade processada com sucesso para consolidar")
                 return None
             
             # Cria resumo estatístico
@@ -635,11 +591,7 @@ class DataExtractor:
                 df_detalhes = pd.DataFrame(dados_detalhados)
                 df_detalhes.to_excel(writer, sheet_name='Detalhes por Cidade', index=False)
             
-            print(f"✅ Relatório consolidado salvo: {caminho_relatorio}")
-            print(f"📁 Todos os arquivos estão em: {self.diretorio_saida}")
-            print(f"📊 Resumo: {cidades_sucesso}/{total_cidades} cidades processadas ({total_registros} registros totais)")
             return caminho_relatorio
             
-        except Exception as e:
-            print(f"❌ Erro ao gerar relatório consolidado: {e}")
+        except Exception:
             return None 

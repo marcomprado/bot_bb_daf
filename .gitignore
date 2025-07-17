@@ -1,7 +1,3 @@
-# Arquivos e pastas de saída
-arquivos_baixados/
-dados_extraidos/
-
 # Arquivos temporários do sistema
 .DS_Store
 Thumbs.db
@@ -49,6 +45,9 @@ wheels/
 
 # Arquivos de configuração local (se houver)
 config_local.py
+
+# Arquivo dinâmico de cidades selecionadas (gerado pela GUI)
+listed_cities.txt
 
 # Drivers do Selenium (baixados automaticamente)
 chromedriver*

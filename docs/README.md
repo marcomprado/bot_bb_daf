@@ -1,49 +1,48 @@
-# 📚 Documentação - Automação FPM
+# 📚 Documentação - Sistema FVN
 
-Documentação completa do sistema de automação para extração de dados FPM.
+Documentação técnica do sistema de automação para extração de dados FPM.
 
-## 📖 Índice da Documentação
+## 📖 Guias Disponíveis
 
-### 🚀 Primeiros Passos
-- [📥 **Instalação**](instalacao.md) - Guia completo de instalação e configuração inicial
-- [⚙️ **Configuração**](configuracao.md) - Personalização de cidades, URLs e parâmetros
+### 🎨 Interface do Usuário
+- [**Interface Gráfica**](GUI_USAGE.md) - Como usar a interface visual moderna
 
-### 🔧 Documentação Técnica  
-- [🏗️ **Arquitetura**](arquitetura.md) - Estrutura técnica e componentes do sistema
-- [📊 **Arquivos de Saída**](arquivos-saida.md) - Formato e organização dos Excel gerados
+### 🔧 Configuração e Instalação
+- [**Instalação**](instalacao.md) - Guia completo de instalação
+- [**Configuração**](configuracao.md) - Personalização de cidades e parâmetros
 
-## 🎯 Fluxo Básico de Uso
+### 📋 Documentação Técnica
+- [**Arquitetura**](arquitetura.md) - Estrutura técnica do sistema
+- [**Arquivos de Saída**](arquivos-saida.md) - Formato dos Excel gerados
 
-1. **Instale** seguindo o [guia de instalação](instalacao.md)
-2. **Configure** as cidades no [arquivo de configuração](configuracao.md)
-3. **Execute** o comando `python main.py`
-4. **Verifique** os arquivos na pasta `arquivos_baixados/`
+## 🚀 Uso Rápido
 
-## 🆘 Resolução de Problemas
+### Interface Gráfica
+```bash
+python gui_main.py
+```
 
-### Problemas Comuns
+### Terminal
+```bash
+python main.py
+```
 
-| Problema | Solução |
-|----------|---------|
-| Chrome não encontrado | Instale o Google Chrome |
-| Erro de dependências | Execute `pip install -r requirements.txt --force-reinstall` |
-| Seletor não encontrado | Verifique se a página não mudou |
-| Cidade MG não encontrada | Confira se existe cidade com esse nome em MG |
+## 📁 Estrutura de Arquivos
 
-### Debug
+```
+├── cidades.txt          # Lista estática (referência)
+├── listed_cities.txt    # Cidades selecionadas (dinâmico)
+├── gui_main.py          # Interface principal
+├── main.py              # Execução terminal
+└── classes/             # Módulos de automação
+```
 
-Para debug detalhado, monitore os logs no terminal:
-- ✅ **Verde**: Operações bem-sucedidas  
-- ❌ **Vermelho**: Erros críticos
-- ⚠️ **Amarelo**: Avisos importantes
-- 🔍 **Azul**: Informações de debug
+## 🆘 Suporte
 
-## 📞 Suporte
-
-1. Consulte esta documentação
+1. Consulte os guias específicos acima
 2. Verifique os logs de erro no terminal
-3. Abra uma [issue no GitHub](../../../issues) se necessário
+3. Abra uma issue no repositório se necessário
 
 ---
 
-**💡 Dica:** Mantenha sempre o Google Chrome atualizado para melhor compatibilidade. 
+**Mantenha sempre o Google Chrome atualizado para melhor compatibilidade.** 

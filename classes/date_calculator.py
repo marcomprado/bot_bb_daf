@@ -22,7 +22,6 @@ class DateCalculator:
         Define a data atual no momento da instanciação
         """
         self.data_atual = datetime.now()
-        print(f"📅 DateCalculator inicializado com data atual: {self.data_atual.strftime('%d/%m/%Y')}")
     
     def calcular_data_inicial(self):
         """
@@ -53,7 +52,6 @@ class DateCalculator:
         data_inicial = self.calcular_data_inicial()
         data_final = self.calcular_data_final()
         
-        print(f"📅 Data inicial calculada: {data_inicial}")
-        print(f"📅 Data final calculada: {data_final}")
+        print(f"📅 Período: {data_inicial} até {data_final}")
         
         return data_inicial, data_final 
