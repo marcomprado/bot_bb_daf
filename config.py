@@ -63,11 +63,11 @@ DATAS_CONFIG = {
 
 # Mensagens de log do sistema
 MENSAGENS = {
-    'inicio_processamento': '🚀 SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL',
-    'fim_processamento': '✅ Processamento concluído!',
-    'erro_critico': '❌ Erro crítico',
-    'sucesso': '✅',
-    'erro': '❌',
-    'aviso': '⚠️',
-    'info': 'ℹ️',
+    'inicio_processamento': ' SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL',
+    'fim_processamento': ' Processamento concluído!',
+    'erro_critico': ' Erro crítico',
+    'sucesso': 'success',
+    'erro': 'error',
+    'aviso': 'alert',
+    'info': 'info',
 } 
