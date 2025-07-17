@@ -15,15 +15,16 @@ class FileManager:
     - Tratamento de erros relacionados a arquivos
     """
     
-    def __init__(self, arquivo_cidades="cidades.txt"):
+    def __init__(self, arquivo_cidades="listed_cities.txt"):
         """
         Inicializa o gerenciador de arquivos
         
         Args:
             arquivo_cidades (str): Nome do arquivo que contém a lista de cidades
+                                 Por padrão usa 'listed_cities.txt' (arquivo dinâmico)
+                                 'cidades.txt' é o arquivo estático de referência
         """
         self.arquivo_cidades = arquivo_cidades
-        print(f"📁 FileManager inicializado para arquivo: {self.arquivo_cidades}")
     
     def verificar_arquivo_existe(self):
         """
@@ -35,6 +36,8 @@ class FileManager:
         exists = os.path.exists(self.arquivo_cidades)
         if not exists:
             print(f"❌ Arquivo '{self.arquivo_cidades}' não encontrado!")
+            if self.arquivo_cidades == "listed_cities.txt":
+                print("   Use a interface gráfica (gui_main.py) para selecionar cidades.")
         return exists
     
     def carregar_cidades(self):
@@ -45,7 +48,10 @@ class FileManager:
             list: Lista de cidades (strings) ou lista vazia em caso de erro
         """
         if not self.verificar_arquivo_existe():
-            print("Crie o arquivo 'cidades.txt' com uma cidade por linha.")
+            if self.arquivo_cidades == "listed_cities.txt":
+                print("Use a interface gráfica (gui_main.py) para selecionar cidades.")
+            else:
+                print(f"Crie o arquivo '{self.arquivo_cidades}' com uma cidade por linha.")
             return []
         
         try:
@@ -57,8 +63,7 @@ class FileManager:
                 print(f"❌ Arquivo '{self.arquivo_cidades}' está vazio!")
                 return []
             
-            print(f"✅ {len(cidades)} cidades carregadas do arquivo {self.arquivo_cidades}")
-            self._exibir_cidades_carregadas(cidades)
+            print(f"✅ {len(cidades)} cidades carregadas")
             return cidades
             
         except UnicodeDecodeError:
@@ -96,5 +101,4 @@ class FileManager:
             print("❌ Nenhuma cidade encontrada para processar.")
             return False
         
-        print(f"✅ Lista de cidades validada: {len(cidades)} cidades prontas para processamento.")
         return True 
