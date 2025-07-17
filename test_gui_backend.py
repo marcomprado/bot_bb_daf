@@ -93,7 +93,7 @@ class TestadorGUIBackend:
         
         try:
             # Testa imports das classes
-            from classes import AutomationCore, WebScrapingBot, DataExtractor, DateCalculator, FileManager
+            from classes import WebScrapingBot, DataExtractor, DateCalculator, FileManager
             self.log("Classes principais importadas", "SUCESSO")
             
             # Testa Selenium
@@ -130,7 +130,8 @@ class TestadorGUIBackend:
             'config.py',
             'cidades.txt',
             'classes/__init__.py',
-            'classes/automation_core.py'
+            'classes/web_scraping_bot.py',
+            'classes/data_extractor.py'
         ]
         
         todos_existem = True
@@ -166,38 +167,39 @@ class TestadorGUIBackend:
         self.separador("TESTE 4: INICIALIZAÇÃO DO BACKEND")
         
         try:
-            from classes.automation_core import AutomationCore
+            from classes.web_scraping_bot import WebScrapingBot
+            from classes.data_extractor import DataExtractor
+            from classes.date_calculator import DateCalculator
+            from classes.file_manager import FileManager
             
-            # Testa inicialização
-            core = AutomationCore()
-            self.log("AutomationCore inicializado", "SUCESSO")
+            # Testa inicialização de cada componente individualmente
             
-            # Testa inicialização de componentes
-            resultado = core.inicializar_componentes()
+            # 1. FileManager
+            file_manager = FileManager()
+            self.log("✓ FileManager inicializado", "SUCESSO")
             
-            if resultado.get('sucesso'):
-                self.log("Componentes inicializados com sucesso", "SUCESSO")
-                
-                # Verifica componentes individuais
-                if hasattr(core, 'file_manager') and core.file_manager:
-                    self.log("✓ FileManager carregado", "SUCESSO")
-                if hasattr(core, 'date_calculator') and core.date_calculator:
-                    self.log("✓ DateCalculator carregado", "SUCESSO")
-                if hasattr(core, 'data_extractor') and core.data_extractor:
-                    self.log("✓ DataExtractor carregado", "SUCESSO")
-                    
-                    # Mostra onde o DataExtractor salvará arquivos
-                    diretorio_saida = getattr(core.data_extractor, 'diretorio_saida', 'Não definido')
-                    self.log(f"  📁 Arquivos serão salvos em: {diretorio_saida}", "CAMINHO")
-                    
-                if hasattr(core, 'bot') and core.bot:
-                    self.log("✓ WebScrapingBot carregado", "SUCESSO")
-                
-                return True
-            else:
-                erro = resultado.get('erro', 'Erro desconhecido')
-                self.log(f"Falha na inicialização: {erro}", "ERRO")
-                return False
+            # 2. DateCalculator
+            date_calculator = DateCalculator()
+            self.log("✓ DateCalculator inicializado", "SUCESSO")
+            
+            # 3. DataExtractor
+            data_extractor = DataExtractor()
+            self.log("✓ DataExtractor inicializado", "SUCESSO")
+            
+            # Mostra onde o DataExtractor salvará arquivos
+            diretorio_saida = getattr(data_extractor, 'diretorio_saida', 'Não definido')
+            self.log(f"  📁 Arquivos serão salvos em: {diretorio_saida}", "CAMINHO")
+            
+            # 4. WebScrapingBot
+            bot = WebScrapingBot()
+            self.log("✓ WebScrapingBot inicializado", "SUCESSO")
+            
+            # 5. Testa configuração do extrator no bot
+            bot.configurar_extrator_dados(data_extractor)
+            self.log("✓ Extrator configurado no bot", "SUCESSO")
+            
+            self.log("Todos os componentes inicializados com sucesso", "SUCESSO")
+            return True
                 
         except Exception as e:
             self.log(f"Erro na inicialização: {e}", "ERRO")
@@ -498,15 +500,16 @@ class TestadorGUIBackend:
                 self.log(f"Problema na configuração GUI: {e}", "AVISO")
             
             # Verifica integração com backend
-            from classes.automation_core import AutomationCore
-            core = AutomationCore()
+            from classes.web_scraping_bot import WebScrapingBot
+            from classes.data_extractor import DataExtractor
             
-            if core.inicializar_componentes()['sucesso']:
-                self.log("✓ Integração GUI-Backend OK", "SUCESSO")
-                return True
-            else:
-                self.log("✗ Problema na integração", "ERRO")
-                return False
+            # Testa criação das classes principais
+            bot = WebScrapingBot()
+            extractor = DataExtractor()
+            bot.configurar_extrator_dados(extractor)
+            
+            self.log("✓ Integração GUI-Backend OK", "SUCESSO")
+            return True
                 
         except Exception as e:
             self.log(f"Erro na integração: {e}", "ERRO")

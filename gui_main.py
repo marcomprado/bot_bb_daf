@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Interface gráfica moderna para o sistema de automação FPM
-Serve como ponte visual para executar o main.py sem duplicar código
+Serve como ponte visual para executar o main.py simplificado
 """
 
 import customtkinter as ctk
