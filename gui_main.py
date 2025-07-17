@@ -13,6 +13,7 @@ import threading
 import subprocess
 from datetime import datetime, timedelta
 from typing import List
+from classes.city_splitter import CitySplitter
 
 
 class SeletorCidades:
@@ -21,12 +22,14 @@ class SeletorCidades:
     def __init__(self, parent, lista_cidades):
         self.parent = parent
         self.lista_cidades = lista_cidades
+        self.lista_cidades_filtrada = lista_cidades.copy()
         self.cidades_selecionadas = []
+        self.indices_selecionados = set()  # Para manter track das seleções
         
         # Janela popup
         self.popup = tk.Toplevel(parent.janela)
         self.popup.title("Seleção de Cidades")
-        self.popup.geometry("450x550")
+        self.popup.geometry("450x600")  # Aumentado para acomodar pesquisa
         self.popup.resizable(False, False)
         self.popup.configure(bg='#f8f9fa')
         self.popup.transient(parent.janela)
@@ -35,13 +38,13 @@ class SeletorCidades:
         # Centraliza popup
         self.popup.update_idletasks()
         x = (self.popup.winfo_screenwidth() // 2) - (450 // 2)
-        y = (self.popup.winfo_screenheight() // 2) - (550 // 2)
-        self.popup.geometry(f"450x550+{x}+{y}")
+        y = (self.popup.winfo_screenheight() // 2) - (600 // 2)
+        self.popup.geometry(f"450x600+{x}+{y}")
         
         self._criar_interface()
     
     def _criar_interface(self):
-        """Cria interface do seletor com melhor visibilidade"""
+        """Cria interface do seletor com melhor visibilidade e pesquisa"""
         # Título
         titulo = tk.Label(
             self.popup,
@@ -49,9 +52,73 @@ class SeletorCidades:
             font=("Arial", 18, "bold"),
             bg='#f8f9fa',
             fg='#212529',
-            pady=15
+            pady=10
         )
         titulo.pack()
+        
+        # Frame para pesquisa
+        frame_pesquisa = tk.Frame(self.popup, bg='#f8f9fa')
+        frame_pesquisa.pack(fill="x", padx=20, pady=(0, 10))
+        
+        # Label pesquisa
+        label_pesquisa = tk.Label(
+            frame_pesquisa,
+            text="Pesquisar:",
+            font=("Arial", 12, "bold"),
+            bg='#f8f9fa',
+            fg='#495057'
+        )
+        label_pesquisa.pack(side="top", anchor="w")
+        
+        # Container para campo de pesquisa e botão limpar
+        container_pesquisa = tk.Frame(frame_pesquisa, bg='#f8f9fa')
+        container_pesquisa.pack(fill="x", pady=(5, 0))
+        
+        # Campo de pesquisa
+        self.entry_pesquisa = tk.Entry(
+            container_pesquisa,
+            font=("Arial", 12),
+            bg='white',
+            fg='#333333',
+            relief='solid',
+            borderwidth=1,
+            insertbackground='#333333'
+        )
+        self.entry_pesquisa.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.entry_pesquisa.bind('<KeyRelease>', self._on_pesquisa_change)
+        self.entry_pesquisa.bind('<Escape>', lambda e: self._limpar_pesquisa())
+        
+        # Adiciona placeholder text
+        self.entry_pesquisa.insert(0, "Digite para pesquisar...")
+        self.entry_pesquisa.bind('<FocusIn>', self._on_entry_focus_in)
+        self.entry_pesquisa.bind('<FocusOut>', self._on_entry_focus_out)
+        self.entry_pesquisa.configure(fg='#999999')
+        
+        # Botão limpar pesquisa
+        btn_limpar_pesquisa = tk.Button(
+            container_pesquisa,
+            text="Limpar",
+            command=self._limpar_pesquisa,
+            bg="#6c757d",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            padx=12,
+            pady=6,
+            relief='flat',
+            cursor='hand2',
+            borderwidth=0
+        )
+        btn_limpar_pesquisa.pack(side="right")
+        
+        # Label contador
+        self.label_contador = tk.Label(
+            frame_pesquisa,
+            text=f"Mostrando {len(self.lista_cidades)} cidades",
+            font=("Arial", 10),
+            bg='#f8f9fa',
+            fg='#6c757d'
+        )
+        self.label_contador.pack(side="top", anchor="w", pady=(5, 0))
         
         # Frame para listbox e scrollbar
         frame_lista = tk.Frame(self.popup, bg='#f8f9fa')
@@ -62,7 +129,7 @@ class SeletorCidades:
             frame_lista,
             selectmode="multiple",
             font=("Arial", 12),
-            height=18,
+            height=15,  # Reduzido para acomodar pesquisa
             bg='white',
             fg='#333333',
             selectbackground='#0066cc',
@@ -81,9 +148,18 @@ class SeletorCidades:
         self.listbox.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Adiciona cidades à listbox
-        for cidade in self.lista_cidades:
-            self.listbox.insert(tk.END, cidade.title())
+        # Popula listbox inicial
+        self._atualizar_listbox()
+        
+        # Permite confirmar com Enter na listbox
+        self.listbox.bind('<Double-Button-1>', lambda e: self._confirmar())
+        self.listbox.bind('<Return>', lambda e: self._confirmar())
+        
+        # Permite navegar do campo de pesquisa para a listbox com Tab
+        self.entry_pesquisa.bind('<Tab>', self._focus_listbox)
+        
+        # Dá foco ao campo de pesquisa
+        self.entry_pesquisa.focus_set()
         
         # Frame para os 3 botões principais
         frame_botoes = tk.Frame(self.popup, bg='#f8f9fa')
@@ -153,6 +229,95 @@ class SeletorCidades:
         button.bind("<Enter>", on_enter)
         button.bind("<Leave>", on_leave)
     
+    def _on_pesquisa_change(self, event):
+        """Função chamada quando o usuário digita no campo de pesquisa"""
+        texto_atual = self.entry_pesquisa.get()
+        
+        # Ignora se for o placeholder text
+        if texto_atual == "Digite para pesquisar...":
+            self._filtrar_cidades("")
+            return
+        
+        termo_pesquisa = texto_atual.lower().strip()
+        self._filtrar_cidades(termo_pesquisa)
+    
+    def _limpar_pesquisa(self):
+        """Limpa o campo de pesquisa e mostra todas as cidades"""
+        self.entry_pesquisa.delete(0, tk.END)
+        self.entry_pesquisa.insert(0, "Digite para pesquisar...")
+        self.entry_pesquisa.configure(fg='#999999')
+        self._filtrar_cidades("")
+    
+    def _filtrar_cidades(self, termo):
+        """Filtra as cidades baseado no termo de pesquisa"""
+        if not termo:
+            # Se não há termo, mostra todas as cidades
+            self.lista_cidades_filtrada = self.lista_cidades.copy()
+        else:
+            # Filtra cidades que contêm o termo
+            self.lista_cidades_filtrada = [
+                cidade for cidade in self.lista_cidades 
+                if termo in cidade.lower()
+            ]
+        
+        # Atualiza a listbox e contador
+        self._atualizar_listbox()
+        self._atualizar_contador()
+    
+    def _atualizar_listbox(self):
+        """Atualiza a listbox com as cidades filtradas mantendo seleções"""
+        # Salva quais cidades estavam selecionadas pelo nome
+        cidades_selecionadas_nomes = set()
+        for i in self.listbox.curselection():
+            cidade_original = self.lista_cidades_filtrada[i]
+            cidades_selecionadas_nomes.add(cidade_original)
+        
+        # Limpa listbox
+        self.listbox.delete(0, tk.END)
+        
+        # Adiciona cidades filtradas
+        for cidade in self.lista_cidades_filtrada:
+            self.listbox.insert(tk.END, cidade.title())
+        
+        # Restaura seleções
+        for i, cidade in enumerate(self.lista_cidades_filtrada):
+            if cidade in cidades_selecionadas_nomes:
+                self.listbox.selection_set(i)
+    
+    def _atualizar_contador(self):
+        """Atualiza o contador de cidades mostradas"""
+        total_filtradas = len(self.lista_cidades_filtrada)
+        total_geral = len(self.lista_cidades)
+        
+        if total_filtradas == total_geral:
+            texto = f"Mostrando {total_geral} cidades"
+        else:
+            texto = f"Mostrando {total_filtradas} de {total_geral} cidades"
+        
+        self.label_contador.configure(text=texto)
+    
+    def _on_entry_focus_in(self, event):
+        """Remove placeholder quando o campo ganha foco"""
+        if self.entry_pesquisa.get() == "Digite para pesquisar...":
+            self.entry_pesquisa.delete(0, tk.END)
+            self.entry_pesquisa.configure(fg='#333333')
+    
+    def _on_entry_focus_out(self, event):
+        """Adiciona placeholder quando o campo perde foco e está vazio"""
+        if not self.entry_pesquisa.get().strip():
+            self.entry_pesquisa.delete(0, tk.END)
+            self.entry_pesquisa.insert(0, "Digite para pesquisar...")
+            self.entry_pesquisa.configure(fg='#999999')
+            # Mostra todas as cidades quando limpa a pesquisa
+            self._filtrar_cidades("")
+    
+    def _focus_listbox(self, event):
+        """Move foco para a listbox"""
+        self.listbox.focus_set()
+        if self.listbox.size() > 0:
+            self.listbox.selection_set(0)  # Seleciona primeiro item
+        return "break"  # Previne comportamento padrão do Tab
+    
     def _limpar_selecao(self):
         """Limpa toda a seleção"""
         self.listbox.selection_clear(0, tk.END)
@@ -161,7 +326,7 @@ class SeletorCidades:
         """Confirma seleção e fecha popup"""
         indices_selecionados = self.listbox.curselection()
         self.cidades_selecionadas = [
-            self.lista_cidades[i] for i in indices_selecionados
+            self.lista_cidades_filtrada[i] for i in indices_selecionados
         ]
         self.popup.destroy()
     
@@ -206,6 +371,11 @@ class GUIMain:
         self.data_inicial_var = ctk.StringVar()
         self.data_final_var = ctk.StringVar()
         
+        # Sistema de divisão de cidades
+        self.city_splitter = CitySplitter()
+        self.num_instancias = 1
+        self.modo_execucao = "individual"  # ou "paralelo"
+        
         self._configurar_datas_padrao()
         self._centralizar_janela()
         self._criar_interface()
@@ -244,6 +414,7 @@ class GUIMain:
         # Seções principais
         self._criar_secao_datas(self.main_frame)
         self._criar_secao_cidades(self.main_frame)
+        self._criar_secao_execucao_paralela(self.main_frame)
         self._criar_botoes_acao(self.main_frame)
     
     def _criar_cabecalho(self, parent):
@@ -270,7 +441,7 @@ class GUIMain:
         # Subtítulo
         label_subtitulo = ctk.CTkLabel(
             frame_cabecalho,
-            text="Automação de consultas",
+            text="Automação de consultas - Banco do Brasil",
             font=ctk.CTkFont(size=16),
             text_color="#6c757d"
         )
@@ -436,6 +607,137 @@ class GUIMain:
         )
         self.label_status_selecao.pack(pady=(0, 15))
     
+    def _criar_secao_execucao_paralela(self, parent):
+        """Cria seção de execução paralela - NOVA FUNCIONALIDADE"""
+        # Frame da execução paralela
+        frame_paralela = ctk.CTkFrame(
+            parent,
+            corner_radius=20,
+            fg_color="#f8f9fa",
+            border_width=1,
+            border_color="#dee2e6"
+        )
+        frame_paralela.pack(fill="x", padx=20, pady=(0, 20))
+        
+        # Título da seção
+        label_titulo = ctk.CTkLabel(
+            frame_paralela,
+            text="Execução Paralela",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#495057"
+        )
+        label_titulo.pack(pady=(15, 10))
+        
+        # Container dos controles - Grid responsivo
+        container_controles = ctk.CTkFrame(
+            frame_paralela,
+            fg_color="white",
+            corner_radius=15,
+            border_width=1,
+            border_color="#dee2e6"
+        )
+        container_controles.pack(fill="x", padx=15, pady=(0, 10))
+        
+        # Configurar grid - 3 colunas
+        container_controles.grid_columnconfigure(0, weight=1)
+        container_controles.grid_columnconfigure(1, weight=1)
+        container_controles.grid_columnconfigure(2, weight=1)
+        
+        # Label modo execução
+        label_modo = ctk.CTkLabel(
+            container_controles,
+            text="Modo:",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#495057"
+        )
+        label_modo.grid(row=0, column=0, padx=10, pady=12, sticky="w")
+        
+        # Dropdown modo execução
+        self.dropdown_modo = ctk.CTkOptionMenu(
+            container_controles,
+            values=["Individual", "Paralelo"],
+            font=ctk.CTkFont(size=12),
+            dropdown_font=ctk.CTkFont(size=12),
+            command=self._on_modo_change,
+            width=140,
+            height=35
+        )
+        self.dropdown_modo.set("Individual")
+        self.dropdown_modo.grid(row=0, column=1, padx=10, pady=12, sticky="ew")
+        
+        # Campo número de instâncias
+        self.entry_instancias = ctk.CTkEntry(
+            container_controles,
+            placeholder_text="Instâncias",
+            font=ctk.CTkFont(size=12),
+            width=100,
+            height=35,
+            justify="center",
+            state="disabled"
+        )
+        self.entry_instancias.insert(0, "1")
+        self.entry_instancias.grid(row=0, column=2, padx=10, pady=12, sticky="ew")
+        
+        # Botão calcular distribuição
+        self.botao_calcular = ctk.CTkButton(
+            frame_paralela,
+            text="Calcular Distribuição",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=45,
+            corner_radius=22,
+            fg_color="#6c757d",
+            hover_color="#5a6268",
+            command=self._calcular_distribuicao,
+            state="disabled",
+            width=240
+        )
+        self.botao_calcular.pack(pady=(0, 10))
+        
+        # Label de status da distribuição
+        self.label_distribuicao = ctk.CTkLabel(
+            frame_paralela,
+            text="",
+            font=ctk.CTkFont(size=12),
+            text_color="#495057",
+            justify="left"
+        )
+        self.label_distribuicao.pack(pady=(0, 15))
+    
+    def _on_modo_change(self, valor):
+        """Callback quando o modo de execução é alterado"""
+        if valor == "Paralelo":
+            self.modo_execucao = "paralelo"
+            self.entry_instancias.configure(state="normal")
+            self.botao_calcular.configure(state="normal")
+            self.entry_instancias.delete(0, "end")
+            self.entry_instancias.insert(0, "2")
+        else:
+            self.modo_execucao = "individual"
+            self.entry_instancias.configure(state="disabled")
+            self.botao_calcular.configure(state="disabled")
+            self.entry_instancias.delete(0, "end")
+            self.entry_instancias.insert(0, "1")
+            self.label_distribuicao.configure(text="")
+    
+    def _calcular_distribuicao(self):
+        """Calcula e exibe a distribuição das cidades"""
+        try:
+            num_instancias = int(self.entry_instancias.get())
+            
+            # Valida número de instâncias
+            valido, mensagem = self.city_splitter.validar_instancias(num_instancias)
+            if not valido:
+                self._mostrar_erro(mensagem)
+                return
+            
+            # Calcula distribuição
+            resumo = self.city_splitter.obter_resumo_distribuicao(num_instancias)
+            self.label_distribuicao.configure(text=resumo)
+            self.num_instancias = num_instancias
+            
+        except ValueError:
+            self._mostrar_erro("Digite um número válido de instâncias")
+    
     def _criar_botoes_acao(self, parent):
         """Cria apenas botão principal de execução - RESPONSIVO"""
         # Container menor apenas para botão executar
@@ -518,9 +820,18 @@ class GUIMain:
         # Atualiza estado
         self.executando = not habilitado
         
-        # Atualiza botões (removido botao_limpar)
+        # Atualiza botões de seleção de cidades
         self.botao_todas.configure(state="normal" if habilitado else "disabled")
         self.botao_individual.configure(state="normal" if habilitado else "disabled")
+        
+        # Atualiza controles de execução paralela
+        self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
+        if habilitado and self.modo_execucao == "paralelo":
+            self.entry_instancias.configure(state="normal")
+            self.botao_calcular.configure(state="normal")
+        else:
+            self.entry_instancias.configure(state="disabled")
+            self.botao_calcular.configure(state="disabled")
         
         # Atualiza botão executar/cancelar
         if habilitado:
@@ -557,64 +868,154 @@ class GUIMain:
             return
         
         try:
-            # Salva cidades selecionadas no arquivo
-            self._salvar_cidades_selecionadas()
-            
-            # Desabilita interface e muda botão para cancelar
-            self._habilitar_interface(False)
-            
-            # Executa main.py em thread separada
-            def executar_subprocess():
-                try:
-                    self.processo = subprocess.Popen(
-                        [sys.executable, "main.py"],
+            if self.modo_execucao == "paralelo":
+                self._executar_modo_paralelo()
+            else:
+                self._executar_modo_individual()
+                
+        except Exception as e:
+            self._mostrar_erro(f"Erro ao executar: {str(e)}")
+            self._habilitar_interface(True)
+    
+    def _executar_modo_individual(self):
+        """Executa modo individual (uma instância)"""
+        # Salva cidades selecionadas no arquivo
+        self._salvar_cidades_selecionadas()
+        
+        # Desabilita interface e muda botão para cancelar
+        self._habilitar_interface(False)
+        
+        # Executa main.py em thread separada
+        def executar_subprocess():
+            try:
+                self.processo = subprocess.Popen(
+                    [sys.executable, "main.py"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    cwd=os.getcwd()
+                )
+                
+                # Aguarda processo terminar
+                stdout, stderr = self.processo.communicate()
+                
+                # Cria objeto resultado simulando subprocess.run
+                class ResultadoProcesso:
+                    def __init__(self, returncode, stdout, stderr):
+                        self.returncode = returncode
+                        self.stdout = stdout
+                        self.stderr = stderr
+                
+                resultado = ResultadoProcesso(
+                    self.processo.returncode,
+                    stdout,
+                    stderr
+                )
+                
+                # Reabilita interface na thread principal
+                if not self._cancelado:
+                    self.janela.after(0, self._finalizar_execucao, resultado)
+                
+            except Exception as e:
+                # Reabilita interface em caso de erro
+                if not self._cancelado:
+                    self.janela.after(0, self._finalizar_execucao_erro, str(e))
+        
+        # Inicializa flag de cancelamento
+        self._cancelado = False
+        
+        # Inicia thread
+        self.thread_execucao = threading.Thread(target=executar_subprocess, daemon=True)
+        self.thread_execucao.start()
+    
+    def _executar_modo_paralelo(self):
+        """Executa modo paralelo (múltiplas instâncias)"""
+        # Divide as cidades em arquivos para cada instância
+        resultado = self.city_splitter.dividir_cidades(self.num_instancias)
+        
+        if not resultado.get('sucesso'):
+            self._mostrar_erro(f"Erro ao dividir cidades: {resultado.get('erro')}")
+            return
+        
+        # Desabilita interface e muda botão para cancelar
+        self._habilitar_interface(False)
+        
+        # Lista para guardar os processos
+        self.processos_paralelos = []
+        
+        # Executa múltiplas instâncias em thread separada
+        def executar_processos_paralelos():
+            try:
+                arquivos_criados = resultado['arquivos_criados']
+                
+                # Inicia todos os processos
+                for arquivo_info in arquivos_criados:
+                    # Usa o script main_parallel.py passando o arquivo específico
+                    processo = subprocess.Popen(
+                        [sys.executable, "main_parallel.py", arquivo_info['arquivo']],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
                         cwd=os.getcwd()
                     )
                     
-                    # Aguarda processo terminar
-                    stdout, stderr = self.processo.communicate()
+                    self.processos_paralelos.append({
+                        'processo': processo,
+                        'instancia': arquivo_info['instancia'],
+                        'arquivo': arquivo_info['arquivo']
+                    })
+                
+                # Aguarda todos os processos terminarem
+                resultados = []
+                for proc_info in self.processos_paralelos:
+                    stdout, stderr = proc_info['processo'].communicate()
+                    resultados.append({
+                        'instancia': proc_info['instancia'],
+                        'returncode': proc_info['processo'].returncode,
+                        'stdout': stdout,
+                        'stderr': stderr
+                    })
                     
-                    # Cria objeto resultado simulando subprocess.run
-                    class ResultadoProcesso:
-                        def __init__(self, returncode, stdout, stderr):
-                            self.returncode = returncode
-                            self.stdout = stdout
-                            self.stderr = stderr
-                    
-                    resultado = ResultadoProcesso(
-                        self.processo.returncode,
-                        stdout,
-                        stderr
-                    )
-                    
-                    # Reabilita interface na thread principal
-                    if not self._cancelado:
-                        self.janela.after(0, self._finalizar_execucao, resultado)
-                    
-                except Exception as e:
-                    # Reabilita interface em caso de erro
-                    if not self._cancelado:
-                        self.janela.after(0, self._finalizar_execucao_erro, str(e))
+                    # Remove arquivo temporário de cidades
+                    try:
+                        os.remove(proc_info['arquivo'])
+                    except:
+                        pass
+                
+                # Reabilita interface na thread principal
+                if not self._cancelado:
+                    self.janela.after(0, self._finalizar_execucao_paralela, resultados)
+                
+            except Exception as e:
+                # Reabilita interface em caso de erro
+                if not self._cancelado:
+                    self.janela.after(0, self._finalizar_execucao_erro, str(e))
+        
+        # Inicializa flag de cancelamento
+        self._cancelado = False
+        
+        # Inicia thread
+        self.thread_execucao = threading.Thread(target=executar_processos_paralelos, daemon=True)
+        self.thread_execucao.start()
+    
+
+    
+    def _finalizar_execucao_paralela(self, resultados):
+        """Finaliza execução paralela e mostra resultados"""
+        if self._cancelado:
+            return
             
-            # Inicializa flag de cancelamento
-            self._cancelado = False
-            
-            # Inicia thread
-            self.thread_execucao = threading.Thread(target=executar_subprocess, daemon=True)
-            self.thread_execucao.start()
-            
-        except Exception as e:
-            self._mostrar_erro(f"Erro ao executar: {str(e)}")
-            self._habilitar_interface(True)
+        self._habilitar_interface(True)
+        
+        # Sempre mostra popup padrão de término do processo
+        self._mostrar_popup_processo_terminado()
     
     def _cancelar_execucao(self):
         """Cancela a execução em andamento"""
         try:
             self._cancelado = True
             
+            # Cancela execução individual
             if hasattr(self, 'processo') and self.processo:
                 # Termina o processo
                 self.processo.terminate()
@@ -625,6 +1026,28 @@ class GUIMain:
                 except subprocess.TimeoutExpired:
                     self.processo.kill()
                     self.processo.wait()
+            
+            # Cancela execução paralela
+            if hasattr(self, 'processos_paralelos') and self.processos_paralelos:
+                for proc_info in self.processos_paralelos:
+                    try:
+                        processo = proc_info['processo']
+                        processo.terminate()
+                        
+                        # Aguarda um pouco e força encerramento se necessário
+                        try:
+                            processo.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            processo.kill()
+                            processo.wait()
+                        
+                        # Remove arquivo temporário de cidades
+                        try:
+                            os.remove(proc_info['arquivo'])
+                        except:
+                            pass
+                    except:
+                        pass
             
             # Reabilita interface
             self._habilitar_interface(True)

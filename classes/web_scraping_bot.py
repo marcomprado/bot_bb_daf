@@ -250,9 +250,6 @@ class WebScrapingBot:
             bool: True se o clique foi bem-sucedido, False caso contrário
         """
         try:
-            # Aguarda um momento extra para garantir que a página processou as datas
-            time.sleep(SISTEMA_CONFIG['pausa_entre_campos'])
-            
             # Pressiona ESC para fechar qualquer calendário aberto antes de clicar no botão
             self.navegador.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
             time.sleep(SISTEMA_CONFIG['pausa_esc_calendario'])
@@ -353,7 +350,6 @@ class WebScrapingBot:
         total_cidades = len(cidades)
         sucessos = 0
         erros = 0
-        resultados_extracao = []  # Para armazenar resultados da extração de dados
         
         for i, cidade in enumerate(cidades, 1):
             print(f"Processando {i}/{total_cidades}: {cidade.title()}")
@@ -363,12 +359,9 @@ class WebScrapingBot:
             
             if sucesso:
                 sucessos += 1
-                # Registra sucesso na extração (será detalhado pelo próprio extrator)
-                resultados_extracao.append({'cidade': cidade, 'sucesso': True})
             else:
                 erros += 1
                 print(f"Falha: {cidade.title()}")
-                resultados_extracao.append({'cidade': cidade, 'sucesso': False})
             
             # Volta para a página inicial para a próxima cidade (exceto na última)
             if i < total_cidades:
@@ -379,22 +372,14 @@ class WebScrapingBot:
                 # Pausa entre as cidades
                 time.sleep(SISTEMA_CONFIG['pausa_entre_cidades'])
         
-        # Gera relatório consolidado se há extrator configurado
-        if hasattr(self, 'data_extractor') and self.data_extractor and resultados_extracao:
-            try:
-                relatorio_consolidado = self.data_extractor.gerar_relatorio_consolidado(resultados_extracao)
-                if relatorio_consolidado:
-                    print(f"Relatório consolidado gerado")
-            except Exception:
-                pass
+
         
         # Retorna estatísticas do processamento
         estatisticas = {
             'total': total_cidades,
             'sucessos': sucessos,
             'erros': erros,
-            'taxa_sucesso': (sucessos / total_cidades) * 100 if total_cidades > 0 else 0,
-            'resultados_extracao': resultados_extracao
+            'taxa_sucesso': (sucessos / total_cidades) * 100 if total_cidades > 0 else 0
         }
         
         print(f"\nConcluído: {sucessos}/{total_cidades} sucessos ({estatisticas['taxa_sucesso']:.1f}%)")

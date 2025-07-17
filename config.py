@@ -11,12 +11,12 @@ SISTEMA_CONFIG = {
     # Timeout para aguardar elementos carregarem (em segundos)
     'timeout_selenium': 10,
     
-    # Pausas entre ações (em segundos)
-    'pausa_entre_cidades': 2,
-    'pausa_apos_preenchimento': 2,
-    'pausa_apos_clique': 3,
-    'pausa_entre_campos': 1,
-    'pausa_esc_calendario': 0.5,
+    # Pausas entre ações (em segundos) - OTIMIZADO PARA MÁXIMA VELOCIDADE
+    'pausa_entre_cidades': 0.3,        # Reduzido de 2s para 0.3s
+    'pausa_apos_preenchimento': 0.1,   # Reduzido de 2s para 0.1s  
+    'pausa_apos_clique': 0.3,          # Reduzido de 3s para 0.3s
+    'pausa_entre_campos': 0.1,         # Reduzido de 1s para 0.1s
+    'pausa_esc_calendario': 0.05,      # Reduzido de 0.5s para 0.05s
 }
 
 # Configurações de arquivos

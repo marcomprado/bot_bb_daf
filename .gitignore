@@ -49,6 +49,9 @@ config_local.py
 # Arquivo dinâmico de cidades selecionadas (gerado pela GUI)
 listed_cities.txt
 
+# Arquivos de instâncias paralelas (temporários)
+listed_cities_instancia_*.txt
+
 # Drivers do Selenium (baixados automaticamente)
 chromedriver*
 geckodriver*
