@@ -52,6 +52,6 @@ class DateCalculator:
         data_inicial = self.calcular_data_inicial()
         data_final = self.calcular_data_final()
         
-        print(f"📅 Período: {data_inicial} até {data_final}")
+        print(f"Período: {data_inicial} até {data_final}")
         
         return data_inicial, data_final 

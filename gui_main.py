@@ -485,8 +485,8 @@ class GUIMain:
         botao.bind("<Leave>", on_leave)
     
     def _mostrar_erro(self, mensagem):
-        """Mostra mensagem de erro com X vermelho"""
-        messagebox.showerror("❌ Erro", mensagem)
+        """Mostra mensagem de erro"""
+        messagebox.showerror("Erro", mensagem)
     
     def _mostrar_info(self, mensagem):
         """Mostra mensagem informativa"""
@@ -590,22 +590,9 @@ class GUIMain:
                         stderr
                     )
                     
-                    # Diagnóstico específico para falha imediata (possível problema Windows)
-                    if resultado.returncode != 0 and stderr:
-                        # Se houve erro imediato, salva detalhes para diagnóstico
-                        detalhes_erro = {
-                            'codigo': resultado.returncode,
-                            'stderr': stderr,
-                            'stdout': stdout,
-                            'plataforma': sys.platform,
-                            'python_executable': sys.executable
-                        }
-                        if not self._cancelado:
-                            self.janela.after(0, self._finalizar_execucao_com_erro, detalhes_erro)
-                    else:
-                        # Reabilita interface na thread principal
-                        if not self._cancelado:
-                            self.janela.after(0, self._finalizar_execucao, resultado)
+                    # Reabilita interface na thread principal
+                    if not self._cancelado:
+                        self.janela.after(0, self._finalizar_execucao, resultado)
                     
                 except Exception as e:
                     # Reabilita interface em caso de erro
@@ -668,53 +655,6 @@ class GUIMain:
         
         # Sempre mostra popup padrão de término do processo
         self._mostrar_popup_processo_terminado()
-    
-    def _finalizar_execucao_com_erro(self, detalhes):
-        """Finaliza execução mostrando detalhes do erro para diagnóstico"""
-        if self._cancelado:
-            return
-            
-        self._habilitar_interface(True)
-        
-        # Se está no Windows e houve erro imediato, mostra diagnóstico
-        if detalhes['plataforma'].startswith('win') and detalhes['codigo'] != 0:
-            
-            # Analisa tipos comuns de erro
-            stderr_lower = detalhes['stderr'].lower()
-            
-            if 'modulenotfounderror' in stderr_lower or 'importerror' in stderr_lower:
-                erro_tipo = "Dependências não instaladas"
-                solucao = "Execute: pip install -r requirements.txt"
-            elif 'chromedriver' in stderr_lower or 'chrome' in stderr_lower:
-                erro_tipo = "Chrome ou ChromeDriver não encontrado"
-                solucao = "Instale o Google Chrome"
-            elif 'unicodedecode' in stderr_lower or 'encoding' in stderr_lower:
-                erro_tipo = "Erro de codificação de arquivo"
-                solucao = "Verifique se listed_cities.txt está em UTF-8"
-            elif 'permission' in stderr_lower or 'access' in stderr_lower:
-                erro_tipo = "Erro de permissões"
-                solucao = "Execute como administrador ou verifique permissões"
-            else:
-                erro_tipo = "Erro desconhecido"
-                solucao = "Verifique os logs abaixo"
-            
-            # Mostra popup detalhado
-            mensagem_erro = f"""ERRO DETECTADO NO WINDOWS:
-
-Tipo: {erro_tipo}
-Código: {detalhes['codigo']}
-
-Solução: {solucao}
-
-Detalhes técnicos:
-{detalhes['stderr'][:300]}...
-
-Python: {detalhes['python_executable']}"""
-            
-            self._mostrar_erro(mensagem_erro)
-        else:
-            # Comportamento padrão para outros casos
-            self._mostrar_popup_processo_terminado()
     
     def _salvar_cidades_selecionadas(self):
         """Salva cidades selecionadas no arquivo listed_cities.txt (dinâmico)"""
@@ -784,7 +724,7 @@ def main():
         interface = GUIMain()
         interface.executar()
     except Exception as e:
-        print(f"❌ Erro ao inicializar interface: {e}")
+        print(f"Erro ao inicializar interface: {e}")
         return 1
     
     return 0

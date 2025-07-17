@@ -26,14 +26,14 @@ def main():
     Função principal SIMPLIFICADA que usa as classes diretamente
     """
     print("=" * 60)
-    print("🚀 SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL")
+    print("SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL")
     print("=" * 60)
     
     try:
         # 1. Carrega cidades
         file_manager = FileManager()
         if not file_manager.verificar_arquivo_existe():
-            print("❌ Use a interface gráfica para selecionar cidades primeiro.")
+            print("Use a interface gráfica para selecionar cidades primeiro.")
             return 1
         
         cidades = file_manager.carregar_cidades()
@@ -50,28 +50,28 @@ def main():
         bot.configurar_extrator_dados(data_extractor)
         
         # 4. Configura navegador
-        print("🔧 Configurando navegador...")
+        print("Configurando navegador...")
         if not bot.configurar_navegador():
-            print("❌ Falha na configuração do navegador Chrome")
+            print("Falha na configuração do navegador Chrome")
             return 1
         
         # 5. Abre página inicial
-        print("🌐 Abrindo página inicial...")
+        print("Abrindo página inicial...")
         if not bot.abrir_pagina_inicial():
-            print("❌ Falha ao carregar página inicial")
+            print("Falha ao carregar página inicial")
             bot.fechar_navegador()
             return 1
         
         # 6. Processa todas as cidades
-        print(f"🚀 Processando {len(cidades)} cidades...")
+        print(f"Processando {len(cidades)} cidades...")
         estatisticas = bot.processar_lista_cidades(cidades, data_inicial, data_final)
         
         # 7. Fecha navegador automaticamente
-        print("🔒 Fechando navegador...")
+        print("Fechando navegador...")
         bot.fechar_navegador()
         
         # 8. Exibe estatísticas finais
-        print(f"\n📊 Processamento concluído:")
+        print(f"\nProcessamento concluído:")
         print(f"   Total: {estatisticas['total']} cidades")
         print(f"   Sucessos: {estatisticas['sucessos']}")
         print(f"   Erros: {estatisticas['erros']}")
@@ -84,12 +84,12 @@ def main():
         return 0 if estatisticas['erros'] == 0 else 1
         
     except KeyboardInterrupt:
-        print("\n⏹️ Interrompido pelo usuário")
+        print("\nInterrompido pelo usuário")
         if 'bot' in locals():
             bot.fechar_navegador()
         return 130
     except Exception as e:
-        print(f"❌ Erro inesperado: {e}")
+        print(f"Erro inesperado: {e}")
         if 'bot' in locals():
             bot.fechar_navegador()
         return 1
@@ -120,7 +120,7 @@ def verificar_dependencias():
             dependencias_ausentes.append(dependencia)
     
     if dependencias_ausentes:
-        print("❌ Dependências ausentes encontradas:")
+        print("Dependências ausentes encontradas:")
         for dep in dependencias_ausentes:
             print(f"   - {dep}")
         print("\nInstale as dependências executando:")
@@ -135,12 +135,12 @@ if __name__ == "__main__":
     Ponto de entrada do programa
     Verifica dependências e executa a função principal
     """
-    print("🔍 Verificando dependências...")
+    print("Verificando dependências...")
     
     if not verificar_dependencias():
         sys.exit(1)
     
-    print("✅ Todas as dependências estão instaladas.")
+    print("Todas as dependências estão instaladas.")
     
     # Executa a função principal e sai com o código de retorno apropriado
     codigo_saida = main()

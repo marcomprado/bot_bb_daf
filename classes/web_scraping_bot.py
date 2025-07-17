@@ -331,7 +331,7 @@ class WebScrapingBot:
             if hasattr(self, 'data_extractor') and self.data_extractor:
                 resultado_extracao = self.data_extractor.processar_pagina_resultados(self.navegador, cidade)
                 if resultado_extracao.get('sucesso'):
-                    print(f"✅ {cidade.title()}: {resultado_extracao.get('registros_encontrados', 0)} registros")
+                    print(f"{cidade.title()}: {resultado_extracao.get('registros_encontrados', 0)} registros")
             
             return True
             
@@ -356,7 +356,7 @@ class WebScrapingBot:
         resultados_extracao = []  # Para armazenar resultados da extração de dados
         
         for i, cidade in enumerate(cidades, 1):
-            print(f"🔄 Processando {i}/{total_cidades}: {cidade.title()}")
+            print(f"Processando {i}/{total_cidades}: {cidade.title()}")
             
             # Processa a cidade atual
             sucesso = self.processar_cidade(cidade, data_inicial, data_final)
@@ -367,13 +367,13 @@ class WebScrapingBot:
                 resultados_extracao.append({'cidade': cidade, 'sucesso': True})
             else:
                 erros += 1
-                print(f"❌ Falha: {cidade.title()}")
+                print(f"Falha: {cidade.title()}")
                 resultados_extracao.append({'cidade': cidade, 'sucesso': False})
             
             # Volta para a página inicial para a próxima cidade (exceto na última)
             if i < total_cidades:
                 if not self.voltar_pagina_inicial():
-                    print("❌ Erro crítico: Impossível continuar")
+                    print("Erro crítico: Impossível continuar")
                     break
                 
                 # Pausa entre as cidades
@@ -384,7 +384,7 @@ class WebScrapingBot:
             try:
                 relatorio_consolidado = self.data_extractor.gerar_relatorio_consolidado(resultados_extracao)
                 if relatorio_consolidado:
-                    print(f"📋 Relatório consolidado gerado")
+                    print(f"Relatório consolidado gerado")
             except Exception:
                 pass
         
@@ -397,7 +397,7 @@ class WebScrapingBot:
             'resultados_extracao': resultados_extracao
         }
         
-        print(f"\n📊 Concluído: {sucessos}/{total_cidades} sucessos ({estatisticas['taxa_sucesso']:.1f}%)")
+        print(f"\nConcluído: {sucessos}/{total_cidades} sucessos ({estatisticas['taxa_sucesso']:.1f}%)")
         
         return estatisticas
     
@@ -405,7 +405,7 @@ class WebScrapingBot:
         """
         Mantém o navegador aberto até que o usuário pressione Enter
         """
-        print("\n🔍 Verifique os resultados na janela do navegador.")
+        print("\nVerifique os resultados na janela do navegador.")
         input("Pressione Enter para fechar o navegador...")
     
     def fechar_navegador(self):

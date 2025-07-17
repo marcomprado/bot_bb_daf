@@ -35,7 +35,7 @@ class FileManager:
         """
         exists = os.path.exists(self.arquivo_cidades)
         if not exists:
-            print(f"❌ Arquivo '{self.arquivo_cidades}' não encontrado!")
+            print(f"Arquivo '{self.arquivo_cidades}' não encontrado!")
             if self.arquivo_cidades == "listed_cities.txt":
                 print("   Use a interface gráfica (gui_main.py) para selecionar cidades.")
         return exists
@@ -60,20 +60,20 @@ class FileManager:
                 cidades = [linha.strip() for linha in arquivo if linha.strip()]
             
             if not cidades:
-                print(f"❌ Arquivo '{self.arquivo_cidades}' está vazio!")
+                print(f"Arquivo '{self.arquivo_cidades}' está vazio!")
                 return []
             
-            print(f"✅ {len(cidades)} cidades carregadas")
+            print(f"{len(cidades)} cidades carregadas")
             return cidades
             
         except UnicodeDecodeError:
-            print(f"❌ Erro de codificação no arquivo '{self.arquivo_cidades}'. Verifique se está em UTF-8.")
+            print(f"Erro de codificação no arquivo '{self.arquivo_cidades}'. Verifique se está em UTF-8.")
             return []
         except PermissionError:
-            print(f"❌ Sem permissão para ler o arquivo '{self.arquivo_cidades}'.")
+            print(f"Sem permissão para ler o arquivo '{self.arquivo_cidades}'.")
             return []
         except Exception as e:
-            print(f"❌ Erro inesperado ao carregar cidades: {e}")
+            print(f"Erro inesperado ao carregar cidades: {e}")
             return []
     
     def _exibir_cidades_carregadas(self, cidades):
@@ -83,7 +83,7 @@ class FileManager:
         Args:
             cidades (list): Lista de cidades carregadas
         """
-        print("🏙️ Cidades que serão processadas:")
+        print("Cidades que serão processadas:")
         for i, cidade in enumerate(cidades, 1):
             print(f"   {i}. {cidade}")
     
@@ -98,7 +98,7 @@ class FileManager:
             bool: True se a lista é válida, False caso contrário
         """
         if not cidades:
-            print("❌ Nenhuma cidade encontrada para processar.")
+            print("Nenhuma cidade encontrada para processar.")
             return False
         
         return True 
