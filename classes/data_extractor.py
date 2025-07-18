@@ -5,7 +5,43 @@ Classe responsável pela extração e organização dos dados da página de resu
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
+import sys
+import platform
 from datetime import datetime
+
+
+def obter_caminho_dados(nome_arquivo):
+    """
+    Obtém o caminho correto para arquivos de dados (que precisam ser modificáveis)
+    
+    Args:
+        nome_arquivo (str): Nome do arquivo de dados
+        
+    Returns:
+        str: Caminho completo para o arquivo de dados
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # Para arquivos de dados modificáveis, usa o diretório do usuário
+            if platform.system() == "Darwin":  # macOS
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            elif platform.system() == "Windows":
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            else:  # Linux
+                user_data_dir = os.path.expanduser("~/.sistema_fvn")
+            
+            # Cria o diretório se não existir
+            if not os.path.exists(user_data_dir):
+                os.makedirs(user_data_dir)
+                
+            return os.path.join(user_data_dir, nome_arquivo)
+        else:
+            # No desenvolvimento, usa o diretório atual
+            return nome_arquivo
+    except Exception:
+        # Fallback para caminho relativo
+        return nome_arquivo
 
 
 class DataExtractor:
@@ -28,7 +64,8 @@ class DataExtractor:
         Args:
             diretorio_base (str): Diretório base onde salvar os arquivos Excel
         """
-        self.diretorio_base = diretorio_base
+        # Usa caminho compatível com executável
+        self.diretorio_base = obter_caminho_dados(diretorio_base)
         self.data_hoje = datetime.now().strftime("%Y-%m-%d")
         self.diretorio_saida = os.path.join(self.diretorio_base, self.data_hoje)
         self.dados_extraidos = []

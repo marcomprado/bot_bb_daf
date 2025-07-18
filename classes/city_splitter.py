@@ -3,8 +3,44 @@ Classe responsável por dividir as cidades em lotes para execução paralela
 """
 
 import os
+import sys
+import platform
 import math
 from typing import List, Tuple
+
+
+def obter_caminho_dados(nome_arquivo):
+    """
+    Obtém o caminho correto para arquivos de dados (que precisam ser modificáveis)
+    
+    Args:
+        nome_arquivo (str): Nome do arquivo de dados
+        
+    Returns:
+        str: Caminho completo para o arquivo de dados
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # Para arquivos de dados modificáveis, usa o diretório do usuário
+            if platform.system() == "Darwin":  # macOS
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            elif platform.system() == "Windows":
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            else:  # Linux
+                user_data_dir = os.path.expanduser("~/.sistema_fvn")
+            
+            # Cria o diretório se não existir
+            if not os.path.exists(user_data_dir):
+                os.makedirs(user_data_dir)
+                
+            return os.path.join(user_data_dir, nome_arquivo)
+        else:
+            # No desenvolvimento, usa o diretório atual
+            return nome_arquivo
+    except Exception:
+        # Fallback para caminho relativo
+        return nome_arquivo
 
 
 class CitySplitter:
@@ -24,7 +60,11 @@ class CitySplitter:
         Args:
             arquivo_cidades (str): Caminho para arquivo com lista completa de cidades
         """
-        self.arquivo_cidades = arquivo_cidades
+        # Se não foi passado caminho absoluto, usa função para obter caminho
+        if not os.path.isabs(arquivo_cidades):
+            self.arquivo_cidades = obter_caminho_dados(arquivo_cidades)
+        else:
+            self.arquivo_cidades = arquivo_cidades
         self.lista_cidades = []
         self._carregar_cidades()
     
@@ -135,15 +175,16 @@ class CitySplitter:
                 fim = lote['fim']
                 cidades_instancia = self.lista_cidades[inicio:fim]
                 
-                # Cria arquivo para esta instância
+                # Cria arquivo para esta instância - usa caminho de dados
                 nome_arquivo = f"listed_cities_instancia_{lote['instancia']}.txt"
+                caminho_arquivo = obter_caminho_dados(nome_arquivo)
                 
-                with open(nome_arquivo, "w", encoding="utf-8") as arquivo:
+                with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
                     for cidade in cidades_instancia:
                         arquivo.write(f"{cidade}\n")
                 
                 arquivos_criados.append({
-                    'arquivo': nome_arquivo,
+                    'arquivo': caminho_arquivo,
                     'instancia': lote['instancia'],
                     'cidades': cidades_instancia,
                     'quantidade': len(cidades_instancia)
@@ -163,13 +204,27 @@ class CitySplitter:
     
     def _limpar_arquivos_instancias(self):
         """
-        Remove arquivos de instâncias anteriores
+        Remove arquivos de instâncias anteriores se existirem
         """
         try:
-            for i in range(1, 21):  # Limpa até 20 instâncias possíveis
-                arquivo = f"listed_cities_instancia_{i}.txt"
-                if os.path.exists(arquivo):
+            # Padrão dos arquivos de instância
+            import glob
+            
+            # Procura arquivos no diretório de dados
+            diretorio_dados = os.path.dirname(obter_caminho_dados("dummy"))
+            if hasattr(sys, '_MEIPASS'):
+                # No executável, usa o diretório de dados do usuário
+                padrao = os.path.join(diretorio_dados, "listed_cities_instancia_*.txt")
+            else:
+                # No desenvolvimento, usa diretório atual
+                padrao = "listed_cities_instancia_*.txt"
+            
+            arquivos = glob.glob(padrao)
+            for arquivo in arquivos:
+                try:
                     os.remove(arquivo)
+                except:
+                    pass
         except Exception:
             pass
     

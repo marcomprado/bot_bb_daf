@@ -3,6 +3,42 @@ Classe responsável por gerenciar operações com arquivos
 """
 
 import os
+import sys
+import platform
+
+
+def obter_caminho_dados(nome_arquivo):
+    """
+    Obtém o caminho correto para arquivos de dados (que precisam ser modificáveis)
+    
+    Args:
+        nome_arquivo (str): Nome do arquivo de dados
+        
+    Returns:
+        str: Caminho completo para o arquivo de dados
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # Para arquivos de dados modificáveis, usa o diretório do usuário
+            if platform.system() == "Darwin":  # macOS
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            elif platform.system() == "Windows":
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            else:  # Linux
+                user_data_dir = os.path.expanduser("~/.sistema_fvn")
+            
+            # Cria o diretório se não existir
+            if not os.path.exists(user_data_dir):
+                os.makedirs(user_data_dir)
+                
+            return os.path.join(user_data_dir, nome_arquivo)
+        else:
+            # No desenvolvimento, usa o diretório atual
+            return nome_arquivo
+    except Exception:
+        # Fallback para caminho relativo
+        return nome_arquivo
 
 
 class FileManager:
@@ -24,7 +60,8 @@ class FileManager:
                                  Por padrão usa 'listed_cities.txt' (arquivo dinâmico)
                                  'cidades.txt' é o arquivo estático de referência
         """
-        self.arquivo_cidades = arquivo_cidades
+        # Usa caminho compatível com executável
+        self.arquivo_cidades = obter_caminho_dados(arquivo_cidades)
     
     def verificar_arquivo_existe(self):
         """
@@ -36,7 +73,7 @@ class FileManager:
         exists = os.path.exists(self.arquivo_cidades)
         if not exists:
             print(f"Arquivo '{self.arquivo_cidades}' não encontrado!")
-            if self.arquivo_cidades == "listed_cities.txt":
+            if "listed_cities.txt" in self.arquivo_cidades:
                 print("   Use a interface gráfica (gui_main.py) para selecionar cidades.")
         return exists
     
@@ -48,7 +85,7 @@ class FileManager:
             list: Lista de cidades (strings) ou lista vazia em caso de erro
         """
         if not self.verificar_arquivo_existe():
-            if self.arquivo_cidades == "listed_cities.txt":
+            if "listed_cities.txt" in self.arquivo_cidades:
                 print("Use a interface gráfica (gui_main.py) para selecionar cidades.")
             else:
                 print(f"Crie o arquivo '{self.arquivo_cidades}' com uma cidade por linha.")

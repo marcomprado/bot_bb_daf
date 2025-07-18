@@ -17,6 +17,85 @@ from typing import List
 from classes.city_splitter import CitySplitter
 
 
+def obter_caminho_recurso(nome_arquivo):
+    """
+    Obtém o caminho correto para um arquivo de recurso
+    Funciona tanto em desenvolvimento quanto em executável empacotado
+    
+    Args:
+        nome_arquivo (str): Nome do arquivo de recurso
+        
+    Returns:
+        str: Caminho completo para o arquivo
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # No executável, usa o diretório temporário do PyInstaller
+            base_path = sys._MEIPASS
+        else:
+            # No desenvolvimento, usa o diretório do script
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        
+        return os.path.join(base_path, nome_arquivo)
+    except Exception:
+        # Fallback para caminho relativo
+        return nome_arquivo
+
+
+def obter_caminho_dados(nome_arquivo):
+    """
+    Obtém o caminho correto para arquivos de dados (que precisam ser modificáveis)
+    
+    Args:
+        nome_arquivo (str): Nome do arquivo de dados
+        
+    Returns:
+        str: Caminho completo para o arquivo de dados
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # Para arquivos de dados modificáveis, usa o diretório do usuário
+            if platform.system() == "Darwin":  # macOS
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            elif platform.system() == "Windows":
+                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
+            else:  # Linux
+                user_data_dir = os.path.expanduser("~/.sistema_fvn")
+            
+            # Cria o diretório se não existir
+            if not os.path.exists(user_data_dir):
+                os.makedirs(user_data_dir)
+                
+            return os.path.join(user_data_dir, nome_arquivo)
+        else:
+            # No desenvolvimento, usa o diretório atual
+            return nome_arquivo
+    except Exception:
+        # Fallback para caminho relativo
+        return nome_arquivo
+
+
+def copiar_arquivo_cidades_se_necessario():
+    """
+    Copia o arquivo cidades.txt para o diretório de dados do usuário se necessário
+    """
+    try:
+        # Se estamos em um executável PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            arquivo_origem = obter_caminho_recurso("cidades.txt")
+            arquivo_destino = obter_caminho_dados("cidades.txt")
+            
+            # Se o arquivo não existe no diretório do usuário, copia do recurso
+            if not os.path.exists(arquivo_destino) and os.path.exists(arquivo_origem):
+                import shutil
+                shutil.copy2(arquivo_origem, arquivo_destino)
+                print(f"Arquivo cidades.txt copiado para: {arquivo_destino}")
+    except Exception as e:
+        print(f"Aviso: Erro ao copiar arquivo cidades.txt - {e}")
+
+
 class SeletorCidades:
     """Popup nativo para seleção de cidades"""
     
@@ -350,6 +429,9 @@ class GUIMain:
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
         
+        # Copia arquivo cidades.txt se necessário (para executável)
+        copiar_arquivo_cidades_se_necessario()
+        
         # Janela principal - RESPONSIVA
         self.janela = ctk.CTk()
         self.janela.title("Sistema FVN")
@@ -375,8 +457,9 @@ class GUIMain:
         self.data_inicial_var = ctk.StringVar()
         self.data_final_var = ctk.StringVar()
         
-        # Sistema de divisão de cidades
-        self.city_splitter = CitySplitter()
+        # Sistema de divisão de cidades - usa caminho correto
+        caminho_cidades = obter_caminho_dados("cidades.txt")
+        self.city_splitter = CitySplitter(caminho_cidades)
         self.num_instancias = 1
         self.modo_execucao = "individual"  # ou "paralelo"
         
@@ -390,11 +473,11 @@ class GUIMain:
         try:
             # Lista de possíveis caminhos para o ícone
             caminhos_icone = [
-                "assets/app_icon.ico",
-                "assets/fvn_icon.ico", 
-                "assets/logo.ico",
-                "app_icon.ico",
-                "icon.ico"
+                obter_caminho_recurso("assets/app_icon.ico"),
+                obter_caminho_recurso("assets/fvn_icon.ico"), 
+                obter_caminho_recurso("assets/logo.ico"),
+                obter_caminho_recurso("app_icon.ico"),
+                obter_caminho_recurso("icon.ico")
             ]
             
             # Procura pelo ícone nos caminhos possíveis
@@ -859,8 +942,8 @@ class GUIMain:
     def _abrir_pasta_arquivos(self):
         """Abre a pasta de arquivos baixados no explorador do sistema"""
         try:
-            # Caminho da pasta de arquivos baixados
-            pasta_arquivos = os.path.abspath("arquivos_baixados")
+            # Caminho da pasta de arquivos baixados - usa função para obter caminho correto
+            pasta_arquivos = obter_caminho_dados("arquivos_baixados")
             
             # Cria a pasta se não existir
             if not os.path.exists(pasta_arquivos):
@@ -1025,7 +1108,7 @@ class GUIMain:
         # Inicia thread
         self.thread_execucao = threading.Thread(target=executar_subprocess, daemon=True)
         self.thread_execucao.start()
-    
+
     def _executar_modo_paralelo(self):
         """Executa modo paralelo (múltiplas instâncias)"""
         # Divide as cidades em arquivos para cada instância
@@ -1083,7 +1166,7 @@ class GUIMain:
                 # Reabilita interface na thread principal
                 if not self._cancelado:
                     self.janela.after(0, self._finalizar_execucao_paralela, resultados)
-                
+            
             except Exception as e:
                 # Reabilita interface em caso de erro
                 if not self._cancelado:
@@ -1096,14 +1179,12 @@ class GUIMain:
         self.thread_execucao = threading.Thread(target=executar_processos_paralelos, daemon=True)
         self.thread_execucao.start()
     
-
-    
     def _finalizar_execucao_paralela(self, resultados):
         """Finaliza execução paralela e mostra resultados"""
         if self._cancelado:
             return
             
-        self._habilitar_interface(True)
+            self._habilitar_interface(True)
         
         # Sempre mostra popup padrão de término do processo
         self._mostrar_popup_processo_terminado()
@@ -1180,7 +1261,8 @@ class GUIMain:
     def _salvar_cidades_selecionadas(self):
         """Salva cidades selecionadas no arquivo listed_cities.txt (dinâmico)"""
         try:
-            with open("listed_cities.txt", "w", encoding="utf-8") as arquivo:
+            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
+            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
                 for cidade in self.cidades_selecionadas:
                     arquivo.write(f"{cidade}\n")
         except Exception as e:
@@ -1189,8 +1271,9 @@ class GUIMain:
     def _carregar_cidades(self):
         """Carrega lista de cidades do arquivo"""
         try:
-            if os.path.exists("cidades.txt"):
-                with open("cidades.txt", "r", encoding="utf-8") as arquivo:
+            caminho_arquivo = obter_caminho_dados("cidades.txt")
+            if os.path.exists(caminho_arquivo):
+                with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
                     self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
         except Exception as e:
             self._mostrar_erro(f"Erro ao carregar cidades: {str(e)}")
