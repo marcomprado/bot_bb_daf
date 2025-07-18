@@ -11,6 +11,7 @@ import os
 import sys
 import threading
 import subprocess
+import platform
 from datetime import datetime, timedelta
 from typing import List
 from classes.city_splitter import CitySplitter
@@ -357,6 +358,9 @@ class GUIMain:
         self.janela.minsize(600, 550)  # Tamanho mínimo responsivo
         self.janela.configure(fg_color="#f8f9fa")
         
+        # Configura ícone da aplicação
+        self._configurar_icone()
+        
         # Estado da execução
         self.executando = False
         self.processo = None
@@ -380,6 +384,39 @@ class GUIMain:
         self._centralizar_janela()
         self._criar_interface()
         self._carregar_cidades()
+    
+    def _configurar_icone(self):
+        """Configura o ícone da aplicação se disponível"""
+        try:
+            # Lista de possíveis caminhos para o ícone
+            caminhos_icone = [
+                "assets/app_icon.ico",
+                "assets/fvn_icon.ico", 
+                "assets/logo.ico",
+                "app_icon.ico",
+                "icon.ico"
+            ]
+            
+            # Procura pelo ícone nos caminhos possíveis
+            icone_encontrado = None
+            for caminho in caminhos_icone:
+                if os.path.exists(caminho):
+                    icone_encontrado = caminho
+                    break
+            
+            # Se encontrou um ícone, aplica à janela
+            if icone_encontrado:
+                # Para CustomTkinter/Tkinter, usa iconbitmap
+                self.janela.iconbitmap(icone_encontrado)
+                print(f"Ícone carregado: {icone_encontrado}")
+            else:
+                # Se não encontrou ícone, apenas informa (não é erro crítico)
+                print("Nenhum ícone encontrado. Use 'python assets/convert_to_icon.py sua_logo.png assets/app_icon.ico' para criar um.")
+                
+        except Exception as e:
+            # Se houver erro ao carregar ícone, continua sem ele
+            print(f"Aviso: Não foi possível carregar ícone - {e}")
+            pass
     
     def _configurar_datas_padrao(self):
         """Configura datas padrão"""
@@ -739,20 +776,24 @@ class GUIMain:
             self._mostrar_erro("Digite um número válido de instâncias")
     
     def _criar_botoes_acao(self, parent):
-        """Cria apenas botão principal de execução - RESPONSIVO"""
-        # Container menor apenas para botão executar
-        frame_executar = ctk.CTkFrame(
+        """Cria botões de ação principais - RESPONSIVO"""
+        # Container para os botões
+        frame_acoes = ctk.CTkFrame(
             parent,
             corner_radius=20,
             fg_color="white",
             border_width=2,
             border_color="#0066cc"
         )
-        frame_executar.pack(fill="x", padx=20, pady=(10, 30))
+        frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
         
-        # Botão Executar centralizado - TAMANHO PADRONIZADO
+        # Container interno para centralizar botões
+        container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
+        container_botoes.pack(pady=15)
+        
+        # Botão Executar - TAMANHO PADRONIZADO
         self.botao_executar = ctk.CTkButton(
-            frame_executar,
+            container_botoes,
             text="EXECUTAR PROCESSAMENTO",
             font=ctk.CTkFont(size=16, weight="bold"),
             height=55,  # MESMO TAMANHO DOS OUTROS
@@ -760,12 +801,27 @@ class GUIMain:
             fg_color="#0066cc",
             hover_color="#0052a3",
             command=self._executar_main,
-            width=400  # Largura específica para o botão principal
+            width=300  # Largura ajustada
         )
-        self.botao_executar.pack(pady=15, padx=20)
+        self.botao_executar.pack(side="left", padx=10)
         
-        # Adicionar efeito hover
+        # Botão Abrir Pasta - NOVO
+        self.botao_abrir_pasta = ctk.CTkButton(
+            container_botoes,
+            text="ABRIR ARQUIVOS",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=55,
+            corner_radius=27,
+            fg_color="#28a745",
+            hover_color="#218838",
+            command=self._abrir_pasta_arquivos,
+            width=200
+        )
+        self.botao_abrir_pasta.pack(side="left", padx=10)
+        
+        # Adicionar efeito hover aos botões
         self._adicionar_efeito_hover(self.botao_executar)
+        self._adicionar_efeito_hover(self.botao_abrir_pasta)
     
     def _adicionar_efeito_hover(self, botao):
         """Adiciona efeito hover de crescimento aos botões - ATUALIZADO"""
@@ -780,7 +836,9 @@ class GUIMain:
             if botao in [self.botao_todas, self.botao_individual]:
                 botao.configure(width=240, height=55)  # Botões padrão atualizados
             elif botao == self.botao_executar:
-                botao.configure(width=400, height=55)  # Botão principal
+                botao.configure(width=300, height=55)  # Botão executar
+            elif botao == self.botao_abrir_pasta:
+                botao.configure(width=200, height=55)  # Botão abrir pasta
         
         # Bind dos eventos de mouse
         botao.bind("<Enter>", on_enter)
@@ -797,6 +855,43 @@ class GUIMain:
     def _mostrar_popup_processo_terminado(self):
         """Mostra popup padrão quando processo é terminado"""
         messagebox.showinfo("Processo Finalizado", "processo foi terminado")
+    
+    def _abrir_pasta_arquivos(self):
+        """Abre a pasta de arquivos baixados no explorador do sistema"""
+        try:
+            # Caminho da pasta de arquivos baixados
+            pasta_arquivos = os.path.abspath("arquivos_baixados")
+            
+            # Cria a pasta se não existir
+            if not os.path.exists(pasta_arquivos):
+                os.makedirs(pasta_arquivos)
+                print(f"Pasta criada: {pasta_arquivos}")
+            
+            # Detecta o sistema operacional e abre a pasta
+            sistema = platform.system()
+            
+            if sistema == "Windows":
+                # Windows - usa os.startfile ou explorer
+                os.startfile(pasta_arquivos)
+            elif sistema == "Darwin":
+                # macOS - usa open
+                subprocess.run(["open", pasta_arquivos])
+            elif sistema == "Linux":
+                # Linux - usa xdg-open
+                subprocess.run(["xdg-open", pasta_arquivos])
+            else:
+                # Sistema não suportado
+                self._mostrar_erro(f"Sistema operacional '{sistema}' não suportado para abrir pasta")
+                return
+            
+            print(f"Pasta aberta: {pasta_arquivos}")
+            
+        except FileNotFoundError:
+            self._mostrar_erro("Erro ao abrir pasta: comando do sistema não encontrado")
+        except PermissionError:
+            self._mostrar_erro("Erro ao abrir pasta: sem permissão de acesso")
+        except Exception as e:
+            self._mostrar_erro(f"Erro ao abrir pasta: {str(e)}")
     
     def _validar_dados(self):
         """Valida se os dados estão corretos"""
@@ -832,6 +927,9 @@ class GUIMain:
         else:
             self.entry_instancias.configure(state="disabled")
             self.botao_calcular.configure(state="disabled")
+        
+        # Botão abrir pasta sempre fica habilitado
+        self.botao_abrir_pasta.configure(state="normal")
         
         # Atualiza botão executar/cancelar
         if habilitado:

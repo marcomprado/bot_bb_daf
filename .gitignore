@@ -52,6 +52,9 @@ listed_cities.txt
 # Arquivos de instâncias paralelas (temporários)
 listed_cities_instancia_*.txt
 
+# Assets do app (manter ícones no controle de versão)
+# assets/ - mantemos esta pasta no git
+
 # Drivers do Selenium (baixados automaticamente)
 chromedriver*
 geckodriver*

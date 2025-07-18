@@ -532,3 +532,4 @@ class DataExtractor:
             
         except Exception as e:
             return {'sucesso': False, 'erro': f'Erro inesperado: {e}'}
+    
