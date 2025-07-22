@@ -1,0 +1,74 @@
+# Arquivos temporários do sistema
+.DS_Store
+Thumbs.db
+
+# Ambiente virtual Python
+venv/
+env/
+.env
+.venv
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Arquivos de configuração local (se houver)
+config_local.py
+
+# Arquivo dinâmico de cidades selecionadas (gerado pela GUI)
+listed_cities.txt
+
+# Arquivos de instâncias paralelas (temporários)
+listed_cities_instancia_*.txt
+
+# Assets do app (manter ícones no controle de versão)
+# assets/ - mantemos esta pasta no git
+
+# Drivers do Selenium (baixados automaticamente)
+chromedriver*
+geckodriver*
+
+# Arquivos temporários
+temp/
+tmp/
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+
+# Arquivos do sistema operacional
+*.tmp
+.Trashes
+ehthumbs.db 
