@@ -15,6 +15,9 @@ cd bot_bb_daf
 ```
 
 ### 2. Ative o ambiente virtual
+
+python -m venv venv   #para windows
+python3 -m venv venv  #para MAC e LINUX
 ```bash
 # macOS/Linux
 source venv/bin/activate
@@ -51,3 +54,40 @@ pip install -r requirements.txt --force-reinstall
 
 ### Problemas de codificação
 - Certifique-se de que o arquivo `cidades.txt` está em UTF-8 
+
+---
+
+## 🔨 Como criar o executável (Windows e macOS)
+
+### 1. Gerar executável com PyInstaller
+
+> **Pré-requisito:**
+> - Ative o ambiente virtual (`source venv/bin/activate` no macOS/Linux ou `venv\Scripts\activate` no Windows)
+> - Instale o PyInstaller:
+>   ```sh
+>     pip install pyinstaller
+>   ```
+
+#### **Para a interface gráfica (GUI):**
+
+```sh
+# Windows e macOS (gera executável na pasta dist/)
+pyinstaller --noconfirm --onefile --windowed --icon=assets/app_icon.ico gui_main.py
+```
+
+ou 
+``pyinstaller gui_main.spec``
+
+- O executável será criado em `dist/gui_main.exe` (Windows) ou `dist/gui_main` (macOS/Linux).
+
+---
+
+### 2. Criar DMG para distribuição no macOS
+
+#### **Com create-dmg (recomendado, visual):**
+
+   brew install create-dmg
+   create-dmg SistemaFVN.dmg dist/
+
+   ou 
+   hdiutil create -volname "Sistema FVN" -srcfolder dist/ -ov -format UDZO SistemaFVN.dmg

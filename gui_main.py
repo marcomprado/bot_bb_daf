@@ -1317,6 +1317,114 @@ class GUIMain:
         
         self.label_status_selecao.configure(text=texto)
     
+    def _executar_script_direto(self, modo="individual", arquivo_cidades=None):
+        """Executa o script diretamente sem subprocess (para executáveis)"""
+        try:
+            # Importa os módulos necessários
+            from classes.file_manager import FileManager
+            from classes.date_calculator import DateCalculator
+            from classes.data_extractor import DataExtractor
+            from classes.web_scraping_bot import WebScrapingBot
+            
+            # Redireciona stdout para capturar a saída
+            import io
+            from contextlib import redirect_stdout, redirect_stderr
+            
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+            
+            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                print("=" * 60)
+                print("SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL")
+                print("=" * 60)
+                
+                # 1. Carrega cidades
+                # Importa as classes necessárias do diretório correto
+                import sys
+                import os
+                
+                # Adiciona o diretório classes ao path se necessário
+                if hasattr(sys, '_MEIPASS'):
+                    # No executável, os módulos estão no diretório temporário
+                    classes_path = os.path.join(sys._MEIPASS, 'classes')
+                    if classes_path not in sys.path:
+                        sys.path.insert(0, classes_path)
+                
+                if arquivo_cidades:
+                    # Para modo paralelo, o arquivo já vem com caminho completo
+                    file_manager = FileManager(arquivo_cidades)
+                else:
+                    # Para modo individual, usa o arquivo padrão
+                    # Não usa obter_caminho_dados pois FileManager já faz isso internamente
+                    file_manager = FileManager("listed_cities.txt")
+                
+                print(f"Arquivo de cidades: {file_manager.arquivo_cidades}")
+                print(f"Arquivo existe? {os.path.exists(file_manager.arquivo_cidades)}")
+                
+                if not file_manager.verificar_arquivo_existe():
+                    print("Use a interface gráfica para selecionar cidades primeiro.")
+                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
+                
+                cidades = file_manager.carregar_cidades()
+                if not file_manager.validar_lista_cidades(cidades):
+                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
+                
+                # 2. Calcula datas
+                date_calculator = DateCalculator()
+                data_inicial, data_final = date_calculator.obter_datas_formatadas()
+                
+                # 3. Inicializa componentes
+                data_extractor = DataExtractor()
+                bot = WebScrapingBot()
+                bot.configurar_extrator_dados(data_extractor)
+                
+                # 4. Configura navegador
+                print("Configurando navegador...")
+                if not bot.configurar_navegador():
+                    print("Falha na configuração do navegador Chrome")
+                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
+                
+                # 5. Abre página inicial
+                print("Abrindo página inicial...")
+                if not bot.abrir_pagina_inicial():
+                    print("Falha ao carregar página inicial")
+                    bot.fechar_navegador()
+                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
+                
+                # 6. Processa todas as cidades
+                print(f"Processando {len(cidades)} cidades...")
+                estatisticas = bot.processar_lista_cidades(cidades, data_inicial, data_final)
+                
+                # 7. Fecha navegador automaticamente
+                print("Fechando navegador...")
+                bot.fechar_navegador()
+                
+                # 8. Exibe estatísticas finais
+                print(f"\nProcessamento concluído:")
+                print(f"   Total: {estatisticas['total']} cidades")
+                print(f"   Sucessos: {estatisticas['sucessos']}")
+                print(f"   Erros: {estatisticas['erros']}")
+                print(f"   Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
+                
+                # Retorna resultado
+                returncode = 0 if estatisticas['erros'] == 0 else 1
+                return {
+                    "returncode": returncode,
+                    "stdout": stdout_buffer.getvalue(),
+                    "stderr": stderr_buffer.getvalue()
+                }
+                
+        except KeyboardInterrupt:
+            print("\nInterrompido pelo usuário")
+            if 'bot' in locals():
+                bot.fechar_navegador()
+            return {"returncode": 130, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
+        except Exception as e:
+            print(f"Erro inesperado: {e}")
+            if 'bot' in locals():
+                bot.fechar_navegador()
+            return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": str(e)}
+
     def executar(self):
         """Executa loop principal da interface"""
         self.janela.mainloop()
