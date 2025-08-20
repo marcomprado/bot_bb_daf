@@ -1,0 +1,14 @@
+INSTRUÇÕES DE ATIVAÇÃO DO AMBIENTE VIRTUAL
+
+macOS/Linux:
+    source venv/bin/activate
+
+Windows:
+    venv\Scripts\activate
+
+Para desativar:
+    deactivate
+
+EXECUÇÃO:
+    python gui_main.py    # Interface gráfica
+    python main.py        # Terminal
