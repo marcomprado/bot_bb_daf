@@ -1,7 +1,7 @@
 # Arquivos temporários do sistema
 .DS_Store
 Thumbs.db
-
+arquivos_baixados/
 # Ambiente virtual Python
 venv/
 env/

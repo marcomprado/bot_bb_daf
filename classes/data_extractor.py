@@ -200,24 +200,23 @@ class DataExtractor:
             # Procura linhas da tabela
             linhas = tabela.find_all('tr')
             
+            # Processa TODAS as linhas, sem pular nenhuma
             for i, linha in enumerate(linhas):
-                # Pula o cabeçalho (primeira linha)
-                if i == 0:
-                    continue
-                
                 colunas = linha.find_all(['td', 'th'])
                 
-                # Verifica se a linha tem pelo menos 3 colunas (data, parcela, valor)
-                if len(colunas) >= 3:
-                    registro = {
-                        'data': colunas[0].get_text(strip=True),
-                        'parcela': colunas[1].get_text(strip=True),
-                        'valor_distribuido': colunas[2].get_text(strip=True)
-                    }
-                    
-                    # Só adiciona se pelo menos um campo não estiver vazio
-                    if any(valor for valor in registro.values()):
-                        dados.append(registro)
+                # Extrai texto de cada coluna, preenchendo com vazio se não existir
+                data_col = colunas[0].get_text(strip=True) if len(colunas) > 0 else ''
+                parcela_col = colunas[1].get_text(strip=True) if len(colunas) > 1 else ''
+                valor_col = colunas[2].get_text(strip=True) if len(colunas) > 2 else ''
+                
+                registro = {
+                    'data': data_col,
+                    'parcela': parcela_col,
+                    'valor_distribuido': valor_col
+                }
+                
+                # Adiciona TODAS as linhas, incluindo vazias e títulos
+                dados.append(registro)
             
         except Exception:
             pass
@@ -467,17 +466,11 @@ class DataExtractor:
                 cell.alignment = alinhamento_centro
                 cell.border = borda_fina
             
-            # Adiciona os dados com linha em branco antes de cabeçalhos "DATA"
+            # Adiciona os dados preservando todas as linhas originais
             linha_atual = linha_cabecalho + 1
             
             for idx, (_, row) in enumerate(df.iterrows()):
                 data_atual = str(row['DATA'])
-                
-                # Verifica se a linha atual contém "DATA" (cabeçalho) e não é a primeira linha de dados
-                if data_atual == "DATA" and linha_atual > linha_cabecalho + 1:
-                    # Insere linha em branco antes do cabeçalho "DATA"
-                    ws.insert_rows(linha_atual)
-                    linha_atual += 1  # Avança para a próxima linha após inserir linha em branco
                 
                 # Coluna DATA
                 ws.cell(row=linha_atual, column=1, value=data_atual).font = fonte_dados
