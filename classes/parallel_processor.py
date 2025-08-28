@@ -42,7 +42,7 @@ class ProcessadorParalelo:
         Útil quando executando via linha de comando
         
         Args:
-            num_instancias: Número de instâncias paralelas
+            num_instancias: Número de instâncias paralelas (máximo 5)
             data_inicial: Data inicial ou None para calcular
             data_final: Data final ou None para calcular
             
@@ -50,6 +50,10 @@ class ProcessadorParalelo:
             dict: Resultados consolidados
         """
         try:
+            # Limita a 5 instâncias
+            if num_instancias > 5:
+                num_instancias = 5
+                print(f"Número de instâncias limitado a 5")
             # Prepara divisão de cidades
             resultado_divisao = self.city_splitter.dividir_cidades(num_instancias)
             
@@ -122,7 +126,7 @@ class ProcessadorParalelo:
         Útil quando executando em ambiente Python direto
         
         Args:
-            num_instancias: Número de instâncias paralelas
+            num_instancias: Número de instâncias paralelas (máximo 5)
             data_inicial: Data inicial ou None para calcular
             data_final: Data final ou None para calcular
             
@@ -130,6 +134,10 @@ class ProcessadorParalelo:
             dict: Resultados consolidados
         """
         try:
+            # Limita a 5 instâncias
+            if num_instancias > 5:
+                num_instancias = 5
+                print(f"Número de instâncias limitado a 5")
             from bots.bot_bbdaf import BotBBDAF
             from classes.data_extractor import DataExtractor
             
@@ -329,7 +337,7 @@ def main():
     
     parser = argparse.ArgumentParser(description='Processador Paralelo BB DAF')
     parser.add_argument('--instancias', type=int, default=2,
-                       help='Número de instâncias paralelas')
+                       help='Número de instâncias paralelas (máximo 5)')
     parser.add_argument('--data-inicial', type=str, default=None,
                        help='Data inicial (DD/MM/AAAA)')
     parser.add_argument('--data-final', type=str, default=None,
@@ -339,6 +347,14 @@ def main():
                        help='Modo de execução paralela')
     
     args = parser.parse_args()
+    
+    # Valida número de instâncias
+    if args.instancias > 5:
+        print(f"Aviso: Número de instâncias limitado a 5 (solicitado: {args.instancias})")
+        args.instancias = 5
+    elif args.instancias < 1:
+        print("Erro: Número de instâncias deve ser pelo menos 1")
+        return 1
     
     processador = ProcessadorParalelo()
     

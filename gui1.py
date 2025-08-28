@@ -105,8 +105,8 @@ class SeletorCidades:
         self.cidades_selecionadas = []
         self.indices_selecionados = set()  # Para manter track das seleções
         
-        # Janela popup
-        self.popup = tk.Toplevel(parent.janela)
+        # Janela popup - Fix: use parent.parent_frame.winfo_toplevel() to get window
+        self.popup = tk.Toplevel(parent.parent_frame.winfo_toplevel() if parent.parent_frame else tk._default_root)
         self.popup.title("Seleção de Cidades")
         self.popup.geometry("450x600")  # Aumentado para acomodar pesquisa
         self.popup.resizable(False, False)
@@ -444,6 +444,7 @@ class GUI1:
         # Dados
         self.lista_cidades = []
         self.cidades_selecionadas = []
+        self.cidade_selecionada = ctk.StringVar()  # Para o dropdown
         
         # Variáveis de data
         self.data_inicial_var = ctk.StringVar()
@@ -461,6 +462,12 @@ class GUI1:
         self._configurar_datas_padrao()
         self._criar_interface()
         self._carregar_cidades()
+        
+        # Atualiza dropdown após carregar cidades
+        if hasattr(self, 'dropdown_cidade'):
+            self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
+            if self.lista_cidades:
+                self.cidade_selecionada.set("Todas as Cidades")
     
     def _configurar_icone_OLD(self):
         """Configura o ícone da aplicação se disponível"""
@@ -772,7 +779,7 @@ class GUI1:
         self.entry_data_final.pack(fill="x", pady=(5, 0))
     
     def _criar_secao_cidades(self, parent):
-        """Cria seção de seleção de cidades - RESPONSIVA e SIMPLIFICADA"""
+        """Cria seção de seleção de cidades - ESTILO DROPDOWN COMO GUI2"""
         # Frame das cidades
         frame_cidades = ctk.CTkFrame(
             parent,
@@ -792,68 +799,50 @@ class GUI1:
         )
         label_cidades.pack(pady=(15, 10))
         
-        # Container principal dos botões - RESPONSIVO com grid (só 2 botões agora)
-        container_botoes_principais = ctk.CTkFrame(
-            frame_cidades, 
-            fg_color="white",
-            corner_radius=15,
-            border_width=1,
-            border_color="#dee2e6"
-        )
-        container_botoes_principais.pack(fill="x", padx=15, pady=(0, 10))
+        # Container do campo de cidade
+        container_cidade = ctk.CTkFrame(frame_cidades, fg_color="transparent")
+        container_cidade.pack(fill="x", padx=15, pady=(0, 15))
         
-        # Configurar grid responsivo - 2 colunas iguais
-        container_botoes_principais.grid_columnconfigure(0, weight=1)
-        container_botoes_principais.grid_columnconfigure(1, weight=1)
+        # Campo de cidade centralizado
+        frame_cidade_campo = ctk.CTkFrame(container_cidade, fg_color="transparent")
+        frame_cidade_campo.pack(expand=True)
         
-        # APENAS 2 BOTÕES COM TAMANHO PADRONIZADO: 240x55px
-        
-        # Botão Todas as Cidades
-        self.botao_todas = ctk.CTkButton(
-            container_botoes_principais,
-            text="Todas as Cidades",
+        label_cidade_campo = ctk.CTkLabel(
+            frame_cidade_campo,
+            text="Selecione a Cidade:",
             font=ctk.CTkFont(size=14, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#0066cc",
-            hover_color="#0052a3",
-            command=self._selecionar_todas_cidades,
-            width=240
+            text_color="#495057"
         )
-        self.botao_todas.grid(row=0, column=0, padx=10, pady=12, sticky="ew")
+        label_cidade_campo.pack(pady=(0, 5))
         
-        # Botão Selecionar Individualmente
-        self.botao_individual = ctk.CTkButton(
-            container_botoes_principais,
-            text="Selecionar Individual",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="transparent",
-            border_width=3,
-            border_color="#0066cc",
-            text_color="#0066cc",
-            hover_color="#e6f3ff",
-            command=self._abrir_seletor_individual,
-            width=240
+        # Dropdown com cidades
+        self.dropdown_cidade = ctk.CTkOptionMenu(
+            frame_cidade_campo,
+            values=self._obter_opcoes_cidades(),
+            variable=self.cidade_selecionada,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            width=300,
+            height=40,
+            command=self._on_cidade_change
         )
-        self.botao_individual.grid(row=0, column=1, padx=10, pady=12, sticky="ew")
+        self.dropdown_cidade.pack()
         
-        # Adicionar efeitos hover para ambos botões
-        self._adicionar_efeito_hover(self.botao_todas)
-        self._adicionar_efeito_hover(self.botao_individual)
+        # Define valor padrão
+        if self.lista_cidades:
+            self.cidade_selecionada.set("Todas as Cidades")
         
         # Label de status da seleção
         self.label_status_selecao = ctk.CTkLabel(
             frame_cidades,
-            text="Clique em um dos botões acima para selecionar cidades",
+            text="Todas as cidades de MG selecionadas (852 cidades)",
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#495057"
         )
         self.label_status_selecao.pack(pady=(0, 15))
     
     def _criar_secao_execucao_paralela(self, parent):
-        """Cria seção de execução paralela - NOVA FUNCIONALIDADE"""
+        """Cria seção de execução paralela - SIMPLIFICADA"""
         # Frame da execução paralela
         frame_paralela = ctk.CTkFrame(
             parent,
@@ -867,81 +856,48 @@ class GUI1:
         # Título da seção
         label_titulo = ctk.CTkLabel(
             frame_paralela,
-            text="Execução Paralela",
+            text="Modo de Execução",
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="#495057"
         )
         label_titulo.pack(pady=(15, 10))
         
-        # Container dos controles - Grid responsivo
+        # Container dos controles
         container_controles = ctk.CTkFrame(
             frame_paralela,
-            fg_color="white",
-            corner_radius=15,
-            border_width=1,
-            border_color="#dee2e6"
+            fg_color="transparent"
         )
         container_controles.pack(fill="x", padx=15, pady=(0, 10))
         
-        # Configurar grid - 3 colunas
-        container_controles.grid_columnconfigure(0, weight=1)
-        container_controles.grid_columnconfigure(1, weight=1)
-        container_controles.grid_columnconfigure(2, weight=1)
+        # Frame para modo de execução centralizado
+        frame_modo = ctk.CTkFrame(container_controles, fg_color="transparent")
+        frame_modo.pack(expand=True)
         
-        # Label modo execução
         label_modo = ctk.CTkLabel(
-            container_controles,
-            text="Modo:",
+            frame_modo,
+            text="Selecione o Modo:",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#495057"
         )
-        label_modo.grid(row=0, column=0, padx=10, pady=12, sticky="w")
+        label_modo.pack(pady=(0, 5))
         
-        # Dropdown modo execução
+        # Dropdown modo execução - Apenas Individual ou Paralelo
         self.dropdown_modo = ctk.CTkOptionMenu(
-            container_controles,
-            values=["Individual", "Paralelo"],
-            font=ctk.CTkFont(size=12),
+            frame_modo,
+            values=["Individual", "Paralelo (2 instâncias)", "Paralelo (3 instâncias)", "Paralelo (4 instâncias)", "Paralelo (5 instâncias)"],
+            font=ctk.CTkFont(size=14),
             dropdown_font=ctk.CTkFont(size=12),
             command=self._on_modo_change,
-            width=140,
-            height=35
+            width=200,
+            height=40
         )
         self.dropdown_modo.set("Individual")
-        self.dropdown_modo.grid(row=0, column=1, padx=10, pady=12, sticky="ew")
-        
-        # Campo número de instâncias
-        self.entry_instancias = ctk.CTkEntry(
-            container_controles,
-            placeholder_text="Instâncias",
-            font=ctk.CTkFont(size=12),
-            width=100,
-            height=35,
-            justify="center",
-            state="disabled"
-        )
-        self.entry_instancias.insert(0, "1")
-        self.entry_instancias.grid(row=0, column=2, padx=10, pady=12, sticky="ew")
-        
-        # Botão calcular distribuição
-        self.botao_calcular = ctk.CTkButton(
-            frame_paralela,
-            text="Calcular Distribuição",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=45,
-            corner_radius=22,
-            fg_color="#6c757d",
-            hover_color="#5a6268",
-            command=self._calcular_distribuicao,
-            state="disabled",
-            width=240
-        )
-        self.botao_calcular.pack(pady=(0, 10))
+        self.dropdown_modo.pack()
         
         # Label de status da distribuição
         self.label_distribuicao = ctk.CTkLabel(
             frame_paralela,
-            text="",
+            text="Processamento individual - uma instância do navegador",
             font=ctk.CTkFont(size=12),
             text_color="#495057",
             justify="left"
@@ -950,38 +906,55 @@ class GUI1:
     
     def _on_modo_change(self, valor):
         """Callback quando o modo de execução é alterado"""
-        if valor == "Paralelo":
-            self.modo_execucao = "paralelo"
-            self.entry_instancias.configure(state="normal")
-            self.botao_calcular.configure(state="normal")
-            self.entry_instancias.delete(0, "end")
-            self.entry_instancias.insert(0, "2")
-        else:
+        if valor == "Individual":
             self.modo_execucao = "individual"
-            self.entry_instancias.configure(state="disabled")
-            self.botao_calcular.configure(state="disabled")
-            self.entry_instancias.delete(0, "end")
-            self.entry_instancias.insert(0, "1")
-            self.label_distribuicao.configure(text="")
+            self.num_instancias = 1
+            self.label_distribuicao.configure(text="Processamento individual - uma instância do navegador")
+        else:
+            self.modo_execucao = "paralelo"
+            # Extrai número de instâncias do texto
+            if "2 instâncias" in valor:
+                self.num_instancias = 2
+            elif "3 instâncias" in valor:
+                self.num_instancias = 3
+            elif "4 instâncias" in valor:
+                self.num_instancias = 4
+            elif "5 instâncias" in valor:
+                self.num_instancias = 5
+            else:
+                self.num_instancias = 2  # Default
+            
+            # Calcula distribuição automaticamente
+            self._calcular_distribuicao()
     
     def _calcular_distribuicao(self):
         """Calcula e exibe a distribuição das cidades"""
         try:
-            num_instancias = int(self.entry_instancias.get())
-            
-            # Valida número de instâncias
-            valido, mensagem = self.city_splitter.validar_instancias(num_instancias)
-            if not valido:
-                self._mostrar_erro(mensagem)
+            if self.modo_execucao == "individual":
+                self.label_distribuicao.configure(text="Processamento individual - uma instância do navegador")
                 return
             
-            # Calcula distribuição
-            resumo = self.city_splitter.obter_resumo_distribuicao(num_instancias)
-            self.label_distribuicao.configure(text=resumo)
-            self.num_instancias = num_instancias
+            # Valida número de instâncias (máximo 5)
+            if self.num_instancias > 5:
+                self.num_instancias = 5
             
-        except ValueError:
-            self._mostrar_erro("Digite um número válido de instâncias")
+            # Calcula distribuição
+            if hasattr(self.city_splitter, 'obter_resumo_distribuicao'):
+                resumo = self.city_splitter.obter_resumo_distribuicao(self.num_instancias)
+                self.label_distribuicao.configure(text=resumo)
+            else:
+                # Fallback simples
+                total_cidades = len(self.cidades_selecionadas) if self.cidades_selecionadas else len(self.lista_cidades)
+                cidades_por_instancia = total_cidades // self.num_instancias
+                resto = total_cidades % self.num_instancias
+                texto = f"Processamento paralelo com {self.num_instancias} instâncias\n"
+                texto += f"Aproximadamente {cidades_por_instancia} cidades por instância"
+                if resto > 0:
+                    texto += f" (+{resto} na primeira instância)"
+                self.label_distribuicao.configure(text=texto)
+            
+        except Exception as e:
+            self.label_distribuicao.configure(text=f"Paralelo com {self.num_instancias} instâncias")
     
     def _criar_botoes_acao(self, parent):
         """Cria botões de ação principais - RESPONSIVO"""
@@ -1041,9 +1014,7 @@ class GUI1:
         
         def on_leave(event):
             # Volta ao tamanho original baseado no tipo de botão
-            if botao in [self.botao_todas, self.botao_individual]:
-                botao.configure(width=240, height=55)  # Botões padrão atualizados
-            elif botao == self.botao_executar:
+            if botao == self.botao_executar:
                 botao.configure(width=300, height=55)  # Botão executar
             elif botao == self.botao_abrir_pasta:
                 botao.configure(width=200, height=55)  # Botão abrir pasta
@@ -1103,6 +1074,9 @@ class GUI1:
     
     def _validar_dados(self):
         """Valida se os dados estão corretos"""
+        # Atualiza cidades selecionadas com base no dropdown
+        self._atualizar_cidades_selecionadas()
+        
         # Verifica se há cidades selecionadas
         if not self.cidades_selecionadas:
             self._mostrar_erro("Por favor, selecione pelo menos uma cidade!")
@@ -1123,18 +1097,11 @@ class GUI1:
         # Atualiza estado
         self.executando = not habilitado
         
-        # Atualiza botões de seleção de cidades
-        self.botao_todas.configure(state="normal" if habilitado else "disabled")
-        self.botao_individual.configure(state="normal" if habilitado else "disabled")
+        # Atualiza dropdown de cidades
+        self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
         
         # Atualiza controles de execução paralela
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
-        if habilitado and self.modo_execucao == "paralelo":
-            self.entry_instancias.configure(state="normal")
-            self.botao_calcular.configure(state="normal")
-        else:
-            self.entry_instancias.configure(state="disabled")
-            self.botao_calcular.configure(state="disabled")
         
         # Botão abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")
@@ -1510,6 +1477,13 @@ Total: {stats.get('total', 0)} cidades
             if os.path.exists(caminho_arquivo):
                 with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
                     self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
+            
+            # Atualiza dropdown após carregar cidades
+            if hasattr(self, 'dropdown_cidade') and self.lista_cidades:
+                self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
+                self.cidade_selecionada.set("Todas as Cidades")
+                self._on_cidade_change("Todas as Cidades")
+                
         except Exception as e:
             self._mostrar_erro(f"Erro ao carregar cidades: {str(e)}")
             self.lista_cidades = []
@@ -1520,35 +1494,70 @@ Total: {stats.get('total', 0)} cidades
             self._mostrar_erro("Nenhuma cidade disponível!")
             return
         
+        self.cidade_selecionada.set("Todas as Cidades")
         self.cidades_selecionadas = self.lista_cidades.copy()
         self.label_status_selecao.configure(
             text=f"Todas as cidades selecionadas ({len(self.cidades_selecionadas)} cidades)"
         )
     
-    def _abrir_seletor_individual(self):
-        """Abre popup nativo para seleção individual"""
-        seletor = SeletorCidades(self, self.lista_cidades)
-        resultado = seletor.obter_selecao()
-        
-        if resultado:
-            self.cidades_selecionadas = resultado
-            self._atualizar_status_selecao()
-    
     def _limpar_selecao(self):
         """Limpa a seleção de cidades"""
         self.cidades_selecionadas = []
+        self.cidade_selecionada.set("")
         self.label_status_selecao.configure(
-            text="Clique em um dos botões acima para selecionar cidades"
+            text="Selecione uma cidade no dropdown"
         )
+    
+    def _obter_opcoes_cidades(self):
+        """Retorna lista de opções para o dropdown de cidades"""
+        opcoes = ["Todas as Cidades"]
+        if self.lista_cidades:
+            # Adiciona cidades em ordem alfabética
+            cidades_ordenadas = sorted(self.lista_cidades)
+            opcoes.extend([cidade.title() for cidade in cidades_ordenadas])
+        return opcoes
+    
+    def _on_cidade_change(self, valor):
+        """Callback quando cidade é alterada no dropdown"""
+        if valor == "Todas as Cidades":
+            self.label_status_selecao.configure(
+                text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
+            )
+        else:
+            self.label_status_selecao.configure(
+                text=f"Cidade selecionada: {valor}"
+            )
+        
+        # Recalcula distribuição se estiver em modo paralelo
+        if self.modo_execucao == "paralelo":
+            self._calcular_distribuicao()
+    
+    def _atualizar_cidades_selecionadas(self):
+        """Atualiza lista de cidades selecionadas com base no dropdown"""
+        valor = self.cidade_selecionada.get()
+        
+        if valor == "Todas as Cidades" or not valor:
+            self.cidades_selecionadas = self.lista_cidades.copy()
+        else:
+            # Converte de volta para formato original (uppercase)
+            cidade_upper = valor.upper()
+            # Procura a cidade na lista original
+            for cidade in self.lista_cidades:
+                if cidade.upper() == cidade_upper:
+                    self.cidades_selecionadas = [cidade]
+                    break
+            else:
+                # Se não encontrou, usa como está
+                self.cidades_selecionadas = [valor]
     
     def _atualizar_status_selecao(self):
         """Atualiza o texto de status da seleção"""
         if not self.cidades_selecionadas:
-            texto = "Clique em um dos botões acima para selecionar cidades"
+            texto = "Selecione uma cidade no dropdown"
         elif len(self.cidades_selecionadas) == len(self.lista_cidades):
             texto = f"Todas as cidades selecionadas ({len(self.cidades_selecionadas)} cidades)"
         else:
-            texto = f"{len(self.cidades_selecionadas)} cidades selecionadas"
+            texto = f"Cidade selecionada: {self.cidades_selecionadas[0].title() if self.cidades_selecionadas else ''}"
         
         self.label_status_selecao.configure(text=texto)
     
