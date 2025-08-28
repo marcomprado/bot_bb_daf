@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Interface gráfica moderna para o sistema de automação FPM
-Serve como ponte visual para executar o main.py simplificado
+GUI1 - Interface gráfica para o sistema BB DAF
+Interface de usuário pura, sem lógica de negócio
 """
 
 import customtkinter as ctk
@@ -9,13 +9,11 @@ import tkinter as tk
 from tkinter import messagebox
 import os
 import sys
-import threading
-import subprocess
 import platform
+import subprocess
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Dict, Callable, Optional
 from classes.city_splitter import CitySplitter
-from gui2 import GUI2
 
 
 def obter_caminho_recurso(nome_arquivo):
@@ -422,36 +420,26 @@ class SeletorCidades:
         return self.cidades_selecionadas
 
 
-class GUIMain:
+class GUI1:
     """Interface gráfica principal que executa main.py"""
     
-    def __init__(self):
-        # Configuração do tema
-        ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("blue")
+    def __init__(self, parent_frame: ctk.CTkFrame = None, 
+                 on_executar: Callable = None,
+                 on_cancelar: Callable = None):
+        """
+        Inicializa a GUI1
         
-        # Copia arquivo cidades.txt se necessário (para executável)
-        copiar_arquivo_cidades_se_necessario()
+        Args:
+            parent_frame: Frame pai onde a GUI será criada
+            on_executar: Callback quando usuário clica em executar
+            on_cancelar: Callback quando usuário clica em cancelar
+        """
+        self.parent_frame = parent_frame
+        self.on_executar = on_executar
+        self.on_cancelar = on_cancelar
         
-        # Janela principal - RESPONSIVA
-        self.janela = ctk.CTk()
-        self.janela.title("Sistema FVN")
-        self.janela.geometry("750x700")  # Altura reduzida
-        self.janela.resizable(True, True)
-        self.janela.minsize(600, 550)  # Tamanho mínimo responsivo
-        self.janela.configure(fg_color="#f8f9fa")
-        
-        # Controle de abas
-        self.aba_atual = "fvn"
-        
-        # Configura ícone da aplicação
-        self._configurar_icone()
-        
-        # Estado da execução
+        # Estado da interface
         self.executando = False
-        self.processo = None
-        self.thread_execucao = None
-        self._cancelado = False
         
         # Dados
         self.lista_cidades = []
@@ -461,18 +449,20 @@ class GUIMain:
         self.data_inicial_var = ctk.StringVar()
         self.data_final_var = ctk.StringVar()
         
-        # Sistema de divisão de cidades - usa caminho correto
+        # Sistema de divisão de cidades
         caminho_cidades = obter_caminho_dados("cidades.txt")
         self.city_splitter = CitySplitter(caminho_cidades)
         self.num_instancias = 1
-        self.modo_execucao = "individual"  # ou "paralelo"
+        self.modo_execucao = "individual"
+        
+        # Frame principal da GUI1
+        self.main_frame = None
         
         self._configurar_datas_padrao()
-        self._centralizar_janela()
         self._criar_interface()
         self._carregar_cidades()
     
-    def _configurar_icone(self):
+    def _configurar_icone_OLD(self):
         """Configura o ícone da aplicação se disponível"""
         try:
             # Lista de possíveis caminhos para o ícone
@@ -513,46 +503,27 @@ class GUIMain:
         self.data_inicial_var.set(data_inicial.strftime("%d/%m/%Y"))
         self.data_final_var.set(data_atual.strftime("%d/%m/%Y"))
     
-    def _centralizar_janela(self):
-        """Centraliza janela na tela"""
-        self.janela.update_idletasks()
-        largura = self.janela.winfo_width()
-        altura = self.janela.winfo_height()
-        pos_x = (self.janela.winfo_screenwidth() // 2) - (largura // 2)
-        pos_y = (self.janela.winfo_screenheight() // 2) - (altura // 2)
-        self.janela.geometry(f"{largura}x{altura}+{pos_x}+{pos_y}")
     
     def _criar_interface(self):
-        """Cria a interface principal com sistema de abas"""
-        # Container principal
-        container_principal = ctk.CTkFrame(
-            self.janela,
-            corner_radius=0,
-            fg_color="#f8f9fa"
-        )
-        container_principal.pack(fill="both", expand=True, padx=0, pady=0)
-        
-        # Criar sistema de abas
-        self._criar_sistema_abas(container_principal)
-        
-        # Container para o conteúdo das abas
-        self.container_conteudo = ctk.CTkFrame(
-            container_principal,
-            corner_radius=0,
-            fg_color="#f8f9fa"
-        )
-        self.container_conteudo.pack(fill="both", expand=True, padx=0, pady=0)
-        
-        # Criar aba FVN (original)
-        self._criar_aba_fvn()
-        
-        # Criar aba do segundo scraper
-        self._criar_aba_scraper2()
-        
-        # Mostrar aba inicial
-        self._mostrar_aba("fvn")
+        """Cria a interface da GUI1"""
+        if self.parent_frame:
+            # Frame scrollable principal
+            self.main_frame = ctk.CTkScrollableFrame(
+                self.parent_frame,
+                corner_radius=0,
+                fg_color="#f8f9fa"
+            )
+            
+            # Cabeçalho
+            self._criar_cabecalho(self.main_frame)
+            
+            # Seções principais
+            self._criar_secao_datas(self.main_frame)
+            self._criar_secao_cidades(self.main_frame)
+            self._criar_secao_execucao_paralela(self.main_frame)
+            self._criar_botoes_acao(self.main_frame)
     
-    def _criar_sistema_abas(self, parent):
+    def _criar_sistema_abas_OLD(self, parent):
         """Cria o sistema de abas estilo navegador"""
         # Container das abas
         self.container_abas = ctk.CTkFrame(
@@ -605,7 +576,7 @@ class GUIMain:
         )
         self.aba_scraper2.pack(side="left", padx=5)
     
-    def _mostrar_aba(self, aba):
+    def _mostrar_aba_OLD(self, aba):
         """Alterna entre as abas"""
         self.aba_atual = aba
         
@@ -651,7 +622,7 @@ class GUIMain:
             if hasattr(self, 'gui_scraper2'):
                 self.gui_scraper2.mostrar()
     
-    def _criar_aba_fvn(self):
+    def _criar_aba_fvn_OLD(self):
         """Cria o conteúdo da aba FVN (interface original)"""
         # Cria uma classe interna para encapsular a GUI original
         class GUIFVNInternal:
@@ -687,12 +658,12 @@ class GUIMain:
         # Cria a GUI FVN interna
         self.gui_fvn = GUIFVNInternal(self.container_conteudo, self)
     
-    def _criar_aba_scraper2(self):
+    def _criar_aba_scraper2_OLD(self):
         """Cria o conteúdo da aba do segundo scraper"""
         self.gui_scraper2 = GUI2(self.container_conteudo)
     
-    def _criar_cabecalho_fvn(self, parent):
-        """Cria cabeçalho da aba FVN"""
+    def _criar_cabecalho(self, parent):
+        """Cria cabeçalho da interface"""
         # Container do cabeçalho
         frame_cabecalho = ctk.CTkFrame(
             parent,
@@ -706,7 +677,7 @@ class GUIMain:
         # Título principal
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
-            text="Sistema FVN",
+            text="Sistema BB DAF",
             font=ctk.CTkFont(size=28, weight="bold"),
             text_color="#212529"
         )
@@ -1192,27 +1163,79 @@ class GUIMain:
             )
     
     def _executar_main(self):
-        """Executa o main.py como subprocess ou cancela execução"""
+        """Dispara callback de execução ou cancelamento"""
         if self.executando:
-            # Se está executando, cancela
-            self._cancelar_execucao()
+            # Se está executando, dispara callback de cancelar
+            if self.on_cancelar:
+                self.on_cancelar()
+            self._habilitar_interface(True)
             return
         
         # Valida dados
         if not self._validar_dados():
             return
         
-        try:
-            if self.modo_execucao == "paralelo":
-                self._executar_modo_paralelo()
-            else:
-                self._executar_modo_individual()
-                
-        except Exception as e:
-            self._mostrar_erro(f"Erro ao executar: {str(e)}")
-            self._habilitar_interface(True)
+        # Prepara parâmetros
+        parametros = self.obter_parametros()
+        
+        # Desabilita interface
+        self._habilitar_interface(False)
+        
+        # Dispara callback de execução
+        if self.on_executar:
+            self.on_executar(parametros)
     
-    def _executar_modo_individual(self):
+    def obter_parametros(self) -> Dict:
+        """
+        Obtém os parâmetros configurados na interface
+        
+        Returns:
+            dict: Parâmetros para execução
+        """
+        return {
+            'modo': self.modo_execucao,
+            'cidades': self.cidades_selecionadas.copy(),
+            'data_inicial': self.data_inicial_var.get(),
+            'data_final': self.data_final_var.get(),
+            'num_instancias': self.num_instancias if self.modo_execucao == 'paralelo' else 1
+        }
+    
+    def processar_resultado(self, resultado: Dict):
+        """
+        Processa o resultado da execução
+        
+        Args:
+            resultado: Resultado retornado pelo bot
+        """
+        self._habilitar_interface(True)
+        
+        if resultado.get('sucesso'):
+            if 'estatisticas' in resultado:
+                stats = resultado['estatisticas']
+                mensagem = f"""Processamento concluído!
+                
+Total: {stats.get('total', 0)} cidades
+                Sucessos: {stats.get('sucessos', 0)}
+                Erros: {stats.get('erros', 0)}
+                Taxa de sucesso: {stats.get('taxa_sucesso', 0):.1f}%"""
+                self._mostrar_info(mensagem)
+            else:
+                self._mostrar_info("Processamento concluído com sucesso!")
+        else:
+            erro = resultado.get('erro', 'Erro desconhecido')
+            self._mostrar_erro(f"Erro no processamento: {erro}")
+    
+    def mostrar(self):
+        """Mostra a GUI1"""
+        if self.main_frame:
+            self.main_frame.pack(fill="both", expand=True, padx=0, pady=0)
+    
+    def ocultar(self):
+        """Oculta a GUI1"""
+        if self.main_frame:
+            self.main_frame.pack_forget()
+    
+    def _executar_modo_individual_OLD(self):
         """Executa modo individual (uma instância)"""
         # Salva cidades selecionadas no arquivo
         self._salvar_cidades_selecionadas()
@@ -1284,7 +1307,7 @@ class GUIMain:
         self.thread_execucao = threading.Thread(target=executar_subprocess, daemon=True)
         self.thread_execucao.start()
 
-    def _executar_modo_paralelo(self):
+    def _executar_modo_paralelo_OLD(self):
         """Executa modo paralelo (múltiplas instâncias)"""
         # Divide as cidades em arquivos para cada instância
         resultado = self.city_splitter.dividir_cidades(self.num_instancias)
@@ -1529,14 +1552,14 @@ class GUIMain:
         
         self.label_status_selecao.configure(text=texto)
     
-    def _executar_script_direto(self, modo="individual", arquivo_cidades=None):
+    def _executar_script_direto_OLD(self, modo="individual", arquivo_cidades=None):
         """Executa o script diretamente sem subprocess (para executáveis)"""
         try:
             # Importa os módulos necessários
             from classes.file_manager import FileManager
             from classes.date_calculator import DateCalculator
             from classes.data_extractor import DataExtractor
-            from bots.web_scraping_bot import WebScrapingBot
+            from bots.bot_bbdaf import BotBBDAF
             
             # Redireciona stdout para capturar a saída
             import io
@@ -1588,7 +1611,7 @@ class GUIMain:
                 
                 # 3. Inicializa componentes
                 data_extractor = DataExtractor()
-                bot = WebScrapingBot()
+                bot = BotBBDAF()
                 bot.configurar_extrator_dados(data_extractor)
                 
                 # 4. Configura navegador
@@ -1638,22 +1661,12 @@ class GUIMain:
                 bot.fechar_navegador()
             return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": str(e)}
 
-    def executar(self):
-        """Executa loop principal da interface"""
-        self.janela.mainloop()
-
-
-def main():
-    """Função principal"""
-    try:
-        interface = GUIMain()
-        interface.executar()
-    except Exception as e:
-        print(f"Erro ao inicializar interface: {e}")
-        return 1
-    
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main()) 
+    def atualizar_status(self, mensagem: str):
+        """
+        Atualiza o status na interface
+        
+        Args:
+            mensagem: Mensagem de status
+        """
+        if hasattr(self, 'label_status_selecao'):
+            self.label_status_selecao.configure(text=mensagem) 
