@@ -16,7 +16,7 @@ Funcionalidades:
 
 import sys
 import os
-from classes.web_scraping_bot import WebScrapingBot
+from bots.web_scraping_bot import WebScrapingBot
 from classes.data_extractor import DataExtractor
 from classes.date_calculator import DateCalculator
 from classes.file_manager import FileManager

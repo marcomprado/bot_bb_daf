@@ -61,6 +61,106 @@ DATAS_CONFIG = {
     'meses_anteriores': 1,
 }
 
+# Configurações do sistema FNDE
+FNDE_CONFIG = {
+    # URL base do sistema FNDE
+    'url_base': 'https://www.fnde.gov.br/pls/simad/internet_fnde.LIBERACOES_01_PC',
+    
+    # Parâmetros padrão
+    'uf_padrao': 'MG',
+    'entidade_padrao': '02',  # PREFEITURA
+    'programa_padrao': '',    # Vazio para todos os programas
+    
+    # Timeout para elementos FNDE (em segundos)
+    'timeout_selenium': 15,
+    
+    # Pausas específicas para FNDE (em segundos)
+    'pausa_entre_municipios': 0.5,
+    'pausa_apos_selecao': 0.3,
+    'pausa_apos_busca': 1.0,
+    
+    # Diretórios específicos
+    'diretorio_saida': 'arquivos_baixados/fnde',
+    'prefixo_arquivo': 'fnde',
+    
+    # Anos disponíveis no sistema FNDE
+    'anos_disponiveis': list(range(2025, 1999, -1)),  # 2025 até 2000
+}
+
+# Seletores para elementos FNDE
+SELETORES_FNDE = {
+    # Formulário principal
+    'select_ano': 'select[name="p_ano"]',
+    'select_municipio': 'select[name="p_municipio"]',
+    'select_entidade': 'select[name="p_tp_entidade"]',
+    'botao_buscar': 'input[name="buscar"]',
+    
+    # Elementos de resultado
+    'tabela_resultados': 'table',
+    'linhas_tabela': 'table tr',
+    'celulas_tabela': 'table td',
+    
+    # Indicadores de carregamento
+    'corpo_pagina': 'body',
+    'conteudo_principal': 'table, .tabela, .resultado',
+}
+
+# Lista completa de municípios de MG (853 municípios)
+# Esta lista é carregada dinamicamente do arquivo cidades.txt
+# mas pode ser usada como fallback
+MUNICIPIOS_MG_FALLBACK = [
+    'BELO HORIZONTE',
+    'UBERLANDIA', 
+    'CONTAGEM',
+    'JUIZ DE FORA',
+    'BETIM',
+    'MONTES CLAROS',
+    'RIBEIRAO DAS NEVES',
+    'UBERABA',
+    'GOVERNADOR VALADARES',
+    'IPATINGA',
+    'SANTA LUZIA',
+    'SETE LAGOAS',
+    'DIVINOPOLIS',
+    'IBIRITE',
+    'POCOS DE CALDAS',
+    'PATOS DE MINAS',
+    'POUSO ALEGRE',
+    'TEOFILO OTONI',
+    'BARBACENA',
+    'SABARA',
+    'VARGINHA',
+    'CONSELHEIRO LAFAIETE',
+    'VESPASIANO',
+    'ITABIRA',
+    'ARAGUARI',
+    'PASSOS',
+    'UBERLANDIA',
+    'CORONEL FABRICIANO',
+    'MURIAE',
+    'ITUIUTABA',
+    'ARAXAS',
+    'LAVRAS',
+    'ITAJUBA',
+    'CAMPOS ALTOS',
+    'TRES CORACOES',
+    'NOVA LIMA',
+    'NOVA SERRANA',
+    'SAO JOAO DEL REI',
+    'TIMOTEO',
+    'PARA DE MINAS',
+    'VICOSA',
+    'MANHUACU',
+    'ITAUNA',
+    'PATROCINIO',
+    'POUSO ALEGRE',
+    'UNAI',
+    'CARATINGA',
+    'GUAXUPE',
+    'NOVA ERA',
+    'DIAMANTINA',
+]
+
 # Mensagens de log do sistema
 MENSAGENS = {
     'inicio_processamento': ' SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL',
@@ -70,4 +170,10 @@ MENSAGENS = {
     'erro': 'error',
     'aviso': 'alert',
     'info': 'info',
+    
+    # Mensagens específicas FNDE
+    'inicio_fnde': ' SISTEMA DE AUTOMAÇÃO WEB - FNDE',
+    'municipio_processado': ' Município processado com sucesso',
+    'municipio_erro': ' Erro ao processar município',
+    'todos_municipios': ' Processando todos os municípios de MG',
 } 

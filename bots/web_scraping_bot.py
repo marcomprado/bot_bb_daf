@@ -3,8 +3,10 @@ Classe principal responsável pela automação web usando Selenium
 """
 
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from classes.chrome_driver import ChromeDriverSimples
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -51,23 +53,22 @@ class WebScrapingBot:
     
     def configurar_navegador(self):
         """
-        Configura e inicializa o navegador Chrome com o ChromeDriver
+        Configura e inicializa o navegador Chrome usando conexão direta simples
         
         Returns:
             bool: True se a configuração foi bem-sucedida, False caso contrário
         """
         try:
-            # O ChromeDriverManager baixa automaticamente a versão correta do ChromeDriver
-            # compatível com o Chrome instalado no sistema
-            servico = Service(ChromeDriverManager().install())
+            # Usa a classe simples para conectar direto ao ChromeDriver
+            driver_simples = ChromeDriverSimples()
+            self.navegador = driver_simples.conectar()
             
-            # Cria uma instância do webdriver Chrome utilizando o serviço configurado
-            self.navegador = webdriver.Chrome(service=servico)
-            
-            # Configura o WebDriverWait para aguardar elementos aparecerem
-            self.wait = WebDriverWait(self.navegador, self.timeout)
-            
-            return True
+            if self.navegador:
+                # Configura o WebDriverWait para aguardar elementos aparecerem
+                self.wait = WebDriverWait(self.navegador, self.timeout)
+                return True
+            else:
+                return False
             
         except Exception:
             return False

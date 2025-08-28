@@ -15,6 +15,7 @@ import platform
 from datetime import datetime, timedelta
 from typing import List
 from classes.city_splitter import CitySplitter
+from gui2 import GUI2
 
 
 def obter_caminho_recurso(nome_arquivo):
@@ -440,6 +441,9 @@ class GUIMain:
         self.janela.minsize(600, 550)  # Tamanho mínimo responsivo
         self.janela.configure(fg_color="#f8f9fa")
         
+        # Controle de abas
+        self.aba_atual = "fvn"
+        
         # Configura ícone da aplicação
         self._configurar_icone()
         
@@ -519,26 +523,176 @@ class GUIMain:
         self.janela.geometry(f"{largura}x{altura}+{pos_x}+{pos_y}")
     
     def _criar_interface(self):
-        """Cria a interface principal com scroll"""
-        # Frame scrollable principal
-        self.main_frame = ctk.CTkScrollableFrame(
+        """Cria a interface principal com sistema de abas"""
+        # Container principal
+        container_principal = ctk.CTkFrame(
             self.janela,
             corner_radius=0,
             fg_color="#f8f9fa"
         )
-        self.main_frame.pack(fill="both", expand=True, padx=0, pady=0)
+        container_principal.pack(fill="both", expand=True, padx=0, pady=0)
         
-        # Cabeçalho
-        self._criar_cabecalho(self.main_frame)
+        # Criar sistema de abas
+        self._criar_sistema_abas(container_principal)
         
-        # Seções principais
-        self._criar_secao_datas(self.main_frame)
-        self._criar_secao_cidades(self.main_frame)
-        self._criar_secao_execucao_paralela(self.main_frame)
-        self._criar_botoes_acao(self.main_frame)
+        # Container para o conteúdo das abas
+        self.container_conteudo = ctk.CTkFrame(
+            container_principal,
+            corner_radius=0,
+            fg_color="#f8f9fa"
+        )
+        self.container_conteudo.pack(fill="both", expand=True, padx=0, pady=0)
+        
+        # Criar aba FVN (original)
+        self._criar_aba_fvn()
+        
+        # Criar aba do segundo scraper
+        self._criar_aba_scraper2()
+        
+        # Mostrar aba inicial
+        self._mostrar_aba("fvn")
     
-    def _criar_cabecalho(self, parent):
-        """Cria cabeçalho limpo sem emojis"""
+    def _criar_sistema_abas(self, parent):
+        """Cria o sistema de abas estilo navegador"""
+        # Container das abas
+        self.container_abas = ctk.CTkFrame(
+            parent,
+            corner_radius=0,
+            fg_color="#e9ecef",
+            height=50
+        )
+        self.container_abas.pack(fill="x", padx=0, pady=0)
+        self.container_abas.pack_propagate(False)
+        
+        # Frame interno para as abas
+        frame_abas = ctk.CTkFrame(
+            self.container_abas,
+            fg_color="transparent"
+        )
+        frame_abas.pack(side="left", fill="y", padx=10, pady=5)
+        
+        # Aba Sistema FVN
+        self.aba_fvn = ctk.CTkButton(
+            frame_abas,
+            text="Sistema FVN",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=40,
+            corner_radius=10,
+            fg_color="#ffffff",
+            text_color="#0066cc",
+            border_width=2,
+            border_color="#0066cc",
+            hover_color="#f0f8ff",
+            command=lambda: self._mostrar_aba("fvn"),
+            width=120
+        )
+        self.aba_fvn.pack(side="left", padx=(0, 5))
+        
+        # Aba Novo Scraper
+        self.aba_scraper2 = ctk.CTkButton(
+            frame_abas,
+            text="Novo Scraper",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=40,
+            corner_radius=10,
+            fg_color="#f0f0f0",
+            text_color="#6c757d",
+            border_width=1,
+            border_color="#dee2e6",
+            hover_color="#e9ecef",
+            command=lambda: self._mostrar_aba("scraper2"),
+            width=120
+        )
+        self.aba_scraper2.pack(side="left", padx=5)
+    
+    def _mostrar_aba(self, aba):
+        """Alterna entre as abas"""
+        self.aba_atual = aba
+        
+        if aba == "fvn":
+            # Estiliza aba ativa
+            self.aba_fvn.configure(
+                fg_color="#ffffff",
+                text_color="#0066cc",
+                border_width=2,
+                border_color="#0066cc"
+            )
+            # Estiliza aba inativa
+            self.aba_scraper2.configure(
+                fg_color="#f0f0f0",
+                text_color="#6c757d",
+                border_width=1,
+                border_color="#dee2e6"
+            )
+            # Mostra conteúdo da aba FVN
+            if hasattr(self, 'gui_fvn'):
+                self.gui_fvn.mostrar()
+            if hasattr(self, 'gui_scraper2'):
+                self.gui_scraper2.ocultar()
+        
+        elif aba == "scraper2":
+            # Estiliza aba ativa
+            self.aba_scraper2.configure(
+                fg_color="#ffffff",
+                text_color="#0066cc",
+                border_width=2,
+                border_color="#0066cc"
+            )
+            # Estiliza aba inativa
+            self.aba_fvn.configure(
+                fg_color="#f0f0f0",
+                text_color="#6c757d",
+                border_width=1,
+                border_color="#dee2e6"
+            )
+            # Mostra conteúdo da aba Scraper2
+            if hasattr(self, 'gui_fvn'):
+                self.gui_fvn.ocultar()
+            if hasattr(self, 'gui_scraper2'):
+                self.gui_scraper2.mostrar()
+    
+    def _criar_aba_fvn(self):
+        """Cria o conteúdo da aba FVN (interface original)"""
+        # Cria uma classe interna para encapsular a GUI original
+        class GUIFVNInternal:
+            def __init__(self, parent, gui_main):
+                self.parent = parent
+                self.gui_main = gui_main
+                self.main_frame = None
+                self._criar_interface()
+            
+            def _criar_interface(self):
+                # Frame scrollable principal
+                self.main_frame = ctk.CTkScrollableFrame(
+                    self.parent,
+                    corner_radius=0,
+                    fg_color="#f8f9fa"
+                )
+                
+                # Cabeçalho
+                self.gui_main._criar_cabecalho_fvn(self.main_frame)
+                
+                # Seções principais
+                self.gui_main._criar_secao_datas(self.main_frame)
+                self.gui_main._criar_secao_cidades(self.main_frame)
+                self.gui_main._criar_secao_execucao_paralela(self.main_frame)
+                self.gui_main._criar_botoes_acao(self.main_frame)
+            
+            def mostrar(self):
+                self.main_frame.pack(fill="both", expand=True, padx=0, pady=0)
+            
+            def ocultar(self):
+                self.main_frame.pack_forget()
+        
+        # Cria a GUI FVN interna
+        self.gui_fvn = GUIFVNInternal(self.container_conteudo, self)
+    
+    def _criar_aba_scraper2(self):
+        """Cria o conteúdo da aba do segundo scraper"""
+        self.gui_scraper2 = GUI2(self.container_conteudo)
+    
+    def _criar_cabecalho_fvn(self, parent):
+        """Cria cabeçalho da aba FVN"""
         # Container do cabeçalho
         frame_cabecalho = ctk.CTkFrame(
             parent,
@@ -1382,7 +1536,7 @@ class GUIMain:
             from classes.file_manager import FileManager
             from classes.date_calculator import DateCalculator
             from classes.data_extractor import DataExtractor
-            from classes.web_scraping_bot import WebScrapingBot
+            from bots.web_scraping_bot import WebScrapingBot
             
             # Redireciona stdout para capturar a saída
             import io
