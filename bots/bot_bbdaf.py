@@ -412,6 +412,38 @@ class BotBBDAF:
         if self.navegador:
             self.navegador.quit()
     
+    def cancelar_forcado(self):
+        """Cancela execução e força fechamento de TODAS as abas do Chrome"""
+        print("Cancelamento forçado BB DAF: fechando todas as abas do Chrome...")
+        
+        if hasattr(self, 'navegador') and self.navegador:
+            try:
+                # Fecha TODAS as janelas e abas abertas
+                handles = self.navegador.window_handles.copy()  # Copia a lista
+                for handle in handles:
+                    try:
+                        self.navegador.switch_to.window(handle)
+                        self.navegador.close()
+                    except:
+                        pass  # Ignora erros ao fechar abas individuais
+                
+                # Força encerramento do processo
+                self.navegador.quit()
+                self.navegador = None
+                self.wait = None
+                
+            except Exception as e:
+                print(f"Erro durante cancelamento forçado: {e}")
+                # Tenta encerramento direto como último recurso
+                try:
+                    self.navegador.quit()
+                    self.navegador = None
+                    self.wait = None
+                except:
+                    pass
+        
+        print("Cancelamento forçado BB DAF concluído - todas as abas fechadas")
+    
     def executar_completo(self, cidades: List[str] = None, data_inicial: str = None, 
                          data_final: str = None, arquivo_cidades: str = None):
         """

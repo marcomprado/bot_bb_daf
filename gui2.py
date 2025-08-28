@@ -32,10 +32,12 @@ class GUI2:
         # Variáveis de configuração FNDE
         self.ano_var = ctk.StringVar()
         self.municipio_var = ctk.StringVar()
+        self.modo_var = ctk.StringVar()
         self.lista_municipios = []
         
         # Bot FNDE
         self.bot_fnde = None
+        self.processador_paralelo = None
         
         self._configurar_valores_padrao()
         self._criar_interface()
@@ -51,6 +53,9 @@ class GUI2:
         # Define valor padrão do município
         if self.lista_municipios:
             self.municipio_var.set("Todos os Municípios")
+        
+        # Define valor padrão do modo de execução
+        self.modo_var.set("Individual")
     
     def _criar_interface(self):
         """Cria a interface da segunda aba com scroll"""
@@ -68,6 +73,7 @@ class GUI2:
         # Seções principais
         self._criar_secao_ano(self.main_frame)
         self._criar_secao_municipios(self.main_frame)
+        self._criar_secao_execucao_paralela(self.main_frame)
         self._criar_botoes_acao(self.main_frame)
     
     def _criar_cabecalho(self, parent):
@@ -85,7 +91,7 @@ class GUI2:
         # Título principal
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
-            text="Novo Scraper",
+            text="Sistema Scraper FNDE",
             font=ctk.CTkFont(size=28, weight="bold"),
             text_color="#212529"
         )
@@ -208,6 +214,77 @@ class GUI2:
             text_color="#495057"
         )
         self.label_status_municipios.pack(pady=(0, 15))
+    
+    def _criar_secao_execucao_paralela(self, parent):
+        """Cria seção de execução paralela para FNDE"""
+        # Frame da execução paralela
+        frame_paralela = ctk.CTkFrame(
+            parent,
+            corner_radius=20,
+            fg_color="#f8f9fa",
+            border_width=1,
+            border_color="#dee2e6"
+        )
+        frame_paralela.pack(fill="x", padx=20, pady=(0, 20))
+        
+        # Título da seção
+        label_titulo = ctk.CTkLabel(
+            frame_paralela,
+            text="Modo de Execução",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#495057"
+        )
+        label_titulo.pack(pady=(15, 10))
+        
+        # Container para o dropdown
+        container_modo = ctk.CTkFrame(frame_paralela, fg_color="transparent")
+        container_modo.pack(fill="x", padx=15, pady=(0, 15))
+        
+        # Campo de modo centralizado
+        frame_modo = ctk.CTkFrame(container_modo, fg_color="transparent")
+        frame_modo.pack(expand=True)
+        
+        label_modo = ctk.CTkLabel(
+            frame_modo,
+            text="Selecione o Modo:",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#495057"
+        )
+        label_modo.pack(pady=(0, 5))
+        
+        # Dropdown com opções de execução
+        self.dropdown_modo = ctk.CTkOptionMenu(
+            frame_modo,
+            values=["Individual", "Paralelo (2 instâncias)", "Paralelo (3 instâncias)", "Paralelo (4 instâncias)", "Paralelo (5 instâncias)"],
+            variable=self.modo_var,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            command=self._on_modo_change,
+            width=200,
+            height=40
+        )
+        self.dropdown_modo.pack()
+        
+        # Label de info sobre execução paralela
+        self.label_info_paralela = ctk.CTkLabel(
+            frame_paralela,
+            text="Modo Paralelo acelera o processamento em até 5x",
+            font=ctk.CTkFont(size=12),
+            text_color="#6c757d"
+        )
+        self.label_info_paralela.pack(pady=(5, 15))
+    
+    def _on_modo_change(self, valor):
+        """Callback quando modo de execução é alterado"""
+        if "Paralelo" in valor:
+            instancias = valor.split("(")[1].split(" ")[0]
+            self.label_info_paralela.configure(
+                text=f"Modo Paralelo: {instancias} navegadores simultâneos"
+            )
+        else:
+            self.label_info_paralela.configure(
+                text="Modo Individual: Processa sequencialmente"
+            )
     
     def _criar_botoes_acao(self, parent):
         """Cria botões de ação principais"""
@@ -336,6 +413,7 @@ class GUI2:
         # Atualiza controles
         self.dropdown_ano.configure(state="normal" if habilitado else "disabled")
         self.dropdown_municipio.configure(state="normal" if habilitado else "disabled")
+        self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
         
         # Botão abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")
@@ -395,20 +473,44 @@ class GUI2:
                 
                 ano = self.ano_var.get()
                 municipio_selecionado = self.municipio_var.get()
+                modo_selecionado = self.modo_var.get()
                 
-                if municipio_selecionado == "Todos os Municípios":
-                    # Processa todos os municípios
-                    estatisticas = self.bot_fnde.processar_todos_municipios(ano)
-                    if not self._cancelado:
-                        self.parent_container.after(0, self._finalizar_execucao_todos, estatisticas)
-                else:
-                    # Processa município específico
-                    # Converte de volta para maiúsculo para compatibilidade com bot_fnde
-                    municipio_upper = municipio_selecionado.upper()
-                    resultado = self.bot_fnde.processar_municipio(ano, municipio_upper)
+                # Verifica se é execução paralela ou individual
+                if "Paralelo" in modo_selecionado:
+                    # Execução paralela
+                    num_instancias = int(modo_selecionado.split("(")[1].split(" ")[0])
+                    
+                    # Importa processador paralelo
+                    from classes.parallel_processor import ProcessadorParalelo
+                    self.processador_paralelo = ProcessadorParalelo()
+                    
+                    print(f"Iniciando execução paralela com {num_instancias} instâncias")
+                    resultado = self.bot_fnde.executar_paralelo(ano, num_instancias)
+                    
+                    # Armazena referência do processador paralelo para cancelamento
+                    if 'processador' in resultado:
+                        self.processador_paralelo = resultado['processador']
                     
                     if not self._cancelado:
-                        self.parent_container.after(0, self._finalizar_execucao_individual, resultado)
+                        if resultado.get('sucesso'):
+                            self.parent_container.after(0, self._finalizar_execucao_paralela, resultado)
+                        else:
+                            self.parent_container.after(0, self._finalizar_execucao_erro, resultado.get('erro'))
+                else:
+                    # Execução individual (código original)
+                    if municipio_selecionado == "Todos os Municípios":
+                        # Processa todos os municípios sequencialmente
+                        estatisticas = self.bot_fnde.processar_todos_municipios(ano)
+                        if not self._cancelado:
+                            self.parent_container.after(0, self._finalizar_execucao_todos, estatisticas)
+                    else:
+                        # Processa município específico
+                        # Converte de volta para maiúsculo para compatibilidade com bot_fnde
+                        municipio_upper = municipio_selecionado.upper()
+                        resultado = self.bot_fnde.processar_municipio(ano, municipio_upper)
+                        
+                        if not self._cancelado:
+                            self.parent_container.after(0, self._finalizar_execucao_individual, resultado)
                 
             except Exception as e:
                 if not self._cancelado:
@@ -425,13 +527,20 @@ class GUI2:
         self.thread_execucao.start()
     
     def _cancelar_execucao(self):
-        """Cancela a execução em andamento"""
+        """Cancela a execução em andamento com cancelamento forçado"""
         try:
             self._cancelado = True
+            
+            # Usa o novo método de cancelamento forçado para fechar TODAS as abas
             if self.bot_fnde:
-                self.bot_fnde.fechar_navegador()
+                self.bot_fnde.cancelar_forcado()
+            
+            # Se estiver executando em paralelo, cancela o processador
+            if self.processador_paralelo:
+                self.processador_paralelo.cancelar()
+            
             self._habilitar_interface(True)
-            self._mostrar_info("Processamento cancelado")
+            self._mostrar_info("Processamento cancelado - todas as abas do Chrome foram fechadas")
         except Exception as e:
             self._mostrar_erro(f"Erro ao cancelar: {str(e)}")
             self._habilitar_interface(True)
@@ -464,6 +573,26 @@ class GUI2:
             self._mostrar_info(mensagem)
         else:
             self._mostrar_erro(f"Erro ao processar {resultado['municipio']}: {resultado['erro']}")
+    
+    def _finalizar_execucao_paralela(self, resultado):
+        """Finaliza execução paralela"""
+        if self._cancelado:
+            return
+            
+        self._habilitar_interface(True)
+        
+        stats = resultado['estatisticas']
+        instancias = resultado['instancias']
+        
+        mensagem = f"🚀 Processamento PARALELO concluído!\\n\\n"
+        mensagem += f"Instâncias: {instancias['sucesso']}/{instancias['total']} executadas\\n"
+        mensagem += f"Total: {stats['total']} municípios\\n"
+        mensagem += f"Sucessos: {stats['sucessos']}\\n"
+        mensagem += f"Erros: {stats['erros']}\\n"
+        mensagem += f"Taxa de sucesso: {stats['taxa_sucesso']:.1f}%\\n\\n"
+        mensagem += f"⚡ Processamento acelerado com múltiplas instâncias!"
+        
+        self._mostrar_info(mensagem)
     
     def _finalizar_execucao_erro(self, erro):
         """Finaliza execução em caso de erro"""

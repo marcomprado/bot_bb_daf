@@ -5,14 +5,13 @@ Interface de usuário pura, sem lógica de negócio
 """
 
 import customtkinter as ctk
-import tkinter as tk
 from tkinter import messagebox
 import os
 import sys
 import platform
 import subprocess
 from datetime import datetime, timedelta
-from typing import List, Dict, Callable, Optional
+from typing import Dict, Callable
 from classes.city_splitter import CitySplitter
 
 
@@ -95,333 +94,8 @@ def copiar_arquivo_cidades_se_necessario():
         print(f"Aviso: Erro ao copiar arquivo cidades.txt - {e}")
 
 
-class SeletorCidades:
-    """Popup nativo para seleção de cidades"""
-    
-    def __init__(self, parent, lista_cidades):
-        self.parent = parent
-        self.lista_cidades = lista_cidades
-        self.lista_cidades_filtrada = lista_cidades.copy()
-        self.cidades_selecionadas = []
-        self.indices_selecionados = set()  # Para manter track das seleções
-        
-        # Janela popup - Fix: use parent.parent_frame.winfo_toplevel() to get window
-        self.popup = tk.Toplevel(parent.parent_frame.winfo_toplevel() if parent.parent_frame else tk._default_root)
-        self.popup.title("Seleção de Cidades")
-        self.popup.geometry("450x600")  # Aumentado para acomodar pesquisa
-        self.popup.resizable(False, False)
-        self.popup.configure(bg='#f8f9fa')
-        self.popup.transient(parent.janela)
-        self.popup.grab_set()
-        
-        # Centraliza popup
-        self.popup.update_idletasks()
-        x = (self.popup.winfo_screenwidth() // 2) - (450 // 2)
-        y = (self.popup.winfo_screenheight() // 2) - (600 // 2)
-        self.popup.geometry(f"450x600+{x}+{y}")
-        
-        self._criar_interface()
-    
-    def _criar_interface(self):
-        """Cria interface do seletor com melhor visibilidade e pesquisa"""
-        # Título
-        titulo = tk.Label(
-            self.popup,
-            text="Selecione as Cidades",
-            font=("Arial", 18, "bold"),
-            bg='#f8f9fa',
-            fg='#212529',
-            pady=10
-        )
-        titulo.pack()
-        
-        # Frame para pesquisa
-        frame_pesquisa = tk.Frame(self.popup, bg='#f8f9fa')
-        frame_pesquisa.pack(fill="x", padx=20, pady=(0, 10))
-        
-        # Label pesquisa
-        label_pesquisa = tk.Label(
-            frame_pesquisa,
-            text="Pesquisar:",
-            font=("Arial", 12, "bold"),
-            bg='#f8f9fa',
-            fg='#495057'
-        )
-        label_pesquisa.pack(side="top", anchor="w")
-        
-        # Container para campo de pesquisa e botão limpar
-        container_pesquisa = tk.Frame(frame_pesquisa, bg='#f8f9fa')
-        container_pesquisa.pack(fill="x", pady=(5, 0))
-        
-        # Campo de pesquisa
-        self.entry_pesquisa = tk.Entry(
-            container_pesquisa,
-            font=("Arial", 12),
-            bg='white',
-            fg='#333333',
-            relief='solid',
-            borderwidth=1,
-            insertbackground='#333333'
-        )
-        self.entry_pesquisa.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.entry_pesquisa.bind('<KeyRelease>', self._on_pesquisa_change)
-        self.entry_pesquisa.bind('<Escape>', lambda e: self._limpar_pesquisa())
-        
-        # Adiciona placeholder text
-        self.entry_pesquisa.insert(0, "Digite para pesquisar...")
-        self.entry_pesquisa.bind('<FocusIn>', self._on_entry_focus_in)
-        self.entry_pesquisa.bind('<FocusOut>', self._on_entry_focus_out)
-        self.entry_pesquisa.configure(fg='#999999')
-        
-        # Botão limpar pesquisa
-        btn_limpar_pesquisa = tk.Button(
-            container_pesquisa,
-            text="Limpar",
-            command=self._limpar_pesquisa,
-            bg="#6c757d",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            padx=12,
-            pady=6,
-            relief='flat',
-            cursor='hand2',
-            borderwidth=0
-        )
-        btn_limpar_pesquisa.pack(side="right")
-        
-        # Label contador
-        self.label_contador = tk.Label(
-            frame_pesquisa,
-            text=f"Mostrando {len(self.lista_cidades)} cidades",
-            font=("Arial", 10),
-            bg='#f8f9fa',
-            fg='#6c757d'
-        )
-        self.label_contador.pack(side="top", anchor="w", pady=(5, 0))
-        
-        # Frame para listbox e scrollbar
-        frame_lista = tk.Frame(self.popup, bg='#f8f9fa')
-        frame_lista.pack(fill="both", expand=True, padx=20, pady=(0, 15))
-        
-        # Listbox com seleção múltipla
-        self.listbox = tk.Listbox(
-            frame_lista,
-            selectmode="multiple",
-            font=("Arial", 12),
-            height=15,  # Reduzido para acomodar pesquisa
-            bg='white',
-            fg='#333333',
-            selectbackground='#0066cc',
-            selectforeground='white',
-            relief='solid',
-            borderwidth=1,
-            highlightthickness=0
-        )
-        
-        # Scrollbar
-        scrollbar = tk.Scrollbar(frame_lista, orient="vertical")
-        scrollbar.config(command=self.listbox.yview)
-        self.listbox.config(yscrollcommand=scrollbar.set)
-        
-        # Posiciona listbox e scrollbar
-        self.listbox.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Popula listbox inicial
-        self._atualizar_listbox()
-        
-        # Permite confirmar com Enter na listbox
-        self.listbox.bind('<Double-Button-1>', lambda e: self._confirmar())
-        self.listbox.bind('<Return>', lambda e: self._confirmar())
-        
-        # Permite navegar do campo de pesquisa para a listbox com Tab
-        self.entry_pesquisa.bind('<Tab>', self._focus_listbox)
-        
-        # Dá foco ao campo de pesquisa
-        self.entry_pesquisa.focus_set()
-        
-        # Frame para os 3 botões principais
-        frame_botoes = tk.Frame(self.popup, bg='#f8f9fa')
-        frame_botoes.pack(fill="x", padx=20, pady=(0, 20))
-        
-        # Botão Limpar (esquerda)
-        btn_limpar = tk.Button(
-            frame_botoes,
-            text="Limpar",
-            command=self._limpar_selecao,
-            bg="#6c757d",
-            fg="white",
-            font=("Arial", 11, "bold"),
-            padx=15,
-            pady=8,
-            relief='flat',
-            cursor='hand2',
-            borderwidth=0
-        )
-        btn_limpar.pack(side="left")
-        
-        # Botão Cancelar (centro)
-        btn_cancelar = tk.Button(
-            frame_botoes,
-            text="Cancelar",
-            command=self._cancelar,
-            bg="#dc3545",
-            fg="white",
-            font=("Arial", 12, "bold"),
-            padx=20,
-            pady=8,
-            relief='flat',
-            cursor='hand2',
-            borderwidth=0
-        )
-        btn_cancelar.pack(side="left", padx=(15, 0))
-        
-        # Botão Confirmar (direita)
-        btn_confirmar = tk.Button(
-            frame_botoes,
-            text="Confirmar Seleção",
-            command=self._confirmar,
-            bg="#28a745",
-            fg="white",
-            font=("Arial", 12, "bold"),
-            padx=20,
-            pady=8,
-            relief='flat',
-            cursor='hand2',
-            borderwidth=0
-        )
-        btn_confirmar.pack(side="right")
-        
-        # Adicionar efeitos hover nos botões
-        self._adicionar_hover_button(btn_limpar, "#6c757d", "#5a6268")
-        self._adicionar_hover_button(btn_cancelar, "#dc3545", "#c82333")
-        self._adicionar_hover_button(btn_confirmar, "#28a745", "#218838")
-    
-    def _adicionar_hover_button(self, button, cor_normal, cor_hover):
-        """Adiciona efeito hover aos botões do popup"""
-        def on_enter(event):
-            button.configure(bg=cor_hover)
-        
-        def on_leave(event):
-            button.configure(bg=cor_normal)
-        
-        button.bind("<Enter>", on_enter)
-        button.bind("<Leave>", on_leave)
-    
-    def _on_pesquisa_change(self, event):
-        """Função chamada quando o usuário digita no campo de pesquisa"""
-        texto_atual = self.entry_pesquisa.get()
-        
-        # Ignora se for o placeholder text
-        if texto_atual == "Digite para pesquisar...":
-            self._filtrar_cidades("")
-            return
-        
-        termo_pesquisa = texto_atual.lower().strip()
-        self._filtrar_cidades(termo_pesquisa)
-    
-    def _limpar_pesquisa(self):
-        """Limpa o campo de pesquisa e mostra todas as cidades"""
-        self.entry_pesquisa.delete(0, tk.END)
-        self.entry_pesquisa.insert(0, "Digite para pesquisar...")
-        self.entry_pesquisa.configure(fg='#999999')
-        self._filtrar_cidades("")
-    
-    def _filtrar_cidades(self, termo):
-        """Filtra as cidades baseado no termo de pesquisa"""
-        if not termo:
-            # Se não há termo, mostra todas as cidades
-            self.lista_cidades_filtrada = self.lista_cidades.copy()
-        else:
-            # Filtra cidades que contêm o termo
-            self.lista_cidades_filtrada = [
-                cidade for cidade in self.lista_cidades 
-                if termo in cidade.lower()
-            ]
-        
-        # Atualiza a listbox e contador
-        self._atualizar_listbox()
-        self._atualizar_contador()
-    
-    def _atualizar_listbox(self):
-        """Atualiza a listbox com as cidades filtradas mantendo seleções"""
-        # Salva quais cidades estavam selecionadas pelo nome
-        cidades_selecionadas_nomes = set()
-        for i in self.listbox.curselection():
-            cidade_original = self.lista_cidades_filtrada[i]
-            cidades_selecionadas_nomes.add(cidade_original)
-        
-        # Limpa listbox
-        self.listbox.delete(0, tk.END)
-        
-        # Adiciona cidades filtradas
-        for cidade in self.lista_cidades_filtrada:
-            self.listbox.insert(tk.END, cidade.title())
-        
-        # Restaura seleções
-        for i, cidade in enumerate(self.lista_cidades_filtrada):
-            if cidade in cidades_selecionadas_nomes:
-                self.listbox.selection_set(i)
-    
-    def _atualizar_contador(self):
-        """Atualiza o contador de cidades mostradas"""
-        total_filtradas = len(self.lista_cidades_filtrada)
-        total_geral = len(self.lista_cidades)
-        
-        if total_filtradas == total_geral:
-            texto = f"Mostrando {total_geral} cidades"
-        else:
-            texto = f"Mostrando {total_filtradas} de {total_geral} cidades"
-        
-        self.label_contador.configure(text=texto)
-    
-    def _on_entry_focus_in(self, event):
-        """Remove placeholder quando o campo ganha foco"""
-        if self.entry_pesquisa.get() == "Digite para pesquisar...":
-            self.entry_pesquisa.delete(0, tk.END)
-            self.entry_pesquisa.configure(fg='#333333')
-    
-    def _on_entry_focus_out(self, event):
-        """Adiciona placeholder quando o campo perde foco e está vazio"""
-        if not self.entry_pesquisa.get().strip():
-            self.entry_pesquisa.delete(0, tk.END)
-            self.entry_pesquisa.insert(0, "Digite para pesquisar...")
-            self.entry_pesquisa.configure(fg='#999999')
-            # Mostra todas as cidades quando limpa a pesquisa
-            self._filtrar_cidades("")
-    
-    def _focus_listbox(self, event):
-        """Move foco para a listbox"""
-        self.listbox.focus_set()
-        if self.listbox.size() > 0:
-            self.listbox.selection_set(0)  # Seleciona primeiro item
-        return "break"  # Previne comportamento padrão do Tab
-    
-    def _limpar_selecao(self):
-        """Limpa toda a seleção"""
-        self.listbox.selection_clear(0, tk.END)
-    
-    def _confirmar(self):
-        """Confirma seleção e fecha popup"""
-        indices_selecionados = self.listbox.curselection()
-        self.cidades_selecionadas = [
-            self.lista_cidades_filtrada[i] for i in indices_selecionados
-        ]
-        self.popup.destroy()
-    
-    def _cancelar(self):
-        """Cancela seleção"""
-        self.cidades_selecionadas = []
-        self.popup.destroy()
-    
-    def obter_selecao(self):
-        """Retorna cidades selecionadas"""
-        self.popup.wait_window()  # Aguarda popup fechar
-        return self.cidades_selecionadas
-
-
 class GUI1:
-    """Interface gráfica principal que executa main.py"""
+    """Interface gráfica principal para o sistema BB DAF"""
     
     def __init__(self, parent_frame: ctk.CTkFrame = None, 
                  on_executar: Callable = None,
@@ -469,39 +143,6 @@ class GUI1:
             if self.lista_cidades:
                 self.cidade_selecionada.set("Todas as Cidades")
     
-    def _configurar_icone_OLD(self):
-        """Configura o ícone da aplicação se disponível"""
-        try:
-            # Lista de possíveis caminhos para o ícone
-            caminhos_icone = [
-                obter_caminho_recurso("assets/app_icon.ico"),
-                obter_caminho_recurso("assets/fvn_icon.ico"), 
-                obter_caminho_recurso("assets/logo.ico"),
-                obter_caminho_recurso("app_icon.ico"),
-                obter_caminho_recurso("icon.ico")
-            ]
-            
-            # Procura pelo ícone nos caminhos possíveis
-            icone_encontrado = None
-            for caminho in caminhos_icone:
-                if os.path.exists(caminho):
-                    icone_encontrado = caminho
-                    break
-            
-            # Se encontrou um ícone, aplica à janela
-            if icone_encontrado:
-                # Para CustomTkinter/Tkinter, usa iconbitmap
-                self.janela.iconbitmap(icone_encontrado)
-                print(f"Ícone carregado: {icone_encontrado}")
-            else:
-                # Se não encontrou ícone, apenas informa (não é erro crítico)
-                print("Nenhum ícone encontrado. Use 'python assets/convert_to_icon.py sua_logo.png assets/app_icon.ico' para criar um.")
-                
-        except Exception as e:
-            # Se houver erro ao carregar ícone, continua sem ele
-            print(f"Aviso: Não foi possível carregar ícone - {e}")
-            pass
-    
     def _configurar_datas_padrao(self):
         """Configura datas padrão"""
         data_atual = datetime.now()
@@ -509,7 +150,6 @@ class GUI1:
         
         self.data_inicial_var.set(data_inicial.strftime("%d/%m/%Y"))
         self.data_final_var.set(data_atual.strftime("%d/%m/%Y"))
-    
     
     def _criar_interface(self):
         """Cria a interface da GUI1"""
@@ -530,145 +170,6 @@ class GUI1:
             self._criar_secao_execucao_paralela(self.main_frame)
             self._criar_botoes_acao(self.main_frame)
     
-    def _criar_sistema_abas_OLD(self, parent):
-        """Cria o sistema de abas estilo navegador"""
-        # Container das abas
-        self.container_abas = ctk.CTkFrame(
-            parent,
-            corner_radius=0,
-            fg_color="#e9ecef",
-            height=50
-        )
-        self.container_abas.pack(fill="x", padx=0, pady=0)
-        self.container_abas.pack_propagate(False)
-        
-        # Frame interno para as abas
-        frame_abas = ctk.CTkFrame(
-            self.container_abas,
-            fg_color="transparent"
-        )
-        frame_abas.pack(side="left", fill="y", padx=10, pady=5)
-        
-        # Aba Sistema FVN
-        self.aba_fvn = ctk.CTkButton(
-            frame_abas,
-            text="Sistema FVN",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            corner_radius=10,
-            fg_color="#ffffff",
-            text_color="#0066cc",
-            border_width=2,
-            border_color="#0066cc",
-            hover_color="#f0f8ff",
-            command=lambda: self._mostrar_aba("fvn"),
-            width=120
-        )
-        self.aba_fvn.pack(side="left", padx=(0, 5))
-        
-        # Aba Novo Scraper
-        self.aba_scraper2 = ctk.CTkButton(
-            frame_abas,
-            text="Novo Scraper",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            corner_radius=10,
-            fg_color="#f0f0f0",
-            text_color="#6c757d",
-            border_width=1,
-            border_color="#dee2e6",
-            hover_color="#e9ecef",
-            command=lambda: self._mostrar_aba("scraper2"),
-            width=120
-        )
-        self.aba_scraper2.pack(side="left", padx=5)
-    
-    def _mostrar_aba_OLD(self, aba):
-        """Alterna entre as abas"""
-        self.aba_atual = aba
-        
-        if aba == "fvn":
-            # Estiliza aba ativa
-            self.aba_fvn.configure(
-                fg_color="#ffffff",
-                text_color="#0066cc",
-                border_width=2,
-                border_color="#0066cc"
-            )
-            # Estiliza aba inativa
-            self.aba_scraper2.configure(
-                fg_color="#f0f0f0",
-                text_color="#6c757d",
-                border_width=1,
-                border_color="#dee2e6"
-            )
-            # Mostra conteúdo da aba FVN
-            if hasattr(self, 'gui_fvn'):
-                self.gui_fvn.mostrar()
-            if hasattr(self, 'gui_scraper2'):
-                self.gui_scraper2.ocultar()
-        
-        elif aba == "scraper2":
-            # Estiliza aba ativa
-            self.aba_scraper2.configure(
-                fg_color="#ffffff",
-                text_color="#0066cc",
-                border_width=2,
-                border_color="#0066cc"
-            )
-            # Estiliza aba inativa
-            self.aba_fvn.configure(
-                fg_color="#f0f0f0",
-                text_color="#6c757d",
-                border_width=1,
-                border_color="#dee2e6"
-            )
-            # Mostra conteúdo da aba Scraper2
-            if hasattr(self, 'gui_fvn'):
-                self.gui_fvn.ocultar()
-            if hasattr(self, 'gui_scraper2'):
-                self.gui_scraper2.mostrar()
-    
-    def _criar_aba_fvn_OLD(self):
-        """Cria o conteúdo da aba FVN (interface original)"""
-        # Cria uma classe interna para encapsular a GUI original
-        class GUIFVNInternal:
-            def __init__(self, parent, gui_main):
-                self.parent = parent
-                self.gui_main = gui_main
-                self.main_frame = None
-                self._criar_interface()
-            
-            def _criar_interface(self):
-                # Frame scrollable principal
-                self.main_frame = ctk.CTkScrollableFrame(
-                    self.parent,
-                    corner_radius=0,
-                    fg_color="#f8f9fa"
-                )
-                
-                # Cabeçalho
-                self.gui_main._criar_cabecalho_fvn(self.main_frame)
-                
-                # Seções principais
-                self.gui_main._criar_secao_datas(self.main_frame)
-                self.gui_main._criar_secao_cidades(self.main_frame)
-                self.gui_main._criar_secao_execucao_paralela(self.main_frame)
-                self.gui_main._criar_botoes_acao(self.main_frame)
-            
-            def mostrar(self):
-                self.main_frame.pack(fill="both", expand=True, padx=0, pady=0)
-            
-            def ocultar(self):
-                self.main_frame.pack_forget()
-        
-        # Cria a GUI FVN interna
-        self.gui_fvn = GUIFVNInternal(self.container_conteudo, self)
-    
-    def _criar_aba_scraper2_OLD(self):
-        """Cria o conteúdo da aba do segundo scraper"""
-        self.gui_scraper2 = GUI2(self.container_conteudo)
-    
     def _criar_cabecalho(self, parent):
         """Cria cabeçalho da interface"""
         # Container do cabeçalho
@@ -684,7 +185,7 @@ class GUI1:
         # Título principal
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
-            text="Sistema BB DAF",
+            text="Sistema Scraping Banco do Brasil DAF",
             font=ctk.CTkFont(size=28, weight="bold"),
             text_color="#212529"
         )
@@ -709,7 +210,7 @@ class GUI1:
             border_width=1,
             border_color="#dee2e6"
         )
-        frame_datas.pack(fill="x", padx=20, pady=(0, 20))  # Padding reduzido
+        frame_datas.pack(fill="x", padx=20, pady=(0, 20))
         
         # Título da seção
         label_datas = ctk.CTkLabel(
@@ -718,7 +219,16 @@ class GUI1:
             font=ctk.CTkFont(size=18, weight="bold"),
             text_color="#495057"
         )
-        label_datas.pack(pady=(15, 10))  # Padding reduzido
+        label_datas.pack(pady=(15, 5))
+        
+        # Subtítulo com informação sobre limite
+        label_subtitulo_datas = ctk.CTkLabel(
+            frame_datas,
+            text="O sistema abrange no máximo o periodo de um mês por pesquisa",
+            font=ctk.CTkFont(size=12),
+            text_color="#6c757d"
+        )
+        label_subtitulo_datas.pack(pady=(0, 10))
         
         # Container dos campos de data - RESPONSIVO
         container_campos = ctk.CTkFrame(frame_datas, fg_color="transparent")
@@ -753,6 +263,10 @@ class GUI1:
         )
         self.entry_data_inicial.pack(fill="x", pady=(5, 0))
         
+        # Adiciona validação para aceitar apenas números e barras
+        self.entry_data_inicial.bind('<KeyPress>', self._validar_tecla_data)
+        self.entry_data_inicial.bind('<FocusOut>', lambda e: self._formatar_data_completa(self.data_inicial_var))
+        
         # Data Final
         frame_data_final = ctk.CTkFrame(container_campos, fg_color="transparent")
         frame_data_final.grid(row=0, column=1, sticky="ew", padx=(5, 0))
@@ -777,6 +291,10 @@ class GUI1:
             border_color="#ced4da"
         )
         self.entry_data_final.pack(fill="x", pady=(5, 0))
+        
+        # Adiciona validação para aceitar apenas números e barras
+        self.entry_data_final.bind('<KeyPress>', self._validar_tecla_data)
+        self.entry_data_final.bind('<FocusOut>', lambda e: self._formatar_data_completa(self.data_final_var))
     
     def _criar_secao_cidades(self, parent):
         """Cria seção de seleção de cidades - ESTILO DROPDOWN COMO GUI2"""
@@ -897,12 +415,76 @@ class GUI1:
         # Label de status da distribuição
         self.label_distribuicao = ctk.CTkLabel(
             frame_paralela,
-            text="Processamento individual - uma instância do navegador",
+            text="Modo Paralelo acelera o processamento em até 5x",
             font=ctk.CTkFont(size=12),
             text_color="#495057",
             justify="left"
         )
         self.label_distribuicao.pack(pady=(0, 15))
+    
+    def _criar_botoes_acao(self, parent):
+        """Cria botões de ação principais - RESPONSIVO"""
+        # Container para os botões
+        frame_acoes = ctk.CTkFrame(
+            parent,
+            corner_radius=20,
+            fg_color="white",
+            border_width=2,
+            border_color="#0066cc"
+        )
+        frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
+        
+        # Container interno para centralizar botões
+        container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
+        container_botoes.pack(pady=15)
+        
+        # Botão Executar
+        self.botao_executar = ctk.CTkButton(
+            container_botoes,
+            text="EXECUTAR PROCESSAMENTO",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=55,
+            corner_radius=27,
+            fg_color="#0066cc",
+            hover_color="#0052a3",
+            command=self._executar_main,
+            width=300
+        )
+        self.botao_executar.pack(side="left", padx=10)
+        
+        # Botão Abrir Pasta
+        self.botao_abrir_pasta = ctk.CTkButton(
+            container_botoes,
+            text="ABRIR ARQUIVOS",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=55,
+            corner_radius=27,
+            fg_color="#28a745",
+            hover_color="#218838",
+            command=self._abrir_pasta_arquivos,
+            width=200
+        )
+        self.botao_abrir_pasta.pack(side="left", padx=10)
+        
+        # Adicionar efeito hover aos botões
+        self._adicionar_efeito_hover(self.botao_executar)
+        self._adicionar_efeito_hover(self.botao_abrir_pasta)
+    
+    def _adicionar_efeito_hover(self, botao):
+        """Adiciona efeito hover de crescimento aos botões"""
+        def on_enter(event):
+            current_width = botao.cget("width")
+            current_height = botao.cget("height")
+            botao.configure(width=current_width + 8, height=current_height + 3)
+        
+        def on_leave(event):
+            if botao == self.botao_executar:
+                botao.configure(width=300, height=55)
+            elif botao == self.botao_abrir_pasta:
+                botao.configure(width=200, height=55)
+        
+        botao.bind("<Enter>", on_enter)
+        botao.bind("<Leave>", on_leave)
     
     def _on_modo_change(self, valor):
         """Callback quando o modo de execução é alterado"""
@@ -956,89 +538,79 @@ class GUI1:
         except Exception as e:
             self.label_distribuicao.configure(text=f"Paralelo com {self.num_instancias} instâncias")
     
-    def _criar_botoes_acao(self, parent):
-        """Cria botões de ação principais - RESPONSIVO"""
-        # Container para os botões
-        frame_acoes = ctk.CTkFrame(
-            parent,
-            corner_radius=20,
-            fg_color="white",
-            border_width=2,
-            border_color="#0066cc"
-        )
-        frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
-        
-        # Container interno para centralizar botões
-        container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
-        container_botoes.pack(pady=15)
-        
-        # Botão Executar - TAMANHO PADRONIZADO
-        self.botao_executar = ctk.CTkButton(
-            container_botoes,
-            text="EXECUTAR PROCESSAMENTO",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,  # MESMO TAMANHO DOS OUTROS
-            corner_radius=27,
-            fg_color="#0066cc",
-            hover_color="#0052a3",
-            command=self._executar_main,
-            width=300  # Largura ajustada
-        )
-        self.botao_executar.pack(side="left", padx=10)
-        
-        # Botão Abrir Pasta - NOVO
-        self.botao_abrir_pasta = ctk.CTkButton(
-            container_botoes,
-            text="ABRIR ARQUIVOS",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#28a745",
-            hover_color="#218838",
-            command=self._abrir_pasta_arquivos,
-            width=200
-        )
-        self.botao_abrir_pasta.pack(side="left", padx=10)
-        
-        # Adicionar efeito hover aos botões
-        self._adicionar_efeito_hover(self.botao_executar)
-        self._adicionar_efeito_hover(self.botao_abrir_pasta)
+    def _obter_opcoes_cidades(self):
+        """Retorna lista de opções para o dropdown de cidades"""
+        opcoes = ["Todas as Cidades"]
+        if self.lista_cidades:
+            # Adiciona cidades em ordem alfabética
+            cidades_ordenadas = sorted(self.lista_cidades)
+            opcoes.extend([cidade.title() for cidade in cidades_ordenadas])
+        return opcoes
     
-    def _adicionar_efeito_hover(self, botao):
-        """Adiciona efeito hover de crescimento aos botões - ATUALIZADO"""
-        def on_enter(event):
-            # Cresce levemente o botão
-            current_width = botao.cget("width")
-            current_height = botao.cget("height")
-            botao.configure(width=current_width + 8, height=current_height + 3)
+    def _on_cidade_change(self, valor):
+        """Callback quando cidade é alterada no dropdown"""
+        if valor == "Todas as Cidades":
+            self.label_status_selecao.configure(
+                text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
+            )
+        else:
+            self.label_status_selecao.configure(
+                text=f"Cidade selecionada: {valor}"
+            )
         
-        def on_leave(event):
-            # Volta ao tamanho original baseado no tipo de botão
-            if botao == self.botao_executar:
-                botao.configure(width=300, height=55)  # Botão executar
-            elif botao == self.botao_abrir_pasta:
-                botao.configure(width=200, height=55)  # Botão abrir pasta
+        # Recalcula distribuição se estiver em modo paralelo
+        if self.modo_execucao == "paralelo":
+            self._calcular_distribuicao()
+    
+    def _atualizar_cidades_selecionadas(self):
+        """Atualiza lista de cidades selecionadas com base no dropdown"""
+        valor = self.cidade_selecionada.get()
         
-        # Bind dos eventos de mouse
-        botao.bind("<Enter>", on_enter)
-        botao.bind("<Leave>", on_leave)
+        if valor == "Todas as Cidades" or not valor:
+            self.cidades_selecionadas = self.lista_cidades.copy()
+        else:
+            # Converte de volta para formato original (uppercase)
+            cidade_upper = valor.upper()
+            # Procura a cidade na lista original
+            for cidade in self.lista_cidades:
+                if cidade.upper() == cidade_upper:
+                    self.cidades_selecionadas = [cidade]
+                    break
+            else:
+                # Se não encontrou, usa como está
+                self.cidades_selecionadas = [valor]
     
-    def _mostrar_erro(self, mensagem):
-        """Mostra mensagem de erro"""
-        messagebox.showerror("Erro", mensagem)
+    def _carregar_cidades(self):
+        """Carrega lista de cidades do arquivo"""
+        try:
+            caminho_arquivo = obter_caminho_dados("cidades.txt")
+            if os.path.exists(caminho_arquivo):
+                with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
+                    self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
+            
+            # Atualiza dropdown após carregar cidades
+            if hasattr(self, 'dropdown_cidade') and self.lista_cidades:
+                self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
+                self.cidade_selecionada.set("Todas as Cidades")
+                self._on_cidade_change("Todas as Cidades")
+                
+        except Exception as e:
+            self._mostrar_erro(f"Erro ao carregar cidades: {str(e)}")
+            self.lista_cidades = []
     
-    def _mostrar_info(self, mensagem):
-        """Mostra mensagem informativa"""
-        messagebox.showinfo("Informação", mensagem)
-    
-    def _mostrar_popup_processo_terminado(self):
-        """Mostra popup padrão quando processo é terminado"""
-        messagebox.showinfo("Processo Finalizado", "processo foi terminado")
+    def _salvar_cidades_selecionadas(self):
+        """Salva cidades selecionadas no arquivo listed_cities.txt"""
+        try:
+            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
+            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
+                for cidade in self.cidades_selecionadas:
+                    arquivo.write(f"{cidade}\n")
+        except Exception as e:
+            raise Exception(f"Erro ao salvar cidades: {str(e)}")
     
     def _abrir_pasta_arquivos(self):
         """Abre a pasta de arquivos baixados no explorador do sistema"""
         try:
-            # Caminho da pasta de arquivos baixados - usa função para obter caminho correto
             pasta_arquivos = obter_caminho_dados("arquivos_baixados")
             
             # Cria a pasta se não existir
@@ -1050,27 +622,47 @@ class GUI1:
             sistema = platform.system()
             
             if sistema == "Windows":
-                # Windows - usa os.startfile ou explorer
                 os.startfile(pasta_arquivos)
             elif sistema == "Darwin":
-                # macOS - usa open
                 subprocess.run(["open", pasta_arquivos])
             elif sistema == "Linux":
-                # Linux - usa xdg-open
                 subprocess.run(["xdg-open", pasta_arquivos])
             else:
-                # Sistema não suportado
-                self._mostrar_erro(f"Sistema operacional '{sistema}' não suportado para abrir pasta")
+                self._mostrar_erro(f"Sistema operacional '{sistema}' não suportado")
                 return
             
             print(f"Pasta aberta: {pasta_arquivos}")
             
-        except FileNotFoundError:
-            self._mostrar_erro("Erro ao abrir pasta: comando do sistema não encontrado")
-        except PermissionError:
-            self._mostrar_erro("Erro ao abrir pasta: sem permissão de acesso")
         except Exception as e:
             self._mostrar_erro(f"Erro ao abrir pasta: {str(e)}")
+    
+    def _validar_tecla_data(self, event):
+        """Permite apenas números e barra nos campos de data"""
+        # Permite números, barra, backspace, delete, setas
+        if event.char.isdigit() or event.char == '/' or event.keysym in ['BackSpace', 'Delete', 'Left', 'Right', 'Home', 'End']:
+            return True
+        else:
+            return "break"  # Bloqueia a tecla
+    
+    def _formatar_data_completa(self, var_data):
+        """Formata a data quando o usuário sai do campo"""
+        try:
+            texto = var_data.get().strip()
+            if not texto:
+                return
+            
+            # Se já está no formato correto, não mexe
+            if len(texto) == 10 and texto.count('/') == 2:
+                return
+            
+            # Se tem apenas números, tenta formatar
+            apenas_numeros = ''.join(c for c in texto if c.isdigit())
+            if len(apenas_numeros) == 8:
+                data_formatada = f"{apenas_numeros[:2]}/{apenas_numeros[2:4]}/{apenas_numeros[4:8]}"
+                var_data.set(data_formatada)
+            
+        except Exception:
+            pass
     
     def _validar_dados(self):
         """Valida se os dados estão corretos"""
@@ -1084,10 +676,21 @@ class GUI1:
         
         # Verifica formato das datas
         try:
-            datetime.strptime(self.data_inicial_var.get(), "%d/%m/%Y")
-            datetime.strptime(self.data_final_var.get(), "%d/%m/%Y")
+            data_inicial = datetime.strptime(self.data_inicial_var.get(), "%d/%m/%Y")
+            data_final = datetime.strptime(self.data_final_var.get(), "%d/%m/%Y")
         except ValueError:
             self._mostrar_erro("Formato de data inválido! Use DD/MM/AAAA")
+            return False
+        
+        # Verifica se a data inicial é anterior à data final
+        if data_inicial >= data_final:
+            self._mostrar_erro("A data inicial deve ser anterior à data final!")
+            return False
+        
+        # Verifica se o período não excede 30 dias
+        diferenca_dias = (data_final - data_inicial).days
+        if diferenca_dias > 30:
+            self._mostrar_erro(f"O período selecionado é de {diferenca_dias} dias. O sistema permite no máximo 30 dias por pesquisa!")
             return False
         
         return True
@@ -1192,6 +795,16 @@ Total: {stats.get('total', 0)} cidades
             erro = resultado.get('erro', 'Erro desconhecido')
             self._mostrar_erro(f"Erro no processamento: {erro}")
     
+    def atualizar_status(self, mensagem: str):
+        """
+        Atualiza o status na interface
+        
+        Args:
+            mensagem: Mensagem de status
+        """
+        if hasattr(self, 'label_status_selecao'):
+            self.label_status_selecao.configure(text=mensagem)
+    
     def mostrar(self):
         """Mostra a GUI1"""
         if self.main_frame:
@@ -1202,480 +815,14 @@ Total: {stats.get('total', 0)} cidades
         if self.main_frame:
             self.main_frame.pack_forget()
     
-    def _executar_modo_individual_OLD(self):
-        """Executa modo individual (uma instância)"""
-        # Salva cidades selecionadas no arquivo
-        self._salvar_cidades_selecionadas()
-        
-        # Desabilita interface e muda botão para cancelar
-        self._habilitar_interface(False)
-        
-        # Verifica se está rodando como executável
-        is_frozen = getattr(sys, 'frozen', False)
-        
-        # Executa main.py em thread separada
-        def executar_subprocess():
-            try:
-                if is_frozen:
-                    # Se for executável, executa diretamente
-                    resultado_dict = self._executar_script_direto(modo="individual")
-                    
-                    # Cria objeto resultado simulando subprocess.run
-                    class ResultadoProcesso:
-                        def __init__(self, returncode, stdout, stderr):
-                            self.returncode = returncode
-                            self.stdout = stdout
-                            self.stderr = stderr
-                    
-                    resultado = ResultadoProcesso(
-                        resultado_dict["returncode"],
-                        resultado_dict["stdout"],
-                        resultado_dict["stderr"]
-                    )
-                else:
-                    # Se não for executável, usa subprocess como antes
-                    self.processo = subprocess.Popen(
-                        [sys.executable, "main.py", self.data_inicial_var.get(), self.data_final_var.get()],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        cwd=os.getcwd()
-                    )
-                    
-                    # Aguarda processo terminar
-                    stdout, stderr = self.processo.communicate()
-                    
-                    # Cria objeto resultado simulando subprocess.run
-                    class ResultadoProcesso:
-                        def __init__(self, returncode, stdout, stderr):
-                            self.returncode = returncode
-                            self.stdout = stdout
-                            self.stderr = stderr
-                    
-                    resultado = ResultadoProcesso(
-                        self.processo.returncode,
-                        stdout,
-                        stderr
-                    )
-                
-                # Reabilita interface na thread principal
-                if not self._cancelado:
-                    self.janela.after(0, self._finalizar_execucao, resultado)
-                
-            except Exception as e:
-                # Reabilita interface em caso de erro
-                if not self._cancelado:
-                    self.janela.after(0, self._finalizar_execucao_erro, str(e))
-        
-        # Inicializa flag de cancelamento
-        self._cancelado = False
-        
-        # Inicia thread
-        self.thread_execucao = threading.Thread(target=executar_subprocess, daemon=True)
-        self.thread_execucao.start()
-
-    def _executar_modo_paralelo_OLD(self):
-        """Executa modo paralelo (múltiplas instâncias)"""
-        # Divide as cidades em arquivos para cada instância
-        resultado = self.city_splitter.dividir_cidades(self.num_instancias)
-        
-        if not resultado.get('sucesso'):
-            self._mostrar_erro(f"Erro ao dividir cidades: {resultado.get('erro')}")
-            return
-        
-        # Desabilita interface e muda botão para cancelar
-        self._habilitar_interface(False)
-        
-        # Verifica se está rodando como executável
-        is_frozen = getattr(sys, 'frozen', False)
-        
-        # Lista para guardar os processos
-        self.processos_paralelos = []
-        
-        # Executa múltiplas instâncias em thread separada
-        def executar_processos_paralelos():
-            try:
-                arquivos_criados = resultado['arquivos_criados']
-                
-                if is_frozen:
-                    # Se for executável, executa diretamente em threads
-                    import concurrent.futures
-                    resultados = []
-                    
-                    def executar_instancia(arquivo_info):
-                        resultado_dict = self._executar_script_direto(modo="paralelo", arquivo_cidades=arquivo_info['arquivo'])
-                        
-                        # Remove arquivo temporário
-                        try:
-                            os.remove(arquivo_info['arquivo'])
-                        except:
-                            pass
-                            
-                        return {
-                            'instancia': arquivo_info['instancia'],
-                            'returncode': resultado_dict["returncode"],
-                            'stdout': resultado_dict["stdout"],
-                            'stderr': resultado_dict["stderr"]
-                        }
-                    
-                    # Executa em paralelo usando ThreadPoolExecutor
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_instancias) as executor:
-                        futures = [executor.submit(executar_instancia, arquivo_info) 
-                                 for arquivo_info in arquivos_criados]
-                        
-                        for future in concurrent.futures.as_completed(futures):
-                            if self._cancelado:
-                                executor.shutdown(wait=False)
-                                return
-                            resultados.append(future.result())
-                else:
-                    # Se não for executável, usa subprocess como antes
-                    # Inicia todos os processos
-                    for arquivo_info in arquivos_criados:
-                        # Usa o script main_parallel.py passando o arquivo específico
-                        processo = subprocess.Popen(
-                            [sys.executable, "main_parallel.py", arquivo_info['arquivo'], self.data_inicial_var.get(), self.data_final_var.get()],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True,
-                            cwd=os.getcwd()
-                        )
-                        
-                        self.processos_paralelos.append({
-                            'processo': processo,
-                            'instancia': arquivo_info['instancia'],
-                            'arquivo': arquivo_info['arquivo']
-                        })
-                    
-                    # Aguarda todos os processos terminarem
-                    resultados = []
-                    for proc_info in self.processos_paralelos:
-                        stdout, stderr = proc_info['processo'].communicate()
-                        resultados.append({
-                            'instancia': proc_info['instancia'],
-                            'returncode': proc_info['processo'].returncode,
-                            'stdout': stdout,
-                            'stderr': stderr
-                        })
-                        
-                        # Remove arquivo temporário de cidades
-                        try:
-                            os.remove(proc_info['arquivo'])
-                        except:
-                            pass
-                
-                # Reabilita interface na thread principal
-                if not self._cancelado:
-                    self.janela.after(0, self._finalizar_execucao_paralela, resultados)
-            
-            except Exception as e:
-                # Reabilita interface em caso de erro
-                if not self._cancelado:
-                    self.janela.after(0, self._finalizar_execucao_erro, str(e))
-        
-        # Inicializa flag de cancelamento
-        self._cancelado = False
-        
-        # Inicia thread
-        self.thread_execucao = threading.Thread(target=executar_processos_paralelos, daemon=True)
-        self.thread_execucao.start()
+    def _mostrar_erro(self, mensagem):
+        """Mostra mensagem de erro"""
+        messagebox.showerror("Erro", mensagem)
     
-    def _finalizar_execucao_paralela(self, resultados):
-        """Finaliza execução paralela e mostra resultados"""
-        if self._cancelado:
-            return
-            
-            self._habilitar_interface(True)
-        
-        # Sempre mostra popup padrão de término do processo
-        self._mostrar_popup_processo_terminado()
+    def _mostrar_info(self, mensagem):
+        """Mostra mensagem informativa"""
+        messagebox.showinfo("Informação", mensagem)
     
-    def _cancelar_execucao(self):
-        """Cancela a execução em andamento"""
-        try:
-            self._cancelado = True
-            
-            # Cancela execução individual
-            if hasattr(self, 'processo') and self.processo:
-                # Termina o processo
-                self.processo.terminate()
-                
-                # Aguarda um pouco e força encerramento se necessário
-                try:
-                    self.processo.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    self.processo.kill()
-                    self.processo.wait()
-            
-            # Cancela execução paralela
-            if hasattr(self, 'processos_paralelos') and self.processos_paralelos:
-                for proc_info in self.processos_paralelos:
-                    try:
-                        processo = proc_info['processo']
-                        processo.terminate()
-                        
-                        # Aguarda um pouco e força encerramento se necessário
-                        try:
-                            processo.wait(timeout=2)
-                        except subprocess.TimeoutExpired:
-                            processo.kill()
-                            processo.wait()
-                        
-                        # Remove arquivo temporário de cidades
-                        try:
-                            os.remove(proc_info['arquivo'])
-                        except:
-                            pass
-                    except:
-                        pass
-            
-            # Reabilita interface
-            self._habilitar_interface(True)
-            
-            # Mostra mensagem padrão de término do processo
-            self._mostrar_popup_processo_terminado()
-            
-        except Exception as e:
-            self._mostrar_erro(f"Erro ao cancelar: {str(e)}")
-            self._habilitar_interface(True)
-    
-    def _finalizar_execucao(self, resultado):
-        """Finaliza execução e mostra resultado"""
-        if self._cancelado:
-            return
-            
-        self._habilitar_interface(True)
-        
-        # Sempre mostra popup padrão de término do processo
-        self._mostrar_popup_processo_terminado()
-    
-    def _finalizar_execucao_erro(self, erro):
-        """Finaliza execução em caso de erro"""
-        if self._cancelado:
-            return
-            
-        self._habilitar_interface(True)
-        
-        # Sempre mostra popup padrão de término do processo
-        self._mostrar_popup_processo_terminado()
-    
-    def _salvar_cidades_selecionadas(self):
-        """Salva cidades selecionadas no arquivo listed_cities.txt (dinâmico)"""
-        try:
-            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
-            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
-                for cidade in self.cidades_selecionadas:
-                    arquivo.write(f"{cidade}\n")
-        except Exception as e:
-            raise Exception(f"Erro ao salvar cidades: {str(e)}")
-    
-    
-    def _carregar_cidades(self):
-        """Carrega lista de cidades do arquivo"""
-        try:
-            caminho_arquivo = obter_caminho_dados("cidades.txt")
-            if os.path.exists(caminho_arquivo):
-                with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
-                    self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
-            
-            # Atualiza dropdown após carregar cidades
-            if hasattr(self, 'dropdown_cidade') and self.lista_cidades:
-                self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
-                self.cidade_selecionada.set("Todas as Cidades")
-                self._on_cidade_change("Todas as Cidades")
-                
-        except Exception as e:
-            self._mostrar_erro(f"Erro ao carregar cidades: {str(e)}")
-            self.lista_cidades = []
-    
-    def _selecionar_todas_cidades(self):
-        """Seleciona todas as cidades disponíveis"""
-        if not self.lista_cidades:
-            self._mostrar_erro("Nenhuma cidade disponível!")
-            return
-        
-        self.cidade_selecionada.set("Todas as Cidades")
-        self.cidades_selecionadas = self.lista_cidades.copy()
-        self.label_status_selecao.configure(
-            text=f"Todas as cidades selecionadas ({len(self.cidades_selecionadas)} cidades)"
-        )
-    
-    def _limpar_selecao(self):
-        """Limpa a seleção de cidades"""
-        self.cidades_selecionadas = []
-        self.cidade_selecionada.set("")
-        self.label_status_selecao.configure(
-            text="Selecione uma cidade no dropdown"
-        )
-    
-    def _obter_opcoes_cidades(self):
-        """Retorna lista de opções para o dropdown de cidades"""
-        opcoes = ["Todas as Cidades"]
-        if self.lista_cidades:
-            # Adiciona cidades em ordem alfabética
-            cidades_ordenadas = sorted(self.lista_cidades)
-            opcoes.extend([cidade.title() for cidade in cidades_ordenadas])
-        return opcoes
-    
-    def _on_cidade_change(self, valor):
-        """Callback quando cidade é alterada no dropdown"""
-        if valor == "Todas as Cidades":
-            self.label_status_selecao.configure(
-                text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
-            )
-        else:
-            self.label_status_selecao.configure(
-                text=f"Cidade selecionada: {valor}"
-            )
-        
-        # Recalcula distribuição se estiver em modo paralelo
-        if self.modo_execucao == "paralelo":
-            self._calcular_distribuicao()
-    
-    def _atualizar_cidades_selecionadas(self):
-        """Atualiza lista de cidades selecionadas com base no dropdown"""
-        valor = self.cidade_selecionada.get()
-        
-        if valor == "Todas as Cidades" or not valor:
-            self.cidades_selecionadas = self.lista_cidades.copy()
-        else:
-            # Converte de volta para formato original (uppercase)
-            cidade_upper = valor.upper()
-            # Procura a cidade na lista original
-            for cidade in self.lista_cidades:
-                if cidade.upper() == cidade_upper:
-                    self.cidades_selecionadas = [cidade]
-                    break
-            else:
-                # Se não encontrou, usa como está
-                self.cidades_selecionadas = [valor]
-    
-    def _atualizar_status_selecao(self):
-        """Atualiza o texto de status da seleção"""
-        if not self.cidades_selecionadas:
-            texto = "Selecione uma cidade no dropdown"
-        elif len(self.cidades_selecionadas) == len(self.lista_cidades):
-            texto = f"Todas as cidades selecionadas ({len(self.cidades_selecionadas)} cidades)"
-        else:
-            texto = f"Cidade selecionada: {self.cidades_selecionadas[0].title() if self.cidades_selecionadas else ''}"
-        
-        self.label_status_selecao.configure(text=texto)
-    
-    def _executar_script_direto_OLD(self, modo="individual", arquivo_cidades=None):
-        """Executa o script diretamente sem subprocess (para executáveis)"""
-        try:
-            # Importa os módulos necessários
-            from classes.file_manager import FileManager
-            from classes.date_calculator import DateCalculator
-            from classes.data_extractor import DataExtractor
-            from bots.bot_bbdaf import BotBBDAF
-            
-            # Redireciona stdout para capturar a saída
-            import io
-            from contextlib import redirect_stdout, redirect_stderr
-            
-            stdout_buffer = io.StringIO()
-            stderr_buffer = io.StringIO()
-            
-            with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                print("=" * 60)
-                print("SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL")
-                print("=" * 60)
-                
-                # 1. Carrega cidades
-                # Importa as classes necessárias do diretório correto
-                import sys
-                import os
-                
-                # Adiciona o diretório classes ao path se necessário
-                if hasattr(sys, '_MEIPASS'):
-                    # No executável, os módulos estão no diretório temporário
-                    classes_path = os.path.join(sys._MEIPASS, 'classes')
-                    if classes_path not in sys.path:
-                        sys.path.insert(0, classes_path)
-                
-                if arquivo_cidades:
-                    # Para modo paralelo, o arquivo já vem com caminho completo
-                    file_manager = FileManager(arquivo_cidades)
-                else:
-                    # Para modo individual, usa o arquivo padrão
-                    # Não usa obter_caminho_dados pois FileManager já faz isso internamente
-                    file_manager = FileManager("listed_cities.txt")
-                
-                print(f"Arquivo de cidades: {file_manager.arquivo_cidades}")
-                print(f"Arquivo existe? {os.path.exists(file_manager.arquivo_cidades)}")
-                
-                if not file_manager.verificar_arquivo_existe():
-                    print("Use a interface gráfica para selecionar cidades primeiro.")
-                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
-                
-                cidades = file_manager.carregar_cidades()
-                if not file_manager.validar_lista_cidades(cidades):
-                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
-                
-                # 2. Usa datas da GUI
-                data_inicial = self.data_inicial_var.get()
-                data_final = self.data_final_var.get()
-                print(f"Período: {data_inicial} até {data_final}")
-                
-                # 3. Inicializa componentes
-                data_extractor = DataExtractor()
-                bot = BotBBDAF()
-                bot.configurar_extrator_dados(data_extractor)
-                
-                # 4. Configura navegador
-                print("Configurando navegador...")
-                if not bot.configurar_navegador():
-                    print("Falha na configuração do navegador Chrome")
-                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
-                
-                # 5. Abre página inicial
-                print("Abrindo página inicial...")
-                if not bot.abrir_pagina_inicial():
-                    print("Falha ao carregar página inicial")
-                    bot.fechar_navegador()
-                    return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
-                
-                # 6. Processa todas as cidades
-                print(f"Processando {len(cidades)} cidades...")
-                estatisticas = bot.processar_lista_cidades(cidades, data_inicial, data_final)
-                
-                # 7. Fecha navegador automaticamente
-                print("Fechando navegador...")
-                bot.fechar_navegador()
-                
-                # 8. Exibe estatísticas finais
-                print(f"\nProcessamento concluído:")
-                print(f"   Total: {estatisticas['total']} cidades")
-                print(f"   Sucessos: {estatisticas['sucessos']}")
-                print(f"   Erros: {estatisticas['erros']}")
-                print(f"   Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
-                
-                # Retorna resultado
-                returncode = 0 if estatisticas['erros'] == 0 else 1
-                return {
-                    "returncode": returncode,
-                    "stdout": stdout_buffer.getvalue(),
-                    "stderr": stderr_buffer.getvalue()
-                }
-                
-        except KeyboardInterrupt:
-            print("\nInterrompido pelo usuário")
-            if 'bot' in locals():
-                bot.fechar_navegador()
-            return {"returncode": 130, "stdout": stdout_buffer.getvalue(), "stderr": stderr_buffer.getvalue()}
-        except Exception as e:
-            print(f"Erro inesperado: {e}")
-            if 'bot' in locals():
-                bot.fechar_navegador()
-            return {"returncode": 1, "stdout": stdout_buffer.getvalue(), "stderr": str(e)}
-
-    def atualizar_status(self, mensagem: str):
-        """
-        Atualiza o status na interface
-        
-        Args:
-            mensagem: Mensagem de status
-        """
-        if hasattr(self, 'label_status_selecao'):
-            self.label_status_selecao.configure(text=mensagem) 
+    def _mostrar_popup_processo_terminado(self):
+        """Mostra popup padrão quando processo é terminado"""
+        messagebox.showinfo("Processo Finalizado", "Processo foi terminado")

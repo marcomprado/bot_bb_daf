@@ -20,6 +20,7 @@ import os
 import sys
 import platform
 import time
+import io
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -59,18 +60,22 @@ class BotFNDE:
     - Processa múltiplas cidades automaticamente
     """
     
-    def __init__(self, timeout=15):
+    def __init__(self, timeout=8):
         """
         Inicializa o bot FNDE
         
         Args:
-            timeout (int): Tempo limite para aguardar elementos (segundos)
+            timeout (int): Tempo limite para aguardar elementos (segundos) - otimizado para 8s
         """
         self.base_url = "https://www.fnde.gov.br/pls/simad/internet_fnde.LIBERACOES_01_PC"
         self.timeout = timeout
         self.navegador = None
         self.wait = None
         self.municipios_mg = self._carregar_municipios_mg()
+        
+        # Flags de controle para evitar vazamento de memória
+        self._cancelado = False
+        self._em_execucao = False
         
         # Configuração de diretórios
         self.diretorio_base = obter_caminho_dados("arquivos_baixados")
@@ -184,9 +189,14 @@ class BotFNDE:
             # 1. Seleciona o ano
             select_ano = Select(self.navegador.find_element(By.NAME, "p_ano"))
             select_ano.select_by_value(ano)
-            time.sleep(0.5)
+            time.sleep(0.2)
             
             # 2. Aguarda dropdown de municípios carregar e seleciona município
+            # Aguarda explicitamente o dropdown carregar após mudança do ano
+            WebDriverWait(self.navegador, 5).until(
+                EC.element_to_be_clickable((By.NAME, "p_municipio"))
+            )
+            
             municipio_encontrado = self._selecionar_municipio(municipio)
             if not municipio_encontrado:
                 print(f"Município '{municipio}' não encontrado na lista")
@@ -195,7 +205,7 @@ class BotFNDE:
             # 3. Seleciona entidade como PREFEITURA (sempre "02")
             select_entidade = Select(self.navegador.find_element(By.NAME, "p_tp_entidade"))
             select_entidade.select_by_value("02")  # PREFEITURA
-            time.sleep(0.3)
+            time.sleep(0.1)
             
             print("Formulário preenchido com sucesso")
             return True
@@ -220,13 +230,21 @@ class BotFNDE:
         try:
             select_municipio = Select(self.navegador.find_element(By.NAME, "p_municipio"))
             
-            # Procura pelo município na lista de opções
+            # Procura pelo município na lista de opções (otimizado)
+            nome_procurado = nome_municipio.upper().strip()
+            
+            # Primeiro tenta busca exata para economia de tempo
             for opcao in select_municipio.options:
                 texto_opcao = opcao.text.upper().strip()
-                nome_procurado = nome_municipio.upper().strip()
-                
-                # Busca exata ou contém o nome
-                if nome_procurado == texto_opcao or nome_procurado in texto_opcao:
+                if nome_procurado == texto_opcao:
+                    select_municipio.select_by_visible_text(opcao.text)
+                    print(f"Município selecionado: {opcao.text}")
+                    return True
+            
+            # Se não encontrou exato, tenta busca por contém
+            for opcao in select_municipio.options:
+                texto_opcao = opcao.text.upper().strip()
+                if nome_procurado in texto_opcao:
                     select_municipio.select_by_visible_text(opcao.text)
                     print(f"Município selecionado: {opcao.text}")
                     return True
@@ -251,14 +269,13 @@ class BotFNDE:
             botao_buscar = self.navegador.find_element(By.NAME, "buscar")
             botao_buscar.click()
             
-            # Aguarda página de resultados carregar
+            # Aguarda página de resultados carregar (otimizado para 6s)
             # Procura por uma tabela ou indicador de que os dados carregaram
-            self.wait.until(
+            WebDriverWait(self.navegador, 6).until(
                 EC.any_of(
                     EC.presence_of_element_located((By.TAG_NAME, "table")),
                     EC.presence_of_element_located((By.CLASS_NAME, "tabela")),
-                    EC.presence_of_element_located((By.XPATH, "//table")),
-                    EC.text_to_be_present_in_element((By.TAG_NAME, "body"), "Liberações")
+                    EC.presence_of_element_located((By.XPATH, "//table"))
                 )
             )
             
@@ -324,7 +341,15 @@ class BotFNDE:
             print(f"Salvando arquivo Excel para {municipio}...")
             
             # Converte HTML para DataFrame do pandas
-            df_lista = pd.read_html(html_tabela)
+            try:
+                df_lista = pd.read_html(io.StringIO(html_tabela))
+            except ImportError as e:
+                print(f"Erro de dependência: {e}")
+                print("Execute: pip install lxml")
+                return False
+            except ValueError as e:
+                print(f"Erro ao parsear HTML: {e}")
+                return False
             
             if not df_lista:
                 print("Não foi possível converter HTML para DataFrame")
@@ -385,30 +410,51 @@ class BotFNDE:
         }
         
         try:
+            # Verifica se foi cancelado antes de começar
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado pelo usuário"
+                return resultado
+            
+            self._em_execucao = True
             print(f"\n=== Processando: {municipio} ({ano}) ===")
             
             # 1. Abre página FNDE
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado"
+                return resultado
             if not self.abrir_pagina_fnde(ano, municipio):
                 resultado['erro'] = "Falha ao abrir página FNDE"
                 return resultado
             
             # 2. Preenche formulário
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado"
+                return resultado
             if not self.preencher_formulario(ano, municipio):
                 resultado['erro'] = "Falha ao preencher formulário"
                 return resultado
             
             # 3. Executa busca
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado"
+                return resultado
             if not self.executar_busca():
                 resultado['erro'] = "Falha ao executar busca"
                 return resultado
             
             # 4. Extrai tabela
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado"
+                return resultado
             html_tabela = self.extrair_tabela_html()
             if not html_tabela:
                 resultado['erro'] = "Falha ao extrair tabela"
                 return resultado
             
             # 5. Salva Excel
+            if self._cancelado:
+                resultado['erro'] = "Processamento cancelado"
+                return resultado
             if not self.salvar_excel(html_tabela, municipio, ano):
                 resultado['erro'] = "Falha ao salvar arquivo Excel"
                 return resultado
@@ -420,6 +466,8 @@ class BotFNDE:
         except Exception as e:
             resultado['erro'] = f"Erro inesperado: {str(e)}"
             print(f"✗ Erro ao processar {municipio}: {e}")
+        finally:
+            self._em_execucao = False
         
         return resultado
     
@@ -444,23 +492,35 @@ class BotFNDE:
             'municipios_erro': []
         }
         
-        for i, municipio in enumerate(self.municipios_mg, 1):
-            print(f"\nProgresso: {i}/{len(self.municipios_mg)} municípios")
-            
-            resultado = self.processar_municipio(ano, municipio)
-            
-            if resultado['sucesso']:
-                estatisticas['sucessos'] += 1
-                estatisticas['municipios_processados'].append(municipio)
-            else:
-                estatisticas['erros'] += 1
-                estatisticas['municipios_erro'].append({
-                    'municipio': municipio,
-                    'erro': resultado['erro']
-                })
-            
-            # Pequena pausa entre municípios
-            time.sleep(0.5)
+        try:
+            for i, municipio in enumerate(self.municipios_mg, 1):
+                # Verifica cancelamento antes de processar cada município
+                if self._cancelado:
+                    print(f"\nProcessamento cancelado no município {i}")
+                    break
+                
+                print(f"\nProgresso: {i}/{len(self.municipios_mg)} municípios")
+                
+                resultado = self.processar_municipio(ano, municipio)
+                
+                if resultado['sucesso']:
+                    estatisticas['sucessos'] += 1
+                    estatisticas['municipios_processados'].append(municipio)
+                else:
+                    estatisticas['erros'] += 1
+                    estatisticas['municipios_erro'].append({
+                        'municipio': municipio,
+                        'erro': resultado['erro']
+                    })
+                
+                # Pequena pausa entre municípios (otimizada)
+                if not self._cancelado:
+                    time.sleep(0.2)
+        
+        except Exception as e:
+            print(f"Erro durante processamento em lote: {e}")
+        finally:
+            self.limpar_recursos()
         
         # Calcula taxa de sucesso
         estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
@@ -473,14 +533,183 @@ class BotFNDE:
         
         return estatisticas
     
-    def fechar_navegador(self):
-        """Fecha o navegador"""
+    def processar_lote_municipios(self, ano: str, municipios: List[str]) -> Dict[str, any]:
+        """
+        Processa um lote específico de municípios (para uso paralelo)
+        
+        Args:
+            ano (str): Ano para consulta
+            municipios (List[str]): Lista de municípios para processar
+            
+        Returns:
+            Dict: Estatísticas do processamento do lote
+        """
+        print(f"\n=== PROCESSANDO LOTE DE {len(municipios)} MUNICÍPIOS - ANO {ano} ===")
+        
+        estatisticas = {
+            'total': len(municipios),
+            'sucessos': 0,
+            'erros': 0,
+            'municipios_processados': [],
+            'municipios_erro': []
+        }
+        
         try:
-            if self.navegador:
-                self.navegador.quit()
-                print("Navegador fechado")
+            for i, municipio in enumerate(municipios, 1):
+                # Verifica cancelamento antes de processar cada município
+                if self._cancelado:
+                    print(f"\nProcessamento cancelado no município {i}")
+                    break
+                
+                print(f"\nProgresso do lote: {i}/{len(municipios)} - {municipio}")
+                
+                resultado = self.processar_municipio(ano, municipio)
+                
+                if resultado['sucesso']:
+                    estatisticas['sucessos'] += 1
+                    estatisticas['municipios_processados'].append(municipio)
+                else:
+                    estatisticas['erros'] += 1
+                    estatisticas['municipios_erro'].append({
+                        'municipio': municipio,
+                        'erro': resultado['erro']
+                    })
+                
+                # Pequena pausa entre municípios (otimizada)
+                if not self._cancelado:
+                    time.sleep(0.2)
+        
         except Exception as e:
-            print(f"Erro ao fechar navegador: {e}")
+            print(f"Erro durante processamento do lote: {e}")
+            return {'sucesso': False, 'erro': str(e)}
+        
+        # Calcula taxa de sucesso
+        estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
+        
+        print(f"\n=== LOTE CONCLUÍDO ===")
+        print(f"Total: {estatisticas['total']}")
+        print(f"Sucessos: {estatisticas['sucessos']}")
+        print(f"Erros: {estatisticas['erros']}")
+        print(f"Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
+        
+        return {'sucesso': True, 'estatisticas': estatisticas}
+    
+    def executar_paralelo(self, ano: str, num_instancias: int = 2) -> Dict[str, any]:
+        """
+        Executa processamento paralelo de municípios usando ProcessadorParalelo
+        
+        Args:
+            ano (str): Ano para consulta
+            num_instancias (int): Número de instâncias paralelas (máximo 5)
+            
+        Returns:
+            Dict: Resultados consolidados do processamento paralelo com referência ao processador
+        """
+        try:
+            from classes.parallel_processor import ProcessadorParalelo
+            
+            print(f"\n=== INICIANDO PROCESSAMENTO PARALELO FNDE ===")
+            print(f"Ano: {ano}")
+            print(f"Instâncias: {num_instancias}")
+            
+            # Armazena referência do processador para cancelamento
+            self.processador_paralelo = ProcessadorParalelo()
+            resultado = self.processador_paralelo.executar_paralelo_fnde(self, ano, num_instancias)
+            
+            # Adiciona referência do processador ao resultado
+            resultado['processador'] = self.processador_paralelo
+            
+            if resultado['sucesso']:
+                stats = resultado['estatisticas']
+                print(f"\n=== PROCESSAMENTO PARALELO CONCLUÍDO ===")
+                print(f"Total: {stats['total']} municípios")
+                print(f"Sucessos: {stats['sucessos']}")
+                print(f"Erros: {stats['erros']}")
+                print(f"Taxa de sucesso: {stats['taxa_sucesso']:.1f}%")
+            else:
+                print(f"\n=== ERRO NO PROCESSAMENTO PARALELO ===")
+                print(f"Erro: {resultado['erro']}")
+            
+            return resultado
+            
+        except Exception as e:
+            return {'sucesso': False, 'erro': f'Erro ao iniciar processamento paralelo: {str(e)}'}
+    
+    def limpar_recursos(self):
+        """Limpa todos os recursos e fecha navegador com segurança"""
+        try:
+            if hasattr(self, 'navegador') and self.navegador:
+                # Fecha todas as abas abertas
+                try:
+                    for handle in self.navegador.window_handles:
+                        self.navegador.switch_to.window(handle)
+                        self.navegador.close()
+                except:
+                    pass  # Ignora erros ao fechar abas
+                
+                # Encerra o processo do navegador
+                self.navegador.quit()
+                self.navegador = None
+                self.wait = None
+        except Exception:
+            pass  # Silencia todos os erros durante limpeza
+    
+    def fechar_navegador(self):
+        """Fecha o navegador com limpeza completa"""
+        self.limpar_recursos()
+        print("Navegador fechado e recursos liberados")
+    
+    def __del__(self):
+        """Garante fechamento do navegador ao destruir objeto"""
+        self.limpar_recursos()
+    
+    def cancelar(self):
+        """Cancela execução e limpa recursos"""
+        print("Cancelando processamento...")
+        self._cancelado = True
+        self._em_execucao = False
+        self.limpar_recursos()
+        print("Processamento cancelado e recursos liberados")
+    
+    def cancelar_forcado(self):
+        """Cancela e força fechamento de TODAS as abas do Chrome"""
+        print("Cancelamento forçado FNDE: fechando todas as abas do Chrome...")
+        self._cancelado = True
+        self._em_execucao = False
+        
+        # Se tiver processador paralelo ativo, cancela ele também
+        if hasattr(self, 'processador_paralelo') and self.processador_paralelo:
+            print("Cancelando processador paralelo FNDE...")
+            self.processador_paralelo.cancelar()
+            self.processador_paralelo = None
+        
+        if hasattr(self, 'navegador') and self.navegador:
+            try:
+                # Fecha TODAS as janelas e abas abertas
+                handles = self.navegador.window_handles.copy()  # Copia a lista
+                for handle in handles:
+                    try:
+                        self.navegador.switch_to.window(handle)
+                        self.navegador.close()
+                    except:
+                        pass  # Ignora erros ao fechar abas individuais
+                
+                # Força encerramento do processo
+                self.navegador.quit()
+                self.navegador = None
+                self.wait = None
+                
+            except Exception as e:
+                print(f"Erro durante cancelamento forçado: {e}")
+                # Tenta encerramento direto como último recurso
+                try:
+                    self.navegador.quit()
+                    self.navegador = None
+                    self.wait = None
+                except:
+                    pass
+        
+        print("Cancelamento forçado concluído - todas as abas fechadas")
     
     def obter_lista_municipios(self) -> List[str]:
         """
