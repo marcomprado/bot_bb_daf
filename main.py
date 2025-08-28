@@ -1,105 +1,328 @@
 #!/usr/bin/env python3
 """
-Script principal SIMPLIFICADO para automação FPM
-Usa as classes diretamente sem AutomationCore intermediário
-
-Funcionalidades:
-- Carrega lista de cidades do arquivo listed_cities.txt (gerado pela GUI)
-- Calcula datas automaticamente (atual e um mês anterior)
-- Automatiza preenchimento de formulários web
-- Processa múltiplas cidades em sequência
-- EXTRAÇÃO AUTOMÁTICA DE DADOS: Extrai dados da tabela de resultados
-- GERAÇÃO DE EXCEL: Salva dados extraídos em arquivos Excel organizados
-- RELATÓRIO CONSOLIDADO: Gera relatório final com estatísticas
-- Fornece estatísticas completas de processamento
+Sistema de Automação Web - Ponto de Entrada Principal
+Coordena as interfaces gráficas e gerencia a execução do sistema
 """
 
 import sys
 import os
-from classes.web_scraping_bot import WebScrapingBot
+import threading
+import customtkinter as ctk
+from typing import Dict, Optional
+
+# Importa as GUIs
+from gui1 import GUI1, obter_caminho_dados, copiar_arquivo_cidades_se_necessario
+from gui2 import GUI2
+
+# Importa o bot principal e processador paralelo
+from bots.bot_bbdaf import BotBBDAF
+from classes.parallel_processor import ProcessadorParalelo
 from classes.data_extractor import DataExtractor
-from classes.date_calculator import DateCalculator
-from classes.file_manager import FileManager
 
 
-def main():
+class SistemaFVN:
     """
-    Função principal SIMPLIFICADA que usa as classes diretamente
+    Sistema principal que coordena todas as interfaces e execução
     """
-    print("=" * 60)
-    print("SISTEMA DE AUTOMAÇÃO WEB - ARRECADAÇÃO FEDERAL")
-    print("=" * 60)
     
-    try:
-        # 1. Carrega cidades
-        file_manager = FileManager()
-        if not file_manager.verificar_arquivo_existe():
-            print("Use a interface gráfica para selecionar cidades primeiro.")
-            return 1
+    def __init__(self):
+        """Inicializa o sistema"""
+        # Configuração do tema
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("blue")
         
-        cidades = file_manager.carregar_cidades()
-        if not file_manager.validar_lista_cidades(cidades):
-            return 1
+        # Copia arquivo cidades.txt se necessário (para executável)
+        copiar_arquivo_cidades_se_necessario()
         
-        # 2. Carrega datas: primeiro verifica argumentos, senão calcula automaticamente
-        if len(sys.argv) >= 3:
-            data_inicial = sys.argv[1]
-            data_final = sys.argv[2]
-            print(f"Usando datas fornecidas: {data_inicial} até {data_final}")
-        else:
-            print("Calculando datas automaticamente...")
-            date_calculator = DateCalculator()
-            data_inicial, data_final = date_calculator.obter_datas_formatadas()
+        # Janela principal
+        self.janela = ctk.CTk()
+        self.janela.title("Sistema FVN - Automação Web")
+        self.janela.geometry("900x750")
+        self.janela.resizable(True, True)
+        self.janela.minsize(700, 600)
+        self.janela.configure(fg_color="#f8f9fa")
         
-        # 3. Inicializa componentes
-        data_extractor = DataExtractor()
-        bot = WebScrapingBot()
-        bot.configurar_extrator_dados(data_extractor)
+        # Estado do sistema
+        self.aba_atual = "bbdaf"
+        self.executando = False
+        self.bot_atual = None
+        self.thread_execucao = None
+        self.processador_paralelo = None
         
-        # 4. Configura navegador
-        print("Configurando navegador...")
-        if not bot.configurar_navegador():
-            print("Falha na configuração do navegador Chrome")
-            return 1
+        # Configura ícone
+        self._configurar_icone()
         
-        # 5. Abre página inicial
-        print("Abrindo página inicial...")
-        if not bot.abrir_pagina_inicial():
-            print("Falha ao carregar página inicial")
-            bot.fechar_navegador()
-            return 1
+        # Centraliza janela
+        self._centralizar_janela()
         
-        # 6. Processa todas as cidades
-        print(f"Processando {len(cidades)} cidades...")
-        estatisticas = bot.processar_lista_cidades(cidades, data_inicial, data_final)
+        # Cria interface
+        self._criar_interface()
+    
+    def _configurar_icone(self):
+        """Configura o ícone da aplicação se disponível"""
+        try:
+            caminhos_icone = [
+                obter_caminho_dados("assets/app_icon.ico"),
+                obter_caminho_dados("assets/fvn_icon.ico"),
+                obter_caminho_dados("assets/logo.ico"),
+                obter_caminho_dados("app_icon.ico"),
+                obter_caminho_dados("icon.ico")
+            ]
+            
+            for caminho in caminhos_icone:
+                if os.path.exists(caminho):
+                    self.janela.iconbitmap(caminho)
+                    print(f"Ícone carregado: {caminho}")
+                    break
+        except Exception as e:
+            print(f"Aviso: Não foi possível carregar ícone - {e}")
+    
+    def _centralizar_janela(self):
+        """Centraliza janela na tela"""
+        self.janela.update_idletasks()
+        largura = self.janela.winfo_width()
+        altura = self.janela.winfo_height()
+        pos_x = (self.janela.winfo_screenwidth() // 2) - (largura // 2)
+        pos_y = (self.janela.winfo_screenheight() // 2) - (altura // 2)
+        self.janela.geometry(f"{largura}x{altura}+{pos_x}+{pos_y}")
+    
+    def _criar_interface(self):
+        """Cria a interface principal com sistema de abas"""
+        # Container principal
+        container_principal = ctk.CTkFrame(
+            self.janela,
+            corner_radius=0,
+            fg_color="#f8f9fa"
+        )
+        container_principal.pack(fill="both", expand=True)
         
-        # 7. Fecha navegador automaticamente
-        print("Fechando navegador...")
-        bot.fechar_navegador()
+        # Sistema de abas
+        self._criar_sistema_abas(container_principal)
         
-        # 8. Exibe estatísticas finais
-        print(f"\nProcessamento concluído:")
-        print(f"   Total: {estatisticas['total']} cidades")
-        print(f"   Sucessos: {estatisticas['sucessos']}")
-        print(f"   Erros: {estatisticas['erros']}")
-        print(f"   Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
+        # Container para o conteúdo das abas
+        self.container_conteudo = ctk.CTkFrame(
+            container_principal,
+            corner_radius=0,
+            fg_color="#f8f9fa"
+        )
+        self.container_conteudo.pack(fill="both", expand=True)
         
-        # 9. Aguarda usuário
-        input("\nPressione Enter para finalizar...")
+        # Cria GUI1 (BB DAF)
+        self.gui1 = GUI1(
+            parent_frame=self.container_conteudo,
+            on_executar=self._executar_bbdaf,
+            on_cancelar=self._cancelar_execucao
+        )
         
-        # 10. Retorna código baseado nos erros
-        return 0 if estatisticas['erros'] == 0 else 1
+        # Cria GUI2 (FNDE)
+        self.gui2 = GUI2(self.container_conteudo)
         
-    except KeyboardInterrupt:
-        print("\nInterrompido pelo usuário")
-        if 'bot' in locals():
-            bot.fechar_navegador()
-        return 130
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        if 'bot' in locals():
-            bot.fechar_navegador()
-        return 1
+        # Mostra aba inicial
+        self._mostrar_aba("bbdaf")
+    
+    def _criar_sistema_abas(self, parent):
+        """Cria o sistema de abas estilo navegador"""
+        # Container das abas
+        container_abas = ctk.CTkFrame(
+            parent,
+            corner_radius=0,
+            fg_color="#e9ecef",
+            height=50
+        )
+        container_abas.pack(fill="x")
+        container_abas.pack_propagate(False)
+        
+        # Frame interno para as abas
+        frame_abas = ctk.CTkFrame(
+            container_abas,
+            fg_color="transparent"
+        )
+        frame_abas.pack(side="left", fill="y", padx=10, pady=5)
+        
+        # Aba BB DAF
+        self.aba_bbdaf = ctk.CTkButton(
+            frame_abas,
+            text="Sistema BB DAF",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=40,
+            corner_radius=10,
+            fg_color="#ffffff",
+            text_color="#0066cc",
+            border_width=2,
+            border_color="#0066cc",
+            hover_color="#f0f8ff",
+            command=lambda: self._mostrar_aba("bbdaf"),
+            width=140
+        )
+        self.aba_bbdaf.pack(side="left", padx=(0, 5))
+        
+        # Aba FNDE
+        self.aba_fnde = ctk.CTkButton(
+            frame_abas,
+            text="Sistema FNDE",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=40,
+            corner_radius=10,
+            fg_color="#f0f0f0",
+            text_color="#6c757d",
+            border_width=1,
+            border_color="#dee2e6",
+            hover_color="#e9ecef",
+            command=lambda: self._mostrar_aba("fnde"),
+            width=140
+        )
+        self.aba_fnde.pack(side="left", padx=5)
+    
+    def _mostrar_aba(self, aba: str):
+        """
+        Alterna entre as abas
+        
+        Args:
+            aba: Nome da aba ('bbdaf' ou 'fnde')
+        """
+        self.aba_atual = aba
+        
+        if aba == "bbdaf":
+            # Estiliza aba ativa
+            self.aba_bbdaf.configure(
+                fg_color="#ffffff",
+                text_color="#0066cc",
+                border_width=2,
+                border_color="#0066cc"
+            )
+            # Estiliza aba inativa
+            self.aba_fnde.configure(
+                fg_color="#f0f0f0",
+                text_color="#6c757d",
+                border_width=1,
+                border_color="#dee2e6"
+            )
+            # Mostra GUI1
+            self.gui1.mostrar()
+            self.gui2.ocultar()
+        
+        elif aba == "fnde":
+            # Estiliza aba ativa
+            self.aba_fnde.configure(
+                fg_color="#ffffff",
+                text_color="#0066cc",
+                border_width=2,
+                border_color="#0066cc"
+            )
+            # Estiliza aba inativa
+            self.aba_bbdaf.configure(
+                fg_color="#f0f0f0",
+                text_color="#6c757d",
+                border_width=1,
+                border_color="#dee2e6"
+            )
+            # Mostra GUI2
+            self.gui2.mostrar()
+            self.gui1.ocultar()
+    
+    def _executar_bbdaf(self, parametros: Dict):
+        """
+        Executa o bot BB DAF com os parâmetros fornecidos
+        
+        Args:
+            parametros: Dicionário com os parâmetros de execução
+        """
+        if self.executando:
+            return
+        
+        self.executando = True
+        
+        # Salva cidades selecionadas
+        self._salvar_cidades_selecionadas(parametros['cidades'])
+        
+        # Executa em thread separada
+        self.thread_execucao = threading.Thread(
+            target=self._executar_bot_thread,
+            args=(parametros,),
+            daemon=True
+        )
+        self.thread_execucao.start()
+    
+    def _executar_bot_thread(self, parametros: Dict):
+        """
+        Executa o bot em thread separada
+        
+        Args:
+            parametros: Parâmetros de execução
+        """
+        try:
+            modo = parametros.get('modo', 'individual')
+            
+            if modo == 'paralelo':
+                # Execução paralela
+                self.processador_paralelo = ProcessadorParalelo()
+                resultado = self.processador_paralelo.executar_paralelo_threads(
+                    num_instancias=parametros.get('num_instancias', 2),
+                    data_inicial=parametros.get('data_inicial'),
+                    data_final=parametros.get('data_final')
+                )
+            else:
+                # Execução individual
+                self.bot_atual = BotBBDAF()
+                self.bot_atual.configurar_extrator_dados(DataExtractor())
+                
+                resultado = self.bot_atual.executar_completo(
+                    cidades=parametros.get('cidades'),
+                    data_inicial=parametros.get('data_inicial'),
+                    data_final=parametros.get('data_final')
+                )
+            
+            # Processa resultado na thread principal
+            self.janela.after(0, self._processar_resultado, resultado)
+            
+        except Exception as e:
+            resultado = {'sucesso': False, 'erro': str(e)}
+            self.janela.after(0, self._processar_resultado, resultado)
+    
+    def _processar_resultado(self, resultado: Dict):
+        """
+        Processa o resultado da execução
+        
+        Args:
+            resultado: Resultado da execução
+        """
+        self.executando = False
+        
+        # Passa resultado para a GUI processar
+        self.gui1.processar_resultado(resultado)
+        
+        # Limpa referências
+        self.bot_atual = None
+        self.processador_paralelo = None
+    
+    def _cancelar_execucao(self):
+        """Cancela a execução em andamento"""
+        if self.processador_paralelo:
+            self.processador_paralelo.cancelar()
+        
+        if self.bot_atual:
+            self.bot_atual.fechar_navegador()
+        
+        self.executando = False
+    
+    def _salvar_cidades_selecionadas(self, cidades: list):
+        """
+        Salva cidades selecionadas no arquivo
+        
+        Args:
+            cidades: Lista de cidades selecionadas
+        """
+        try:
+            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
+            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
+                for cidade in cidades:
+                    arquivo.write(f"{cidade}\n")
+        except Exception as e:
+            print(f"Erro ao salvar cidades: {e}")
+    
+    def executar(self):
+        """Executa o loop principal da aplicação"""
+        self.janela.mainloop()
 
 
 def verificar_dependencias():
@@ -107,24 +330,24 @@ def verificar_dependencias():
     Verifica se todas as dependências necessárias estão instaladas
     
     Returns:
-        bool: True se todas as dependências estão instaladas, False caso contrário
+        bool: True se todas as dependências estão instaladas
     """
     dependencias_necessarias = [
         'selenium',
-        'webdriver_manager',
+        'customtkinter',
         'dateutil',
-        'bs4',  # BeautifulSoup
+        'bs4',
         'pandas',
         'openpyxl'
     ]
     
     dependencias_ausentes = []
     
-    for dependencia in dependencias_necessarias:
+    for dep in dependencias_necessarias:
         try:
-            __import__(dependencia)
+            __import__(dep)
         except ImportError:
-            dependencias_ausentes.append(dependencia)
+            dependencias_ausentes.append(dep)
     
     if dependencias_ausentes:
         print("Dependências ausentes encontradas:")
@@ -137,18 +360,73 @@ def verificar_dependencias():
     return True
 
 
-if __name__ == "__main__":
-    """
-    Ponto de entrada do programa
-    Verifica dependências e executa a função principal
-    """
-    print("Verificando dependências...")
+def main():
+    """Função principal - ponto de entrada do sistema"""
+    print("=" * 60)
+    print("SISTEMA FVN - AUTOMAÇÃO WEB")
+    print("=" * 60)
     
+    # Verifica argumentos de linha de comando
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--cli":
+            # Modo CLI direto
+            print("Modo CLI ativado")
+            from bots.bot_bbdaf import BotBBDAF
+            from classes.data_extractor import DataExtractor
+            
+            bot = BotBBDAF()
+            bot.configurar_extrator_dados(DataExtractor())
+            
+            # Pega datas dos argumentos ou usa padrão
+            data_inicial = sys.argv[2] if len(sys.argv) > 2 else None
+            data_final = sys.argv[3] if len(sys.argv) > 3 else None
+            
+            resultado = bot.executar_completo(
+                data_inicial=data_inicial,
+                data_final=data_final
+            )
+            
+            if resultado['sucesso']:
+                print("\nProcessamento concluído com sucesso!")
+                return 0
+            else:
+                print(f"\nErro: {resultado['erro']}")
+                return 1
+        
+        elif sys.argv[1] == "--parallel":
+            # Modo paralelo via CLI
+            print("Modo paralelo via CLI")
+            from classes.parallel_processor import ProcessadorParalelo
+            
+            num_instancias = int(sys.argv[2]) if len(sys.argv) > 2 else 2
+            processador = ProcessadorParalelo()
+            
+            resultado = processador.executar_paralelo_subprocess(num_instancias)
+            
+            if resultado['sucesso']:
+                print("\nProcessamento paralelo concluído!")
+                return 0
+            else:
+                print(f"\nErro: {resultado['erro']}")
+                return 1
+    
+    # Verifica dependências
+    print("Verificando dependências...")
     if not verificar_dependencias():
-        sys.exit(1)
+        return 1
     
     print("Todas as dependências estão instaladas.")
+    print("Iniciando interface gráfica...")
     
-    # Executa a função principal e sai com o código de retorno apropriado
-    codigo_saida = main()
-    sys.exit(codigo_saida) 
+    # Modo GUI (padrão)
+    try:
+        sistema = SistemaFVN()
+        sistema.executar()
+        return 0
+    except Exception as e:
+        print(f"Erro ao inicializar sistema: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

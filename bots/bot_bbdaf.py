@@ -1,20 +1,33 @@
 """
-Classe principal responsável pela automação web usando Selenium
+Bot BB DAF - Automação completa do sistema de arrecadação federal do Banco do Brasil
+Contém toda a lógica de scraping, processamento e coordenação
 """
 
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
+import sys
+import os
 import time
-from config import SISTEMA_CONFIG, SELETORES_CSS
+import subprocess
+import threading
+from datetime import datetime
+from typing import List, Dict, Tuple, Optional
+import concurrent.futures
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from classes.chrome_driver import ChromeDriverSimples
+from classes.data_extractor import DataExtractor
+from classes.date_calculator import DateCalculator
+from classes.file_manager import FileManager
+from classes.city_splitter import CitySplitter
+from classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
 
 
-class WebScrapingBot:
+class BotBBDAF:
     """
     Classe principal responsável pela automação web do sistema de arrecadação federal
     
@@ -51,23 +64,22 @@ class WebScrapingBot:
     
     def configurar_navegador(self):
         """
-        Configura e inicializa o navegador Chrome com o ChromeDriver
+        Configura e inicializa o navegador Chrome usando conexão direta simples
         
         Returns:
             bool: True se a configuração foi bem-sucedida, False caso contrário
         """
         try:
-            # O ChromeDriverManager baixa automaticamente a versão correta do ChromeDriver
-            # compatível com o Chrome instalado no sistema
-            servico = Service(ChromeDriverManager().install())
+            # Usa a classe simples para conectar direto ao ChromeDriver
+            driver_simples = ChromeDriverSimples()
+            self.navegador = driver_simples.conectar()
             
-            # Cria uma instância do webdriver Chrome utilizando o serviço configurado
-            self.navegador = webdriver.Chrome(service=servico)
-            
-            # Configura o WebDriverWait para aguardar elementos aparecerem
-            self.wait = WebDriverWait(self.navegador, self.timeout)
-            
-            return True
+            if self.navegador:
+                # Configura o WebDriverWait para aguardar elementos aparecerem
+                self.wait = WebDriverWait(self.navegador, self.timeout)
+                return True
+            else:
+                return False
             
         except Exception:
             return False
@@ -398,4 +410,173 @@ class WebScrapingBot:
         Fecha o navegador e limpa recursos
         """
         if self.navegador:
-            self.navegador.quit() 
+            self.navegador.quit()
+    
+    def cancelar_forcado(self):
+        """Cancela execução e força fechamento de TODAS as abas do Chrome"""
+        print("Cancelamento forçado BB DAF: fechando todas as abas do Chrome...")
+        
+        if hasattr(self, 'navegador') and self.navegador:
+            try:
+                # Fecha TODAS as janelas e abas abertas
+                handles = self.navegador.window_handles.copy()  # Copia a lista
+                for handle in handles:
+                    try:
+                        self.navegador.switch_to.window(handle)
+                        self.navegador.close()
+                    except:
+                        pass  # Ignora erros ao fechar abas individuais
+                
+                # Força encerramento do processo
+                self.navegador.quit()
+                self.navegador = None
+                self.wait = None
+                
+            except Exception as e:
+                print(f"Erro durante cancelamento forçado: {e}")
+                # Tenta encerramento direto como último recurso
+                try:
+                    self.navegador.quit()
+                    self.navegador = None
+                    self.wait = None
+                except:
+                    pass
+        
+        print("Cancelamento forçado BB DAF concluído - todas as abas fechadas")
+    
+    def executar_completo(self, cidades: List[str] = None, data_inicial: str = None, 
+                         data_final: str = None, arquivo_cidades: str = None):
+        """
+        Executa o processamento completo com todos os passos
+        
+        Args:
+            cidades: Lista de cidades ou None para carregar do arquivo
+            data_inicial: Data inicial ou None para calcular automaticamente
+            data_final: Data final ou None para calcular automaticamente
+            arquivo_cidades: Arquivo de cidades customizado
+        
+        Returns:
+            dict: Estatísticas do processamento
+        """
+        try:
+            # 1. Carrega cidades se não fornecidas
+            if cidades is None:
+                file_manager = FileManager(arquivo_cidades or ARQUIVOS_CONFIG['arquivo_cidades'])
+                if not file_manager.verificar_arquivo_existe():
+                    print("Arquivo de cidades não encontrado.")
+                    return {'sucesso': False, 'erro': 'Arquivo de cidades não encontrado'}
+                
+                cidades = file_manager.carregar_cidades()
+                if not file_manager.validar_lista_cidades(cidades):
+                    return {'sucesso': False, 'erro': 'Lista de cidades inválida'}
+            
+            # 2. Calcula datas se não fornecidas
+            if data_inicial is None or data_final is None:
+                date_calculator = DateCalculator()
+                data_inicial, data_final = date_calculator.obter_datas_formatadas()
+            
+            print(f"Período: {data_inicial} até {data_final}")
+            print(f"Total de cidades: {len(cidades)}")
+            
+            # 3. Configura navegador
+            if not self.configurar_navegador():
+                return {'sucesso': False, 'erro': 'Falha ao configurar navegador'}
+            
+            # 4. Abre página inicial
+            if not self.abrir_pagina_inicial():
+                self.fechar_navegador()
+                return {'sucesso': False, 'erro': 'Falha ao abrir página inicial'}
+            
+            # 5. Processa cidades
+            estatisticas = self.processar_lista_cidades(cidades, data_inicial, data_final)
+            
+            # 6. Fecha navegador
+            self.fechar_navegador()
+            
+            return {
+                'sucesso': True,
+                'estatisticas': estatisticas
+            }
+            
+        except Exception as e:
+            if self.navegador:
+                self.fechar_navegador()
+            return {'sucesso': False, 'erro': str(e)}
+    
+    def executar_paralelo(self, num_instancias: int, data_inicial: str = None, 
+                         data_final: str = None):
+        """
+        Executa processamento paralelo com múltiplas instâncias
+        
+        Args:
+            num_instancias: Número de instâncias paralelas
+            data_inicial: Data inicial ou None para calcular automaticamente
+            data_final: Data final ou None para calcular automaticamente
+        
+        Returns:
+            dict: Resultados consolidados de todas as instâncias
+        """
+        try:
+            # 1. Prepara divisão de cidades
+            city_splitter = CitySplitter()
+            resultado_divisao = city_splitter.dividir_cidades(num_instancias)
+            
+            if not resultado_divisao.get('sucesso'):
+                return {'sucesso': False, 'erro': resultado_divisao.get('erro')}
+            
+            # 2. Calcula datas se necessário
+            if data_inicial is None or data_final is None:
+                date_calculator = DateCalculator()
+                data_inicial, data_final = date_calculator.obter_datas_formatadas()
+            
+            arquivos_criados = resultado_divisao['arquivos_criados']
+            resultados = []
+            
+            # 3. Executa instâncias em paralelo
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias) as executor:
+                futures = []
+                
+                for arquivo_info in arquivos_criados:
+                    # Cria nova instância do bot para cada thread
+                    bot = BotBBDAF()
+                    bot.configurar_extrator_dados(DataExtractor())
+                    
+                    # Submete para execução
+                    future = executor.submit(
+                        bot.executar_completo,
+                        arquivo_cidades=arquivo_info['arquivo'],
+                        data_inicial=data_inicial,
+                        data_final=data_final
+                    )
+                    futures.append((future, arquivo_info))
+                
+                # Coleta resultados
+                for future, arquivo_info in futures:
+                    resultado = future.result()
+                    resultado['instancia'] = arquivo_info['instancia']
+                    resultados.append(resultado)
+                    
+                    # Remove arquivo temporário
+                    try:
+                        os.remove(arquivo_info['arquivo'])
+                    except:
+                        pass
+            
+            # 4. Consolida estatísticas
+            total_sucessos = sum(r['estatisticas']['sucessos'] for r in resultados if r.get('sucesso'))
+            total_erros = sum(r['estatisticas']['erros'] for r in resultados if r.get('sucesso'))
+            total_cidades = sum(r['estatisticas']['total'] for r in resultados if r.get('sucesso'))
+            
+            return {
+                'sucesso': True,
+                'resultados_instancias': resultados,
+                'estatisticas_consolidadas': {
+                    'total': total_cidades,
+                    'sucessos': total_sucessos,
+                    'erros': total_erros,
+                    'taxa_sucesso': (total_sucessos / total_cidades * 100) if total_cidades > 0 else 0
+                }
+            }
+            
+        except Exception as e:
+            return {'sucesso': False, 'erro': str(e)} 
