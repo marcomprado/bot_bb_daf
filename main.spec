@@ -40,14 +40,19 @@ hiddenimports += [
     'concurrent.futures',
 ]
 
-# Adiciona classes do projeto
+# Adiciona classes e bots do projeto
 hiddenimports += [
     'classes',
     'classes.file_manager',
     'classes.date_calculator',
     'classes.data_extractor',
-    'classes.web_scraping_bot',
     'classes.city_splitter',
+    'classes.chrome_driver',
+    'classes.config',
+    'classes.parallel_processor',
+    'bots',
+    'bots.bot_bbdaf',
+    'bots.bot_fnde',
 ]
 
 # Adiciona arquivos de dados
@@ -55,12 +60,15 @@ datas += [
     ('cidades.txt', '.'),  # Arquivo de cidades
     ('assets/app_icon.ico', 'assets'),  # Ícone
     ('classes/*.py', 'classes'),  # Módulos Python
-    ('config.py', '.'),  # Configuração
+    ('bots/*.py', 'bots'),  # Bots
+    ('gui1.py', '.'),  # GUI BB DAF
+    ('gui2.py', '.'),  # GUI FNDE
+    ('run_instance.py', '.'),  # Helper para execução paralela
 ]
 
 # Configuração do Analysis
 a = Analysis(
-    ['gui_main.py'],
+    ['main.py'],
     pathex=[base_dir],
     binaries=binaries,
     datas=datas,
