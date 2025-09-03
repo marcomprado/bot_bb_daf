@@ -17,6 +17,7 @@ from typing import Dict, Callable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.classes.city_splitter import CitySplitter
+from src.view.modules.buttons import ButtonFactory
 
 
 def obter_caminho_recurso(nome_arquivo):
@@ -442,53 +443,28 @@ class GUI1:
         container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
         container_botoes.pack(pady=15)
         
-        # Botão Executar
-        self.botao_executar = ctk.CTkButton(
+        # Botão Executar usando ButtonFactory
+        self.botao_executar = ButtonFactory.create_execute_button(
             container_botoes,
-            text="EXECUTAR PROCESSAMENTO",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#0066cc",
-            hover_color="#0052a3",
             command=self._executar_main,
             width=300
         )
+        self.botao_executar.configure(text="EXECUTAR PROCESSAMENTO")  # Texto customizado para GUI1
         self.botao_executar.pack(side="left", padx=10)
         
-        # Botão Abrir Pasta
-        self.botao_abrir_pasta = ctk.CTkButton(
+        # Botão Abrir Pasta usando ButtonFactory
+        self.botao_abrir_pasta = ButtonFactory.create_folder_button(
             container_botoes,
-            text="ABRIR ARQUIVOS",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#28a745",
-            hover_color="#218838",
             command=self._abrir_pasta_arquivos,
-            width=200
+            width=200,
+            text="ABRIR ARQUIVOS"
         )
         self.botao_abrir_pasta.pack(side="left", padx=10)
         
         # Adicionar efeito hover aos botões
-        self._adicionar_efeito_hover(self.botao_executar)
-        self._adicionar_efeito_hover(self.botao_abrir_pasta)
+        ButtonFactory.add_hover_effect(self.botao_executar, 300)
+        ButtonFactory.add_hover_effect(self.botao_abrir_pasta, 200)
     
-    def _adicionar_efeito_hover(self, botao):
-        """Adiciona efeito hover de crescimento aos botões"""
-        def on_enter(event):
-            current_width = botao.cget("width")
-            current_height = botao.cget("height")
-            botao.configure(width=current_width + 8, height=current_height + 3)
-        
-        def on_leave(event):
-            if botao == self.botao_executar:
-                botao.configure(width=300, height=55)
-            elif botao == self.botao_abrir_pasta:
-                botao.configure(width=200, height=55)
-        
-        botao.bind("<Enter>", on_enter)
-        botao.bind("<Leave>", on_leave)
     
     def _on_modo_change(self, valor):
         """Callback quando o modo de execução é alterado"""
@@ -716,23 +692,16 @@ class GUI1:
         # Atualiza botão executar/cancelar
         if habilitado:
             # Modo normal - botão azul "EXECUTAR"
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=False)
             self.botao_executar.configure(
                 text="EXECUTAR PROCESSAMENTO",
-                fg_color="#0066cc",
-                hover_color="#0052a3",
-                border_width=0,
-                text_color="white",
                 state="normal"
             )
         else:
             # Modo execução - botão vermelho "CANCELAR"
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=True)
             self.botao_executar.configure(
                 text="CANCELAR PROCESSAMENTO",
-                fg_color="transparent",
-                hover_color="#ffebee",
-                border_width=3,
-                border_color="#dc3545",
-                text_color="#dc3545",
                 state="normal"
             )
     

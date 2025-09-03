@@ -19,6 +19,7 @@ from typing import List
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.bots.bot_fnde import BotFNDE
+from src.view.modules.buttons import ButtonFactory
 
 
 class GUI2:
@@ -306,53 +307,26 @@ class GUI2:
         container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
         container_botoes.pack(pady=15)
         
-        # Botão Executar
-        self.botao_executar = ctk.CTkButton(
+        # Botão Executar usando ButtonFactory
+        self.botao_executar = ButtonFactory.create_execute_button(
             container_botoes,
-            text="EXECUTAR SCRAPER",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#0066cc",
-            hover_color="#0052a3",
             command=self._executar_scraper,
             width=280
         )
         self.botao_executar.pack(side="left", padx=10)
         
-        # Botão Abrir Pasta
-        self.botao_abrir_pasta = ctk.CTkButton(
+        # Botão Abrir Pasta usando ButtonFactory
+        self.botao_abrir_pasta = ButtonFactory.create_folder_button(
             container_botoes,
-            text="ABRIR PASTA",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=55,
-            corner_radius=27,
-            fg_color="#28a745",
-            hover_color="#218838",
             command=self._abrir_pasta_fnde,
             width=160
         )
         self.botao_abrir_pasta.pack(side="left", padx=10)
         
         # Adicionar efeito hover aos botões
-        self._adicionar_efeito_hover(self.botao_executar)
-        self._adicionar_efeito_hover(self.botao_abrir_pasta)
+        ButtonFactory.add_hover_effect(self.botao_executar, 280)
+        ButtonFactory.add_hover_effect(self.botao_abrir_pasta, 160)
     
-    def _adicionar_efeito_hover(self, botao):
-        """Adiciona efeito hover de crescimento aos botões"""
-        def on_enter(event):
-            current_width = botao.cget("width")
-            current_height = botao.cget("height")
-            botao.configure(width=current_width + 8, height=current_height + 3)
-        
-        def on_leave(event):
-            if botao == self.botao_executar:
-                botao.configure(width=280, height=55)
-            elif botao == self.botao_abrir_pasta:
-                botao.configure(width=160, height=55)
-        
-        botao.bind("<Enter>", on_enter)
-        botao.bind("<Leave>", on_leave)
     
     def _carregar_municipios(self):
         """Carrega lista de municípios de MG"""
@@ -424,24 +398,11 @@ class GUI2:
         
         # Atualiza botão executar/cancelar
         if habilitado:
-            self.botao_executar.configure(
-                text="EXECUTAR SCRAPER",
-                fg_color="#0066cc",
-                hover_color="#0052a3",
-                border_width=0,
-                text_color="white",
-                state="normal"
-            )
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=False)
+            self.botao_executar.configure(state="normal")
         else:
-            self.botao_executar.configure(
-                text="CANCELAR SCRAPER",
-                fg_color="transparent",
-                hover_color="#ffebee",
-                border_width=3,
-                border_color="#dc3545",
-                text_color="#dc3545",
-                state="normal"
-            )
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=True)
+            self.botao_executar.configure(state="normal")
     
     def _executar_scraper(self):
         """Executa o scraper ou cancela execução"""

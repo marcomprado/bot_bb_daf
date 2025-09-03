@@ -19,6 +19,9 @@ from src.bots.bot_bbdaf import BotBBDAF
 from src.classes.parallel_processor import ProcessadorParalelo
 from src.classes.data_extractor import DataExtractor
 
+# Importa ButtonFactory para botões de aba
+from src.view.modules.buttons import ButtonFactory
+
 
 class SistemaFVN:
     """
@@ -139,39 +142,33 @@ class SistemaFVN:
         )
         frame_abas.pack(side="left", fill="y", padx=10, pady=5)
         
-        # Aba BB DAF
-        self.aba_bbdaf = ctk.CTkButton(
+        # Aba BB DAF usando ButtonFactory
+        self.aba_bbdaf = ButtonFactory.create_active_tab(
             frame_abas,
             text="Sistema BB DAF",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            corner_radius=10,
-            fg_color="#ffffff",
-            text_color="#0066cc",
-            border_width=2,
-            border_color="#0066cc",
-            hover_color="#f0f8ff",
             command=lambda: self._mostrar_aba("bbdaf"),
             width=140
         )
         self.aba_bbdaf.pack(side="left", padx=(0, 5))
         
-        # Aba FNDE
-        self.aba_fnde = ctk.CTkButton(
+        # Aba FNDE usando ButtonFactory
+        self.aba_fnde = ButtonFactory.create_inactive_tab(
             frame_abas,
             text="Sistema FNDE",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            corner_radius=10,
-            fg_color="#f0f0f0",
-            text_color="#6c757d",
-            border_width=1,
-            border_color="#dee2e6",
-            hover_color="#e9ecef",
             command=lambda: self._mostrar_aba("fnde"),
             width=140
         )
         self.aba_fnde.pack(side="left", padx=5)
+        
+        # Botão de ícone para abrir pasta - posicionado à direita
+        self.botao_pasta = ButtonFactory.create_icon_folder_button(
+            container_abas,
+            command=self._abrir_pasta_arquivos
+        )
+        self.botao_pasta.pack(side="right", padx=(10, 20), pady=7)
+        
+        # Adiciona efeito hover ao botão de ícone
+        ButtonFactory.add_icon_hover_effect(self.botao_pasta)
     
     def _mostrar_aba(self, aba: str):
         """
@@ -183,39 +180,17 @@ class SistemaFVN:
         self.aba_atual = aba
         
         if aba == "bbdaf":
-            # Estiliza aba ativa
-            self.aba_bbdaf.configure(
-                fg_color="#ffffff",
-                text_color="#0066cc",
-                border_width=2,
-                border_color="#0066cc"
-            )
-            # Estiliza aba inativa
-            self.aba_fnde.configure(
-                fg_color="#f0f0f0",
-                text_color="#6c757d",
-                border_width=1,
-                border_color="#dee2e6"
-            )
+            # Define abas usando ButtonFactory
+            ButtonFactory.set_tab_active(self.aba_bbdaf)
+            ButtonFactory.set_tab_inactive(self.aba_fnde)
             # Mostra GUI1
             self.gui1.mostrar()
             self.gui2.ocultar()
         
         elif aba == "fnde":
-            # Estiliza aba ativa
-            self.aba_fnde.configure(
-                fg_color="#ffffff",
-                text_color="#0066cc",
-                border_width=2,
-                border_color="#0066cc"
-            )
-            # Estiliza aba inativa
-            self.aba_bbdaf.configure(
-                fg_color="#f0f0f0",
-                text_color="#6c757d",
-                border_width=1,
-                border_color="#dee2e6"
-            )
+            # Define abas usando ButtonFactory
+            ButtonFactory.set_tab_active(self.aba_fnde)
+            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
             # Mostra GUI2
             self.gui2.mostrar()
             self.gui1.ocultar()
@@ -319,6 +294,36 @@ class SistemaFVN:
                     arquivo.write(f"{cidade}\n")
         except Exception as e:
             print(f"Erro ao salvar cidades: {e}")
+    
+    def _abrir_pasta_arquivos(self):
+        """Abre a pasta arquivos_baixados no explorador do sistema"""
+        import platform
+        import subprocess
+        
+        try:
+            # Caminho da pasta de arquivos
+            pasta_arquivos = obter_caminho_dados("arquivos_baixados")
+            
+            # Cria a pasta se não existir
+            if not os.path.exists(pasta_arquivos):
+                os.makedirs(pasta_arquivos)
+            
+            # Abre no explorador do sistema
+            sistema = platform.system()
+            if sistema == "Windows":
+                os.startfile(pasta_arquivos)
+            elif sistema == "Darwin":  # macOS
+                subprocess.run(["open", pasta_arquivos])
+            elif sistema == "Linux":
+                subprocess.run(["xdg-open", pasta_arquivos])
+            else:
+                print(f"Sistema operacional '{sistema}' não suportado")
+                return
+            
+            print(f"Pasta de arquivos aberta: {pasta_arquivos}")
+            
+        except Exception as e:
+            print(f"Erro ao abrir pasta de arquivos: {str(e)}")
     
     def executar(self):
         """Executa o loop principal da aplicação"""
