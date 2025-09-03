@@ -23,29 +23,7 @@ import time
 import io
 from datetime import datetime
 from typing import List, Dict, Optional
-
-
-def obter_caminho_dados(nome_arquivo):
-    """
-    Obtém o caminho correto para arquivos de dados (reutilizado do data_extractor.py)
-    """
-    try:
-        if hasattr(sys, '_MEIPASS'):
-            if platform.system() == "Darwin":
-                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
-            elif platform.system() == "Windows":
-                user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
-            else:
-                user_data_dir = os.path.expanduser("~/.sistema_fvn")
-            
-            if not os.path.exists(user_data_dir):
-                os.makedirs(user_data_dir)
-                
-            return os.path.join(user_data_dir, nome_arquivo)
-        else:
-            return nome_arquivo
-    except Exception:
-        return nome_arquivo
+from src.classes.path_manager import obter_caminho_dados
 
 
 class BotFNDE:

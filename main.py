@@ -11,8 +11,12 @@ import customtkinter as ctk
 from typing import Dict, Optional
 
 # Importa as GUIs
-from src.view.gui1 import GUI1, obter_caminho_dados, copiar_arquivo_cidades_se_necessario
+from src.view.gui1 import GUI1
 from src.view.gui2 import GUI2
+from src.view.view_config import GUI3
+
+# Importa funções de gerenciamento de caminhos
+from src.classes.path_manager import obter_caminho_dados, copiar_arquivo_cidades_se_necessario
 
 # Importa o bot principal e processador paralelo
 from src.bots.bot_bbdaf import BotBBDAF
@@ -120,6 +124,9 @@ class SistemaFVN:
         # Cria GUI2 (FNDE)
         self.gui2 = GUI2(self.container_conteudo)
         
+        # Cria GUI3 (Configurações)
+        self.gui3 = GUI3(self.container_conteudo)
+        
         # Mostra aba inicial
         self._mostrar_aba("bbdaf")
     
@@ -160,6 +167,15 @@ class SistemaFVN:
         )
         self.aba_fnde.pack(side="left", padx=5)
         
+        # Aba Configurações usando ButtonFactory
+        self.aba_config = ButtonFactory.create_inactive_tab(
+            frame_abas,
+            text="Configurações",
+            command=lambda: self._mostrar_aba("config"),
+            width=140
+        )
+        self.aba_config.pack(side="left", padx=5)
+        
         # Botão de ícone para abrir pasta - posicionado à direita
         self.botao_pasta = ButtonFactory.create_icon_folder_button(
             container_abas,
@@ -175,7 +191,7 @@ class SistemaFVN:
         Alterna entre as abas
         
         Args:
-            aba: Nome da aba ('bbdaf' ou 'fnde')
+            aba: Nome da aba ('bbdaf', 'fnde' ou 'config')
         """
         self.aba_atual = aba
         
@@ -183,17 +199,31 @@ class SistemaFVN:
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_active(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
+            ButtonFactory.set_tab_inactive(self.aba_config)
             # Mostra GUI1
             self.gui1.mostrar()
             self.gui2.ocultar()
+            self.gui3.ocultar()
         
         elif aba == "fnde":
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_active(self.aba_fnde)
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
+            ButtonFactory.set_tab_inactive(self.aba_config)
             # Mostra GUI2
             self.gui2.mostrar()
             self.gui1.ocultar()
+            self.gui3.ocultar()
+        
+        elif aba == "config":
+            # Define abas usando ButtonFactory
+            ButtonFactory.set_tab_active(self.aba_config)
+            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
+            ButtonFactory.set_tab_inactive(self.aba_fnde)
+            # Mostra GUI3
+            self.gui3.mostrar()
+            self.gui1.ocultar()
+            self.gui2.ocultar()
     
     def _executar_bbdaf(self, parametros: Dict):
         """

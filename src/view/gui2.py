@@ -571,7 +571,7 @@ class GUI2:
         """Abre a pasta de arquivos FNDE no explorador"""
         try:
             # Caminho da pasta FNDE usando a mesma lógica do bot_fnde.py
-            from src.view.gui1 import obter_caminho_dados
+            from src.classes.path_manager import obter_caminho_dados
             diretorio_base = obter_caminho_dados("arquivos_baixados")
             pasta_fnde = os.path.join(diretorio_base, "fnde")
             
