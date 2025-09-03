@@ -51,5 +51,5 @@ Veja o arquivo [LICENSE](LICENSE) para os termos completos.
 ---
 
 <p align="center">
-  Desenvolvido com ❤️ por Marco Martinelli do Carmo Prado
+  Desenvolvido por Marco Martinelli do Carmo Prado
 </p>
