@@ -5,8 +5,13 @@ Usado pelo ProcessadorParalelo para execução via subprocess
 """
 
 import sys
-from bots.bot_bbdaf import BotBBDAF
-from classes.data_extractor import DataExtractor
+import os
+
+# Adiciona o diretório raiz do projeto ao path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from src.bots.bot_bbdaf import BotBBDAF
+from src.classes.data_extractor import DataExtractor
 
 def main():
     """Executa uma instância do bot com os parâmetros fornecidos"""

@@ -12,7 +12,11 @@ import platform
 import subprocess
 from datetime import datetime, timedelta
 from typing import Dict, Callable
-from classes.city_splitter import CitySplitter
+
+# Adiciona o diretório raiz do projeto ao path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from src.classes.city_splitter import CitySplitter
 
 
 def obter_caminho_recurso(nome_arquivo):

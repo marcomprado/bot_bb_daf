@@ -12,12 +12,12 @@ from typing import List, Dict, Optional
 from datetime import datetime
 
 # Adiciona o diretório pai ao path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from classes.city_splitter import CitySplitter
-from classes.date_calculator import DateCalculator
-from classes.file_manager import FileManager
-from classes.config import ARQUIVOS_CONFIG
+from src.classes.city_splitter import CitySplitter
+from src.classes.date_calculator import DateCalculator
+from src.classes.file_manager import FileManager
+from src.classes.config import ARQUIVOS_CONFIG
 
 
 class ProcessadorParalelo:

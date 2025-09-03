@@ -14,7 +14,11 @@ import subprocess
 import platform
 from datetime import datetime, timedelta
 from typing import List
-from bots.bot_fnde import BotFNDE
+
+# Adiciona o diretório raiz do projeto ao path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from src.bots.bot_fnde import BotFNDE
 
 
 class GUI2:

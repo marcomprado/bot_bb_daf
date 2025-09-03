@@ -7,8 +7,8 @@ Extrai dados de liberações financeiras para municípios de Minas Gerais
 from selenium import webdriver
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from classes.chrome_driver import ChromeDriverSimples
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from src.classes.chrome_driver import ChromeDriverSimples
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC

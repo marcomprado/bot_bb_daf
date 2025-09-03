@@ -11,13 +11,13 @@ import customtkinter as ctk
 from typing import Dict, Optional
 
 # Importa as GUIs
-from gui1 import GUI1, obter_caminho_dados, copiar_arquivo_cidades_se_necessario
-from gui2 import GUI2
+from src.view.gui1 import GUI1, obter_caminho_dados, copiar_arquivo_cidades_se_necessario
+from src.view.gui2 import GUI2
 
 # Importa o bot principal e processador paralelo
-from bots.bot_bbdaf import BotBBDAF
-from classes.parallel_processor import ProcessadorParalelo
-from classes.data_extractor import DataExtractor
+from src.bots.bot_bbdaf import BotBBDAF
+from src.classes.parallel_processor import ProcessadorParalelo
+from src.classes.data_extractor import DataExtractor
 
 
 class SistemaFVN:

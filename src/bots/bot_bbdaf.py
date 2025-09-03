@@ -18,13 +18,13 @@ from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 import concurrent.futures
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from classes.chrome_driver import ChromeDriverSimples
-from classes.data_extractor import DataExtractor
-from classes.date_calculator import DateCalculator
-from classes.file_manager import FileManager
-from classes.city_splitter import CitySplitter
-from classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from src.classes.chrome_driver import ChromeDriverSimples
+from src.classes.data_extractor import DataExtractor
+from src.classes.date_calculator import DateCalculator
+from src.classes.file_manager import FileManager
+from src.classes.city_splitter import CitySplitter
+from src.classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
 
 
 class BotBBDAF:
