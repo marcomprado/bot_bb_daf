@@ -401,7 +401,12 @@ class GUI2:
         
         # Atualiza controles
         self.dropdown_ano.configure(state="normal" if habilitado else "disabled")
-        self.dropdown_municipio.configure(state="normal" if habilitado else "disabled")
+        
+        # Atualiza dropdown de municípios (Unix) ou botão (Windows)
+        if hasattr(self, 'dropdown_municipio'):
+            self.dropdown_municipio.configure(state="normal" if habilitado else "disabled")
+        elif hasattr(self, 'btn_selecionar_municipios'):
+            self.btn_selecionar_municipios.configure(state="normal" if habilitado else "disabled")
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
         
         # Botão abrir pasta sempre fica habilitado

@@ -613,8 +613,11 @@ class GUI1:
         # Atualiza estado
         self.executando = not habilitado
         
-        # Atualiza dropdown de cidades
-        self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
+        # Atualiza dropdown de cidades (Unix) ou botão (Windows)
+        if hasattr(self, 'dropdown_cidade'):
+            self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
+        elif hasattr(self, 'btn_selecionar_cidades'):
+            self.btn_selecionar_cidades.configure(state="normal" if habilitado else "disabled")
         
         # Atualiza controles de execução paralela
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")

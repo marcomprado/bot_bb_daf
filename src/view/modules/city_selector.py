@@ -4,8 +4,9 @@ Módulo de seleção de cidades com janela popup para Windows
 """
 
 import platform
-import customtkinter as ctk
-from tkinter import Toplevel, StringVar
+import tkinter as tk
+from tkinter import ttk, Toplevel, StringVar, BooleanVar
+
 
 def is_windows():
     """Verifica se o sistema é Windows"""
@@ -13,7 +14,7 @@ def is_windows():
 
 
 class CitySelectionWindow:
-    """Janela de seleção de cidades para Windows"""
+    """Janela de seleção de cidades para Windows usando tkinter puro"""
     
     def __init__(self, parent, cidades, titulo="Seleção de Cidades"):
         """
@@ -33,74 +34,106 @@ class CitySelectionWindow:
         self.window.geometry("400x500")
         self.window.resizable(False, False)
         
-        # Centraliza janela
+        # Centraliza janela na tela
+        self.window.update_idletasks()
+        width = 400
+        height = 500
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Modal
         self.window.transient(parent)
         self.window.grab_set()
         
         # Frame principal
-        main_frame = ctk.CTkFrame(self.window)
+        main_frame = tk.Frame(self.window, bg="white")
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Campo de busca
         self.search_var = StringVar()
-        search_entry = ctk.CTkEntry(
-            main_frame,
-            placeholder_text="Buscar cidade...",
-            textvariable=self.search_var
-        )
-        search_entry.pack(fill="x", padx=5, pady=5)
+        search_frame = tk.Frame(main_frame, bg="white")
+        search_frame.pack(fill="x", pady=(0, 5))
+        
+        tk.Label(search_frame, text="Buscar:", bg="white").pack(side="left", padx=(0, 5))
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var)
+        search_entry.pack(side="left", fill="x", expand=True)
         self.search_var.trace("w", self._filter_cities)
         
-        # Frame scrollable para lista
-        self.scroll_frame = ctk.CTkScrollableFrame(main_frame, height=350)
-        self.scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        # Frame com scrollbar para lista
+        list_frame = tk.Frame(main_frame, bg="white")
+        list_frame.pack(fill="both", expand=True, pady=5)
+        
+        # Canvas e scrollbar
+        canvas = tk.Canvas(list_frame, bg="white", highlightthickness=0)
+        scrollbar = tk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas, bg="white")
+        
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
         
         # Checkboxes para cada cidade
         self.check_vars = {}
         self.check_widgets = {}
         for cidade in self.cidades:
-            var = ctk.BooleanVar(value=False)
-            checkbox = ctk.CTkCheckBox(
-                self.scroll_frame,
+            var = BooleanVar(value=False)
+            checkbox = tk.Checkbutton(
+                self.scrollable_frame,
                 text=cidade.title(),
-                variable=var
+                variable=var,
+                bg="white",
+                anchor="w",
+                justify="left"
             )
-            checkbox.pack(anchor="w", pady=2)
+            checkbox.pack(anchor="w", fill="x", pady=1)
             self.check_vars[cidade] = var
             self.check_widgets[cidade] = checkbox
         
         # Frame de botões
-        button_frame = ctk.CTkFrame(main_frame)
-        button_frame.pack(fill="x", pady=5)
+        button_frame = tk.Frame(main_frame, bg="white")
+        button_frame.pack(fill="x", pady=(5, 0))
         
         # Botões de ação
-        ctk.CTkButton(
+        tk.Button(
             button_frame,
             text="Selecionar Todas",
             command=self._select_all,
-            width=120
-        ).pack(side="left", padx=5)
+            width=15
+        ).pack(side="left", padx=2)
         
-        ctk.CTkButton(
+        tk.Button(
             button_frame,
             text="Limpar",
             command=self._clear_all,
-            width=80
-        ).pack(side="left", padx=5)
+            width=10
+        ).pack(side="left", padx=2)
         
-        ctk.CTkButton(
+        tk.Button(
             button_frame,
             text="OK",
             command=self._confirm,
-            width=80
-        ).pack(side="right", padx=5)
+            width=10,
+            bg="#0066cc",
+            fg="white"
+        ).pack(side="right", padx=2)
         
-        ctk.CTkButton(
+        tk.Button(
             button_frame,
             text="Cancelar",
             command=self._cancel,
-            width=80
-        ).pack(side="right", padx=5)
+            width=10
+        ).pack(side="right", padx=2)
+        
+        # Foca no campo de busca
+        search_entry.focus_set()
     
     def _filter_cities(self, *args):
         """Filtra cidades baseado na busca"""
@@ -108,7 +141,7 @@ class CitySelectionWindow:
         
         for cidade, widget in self.check_widgets.items():
             if search_text in cidade.lower():
-                widget.pack(anchor="w", pady=2)
+                widget.pack(anchor="w", fill="x", pady=1)
             else:
                 widget.pack_forget()
     

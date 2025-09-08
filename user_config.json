@@ -1,12 +1,7 @@
 {
-    "download_directory": "/Users/marco/Desktop/FVN_all/app/new-geraldo/bot-bb/arquivos_baixados",
+    "download_directory": "arquivos_baixados",
     "window_geometry": {
         "width": 900,
         "height": 750
-    },
-    "last_selected_cities": [],
-    "last_date_range": {
-        "start": null,
-        "end": null
     }
 }
