@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.city_splitter import CitySplitter
 from src.classes.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from src.view.modules.buttons import ButtonFactory
+from src.view.modules.city_selector import is_windows, CitySelectionWindow
 
 
 class GUI1:
@@ -260,22 +261,32 @@ class GUI1:
         )
         label_cidade_campo.pack(pady=(0, 5))
         
-        # Dropdown com cidades
-        self.dropdown_cidade = ctk.CTkOptionMenu(
-            frame_cidade_campo,
-            values=self._obter_opcoes_cidades(),
-            variable=self.cidade_selecionada,
-            font=ctk.CTkFont(size=14),
-            dropdown_font=ctk.CTkFont(size=12),
-            width=300,
-            height=40,
-            command=self._on_cidade_change
-        )
-        self.dropdown_cidade.pack()
-        
-        # Define valor padrão
-        if self.lista_cidades:
-            self.cidade_selecionada.set("Todas as Cidades")
+        if is_windows():
+            # Windows: Botão que abre janela de seleção
+            self.btn_selecionar_cidades = ButtonFactory.create_primary_button(
+                frame_cidade_campo,
+                text="SELECIONAR CIDADES",
+                command=self._abrir_janela_cidades,
+                width=300
+            )
+            self.btn_selecionar_cidades.pack()
+        else:
+            # Unix: Dropdown com cidades
+            self.dropdown_cidade = ctk.CTkOptionMenu(
+                frame_cidade_campo,
+                values=self._obter_opcoes_cidades(),
+                variable=self.cidade_selecionada,
+                font=ctk.CTkFont(size=14),
+                dropdown_font=ctk.CTkFont(size=12),
+                width=300,
+                height=40,
+                command=self._on_cidade_change
+            )
+            self.dropdown_cidade.pack()
+            
+            # Define valor padrão
+            if self.lista_cidades:
+                self.cidade_selecionada.set("Todas as Cidades")
         
         # Label de status da seleção
         self.label_status_selecao = ctk.CTkLabel(
@@ -721,3 +732,35 @@ Total: {stats.get('total', 0)} cidades
     def _mostrar_popup_processo_terminado(self):
         """Mostra popup padrão quando processo é terminado"""
         messagebox.showinfo("Processo Finalizado", "Processo foi terminado")
+    
+    def _abrir_janela_cidades(self):
+        """Abre janela de seleção de cidades no Windows"""
+        if not self.lista_cidades:
+            return
+        
+        # Cria e mostra janela
+        selector = CitySelectionWindow(
+            self.main_frame.winfo_toplevel(),
+            self.lista_cidades,
+            "Seleção de Cidades"
+        )
+        cidades_selecionadas = selector.show()
+        
+        # Atualiza seleção
+        if cidades_selecionadas:
+            self.cidades_selecionadas = cidades_selecionadas
+            count = len(cidades_selecionadas)
+            if count == len(self.lista_cidades):
+                self.label_status_selecao.configure(
+                    text=f"Todas as cidades de MG selecionadas ({count} cidades)"
+                )
+            else:
+                self.label_status_selecao.configure(
+                    text=f"{count} cidade(s) selecionada(s)"
+                )
+        else:
+            # Se nenhuma cidade selecionada, seleciona todas
+            self.cidades_selecionadas = self.lista_cidades.copy()
+            self.label_status_selecao.configure(
+                text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
+            )

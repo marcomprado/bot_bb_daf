@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_fnde import BotFNDE
 from src.view.modules.buttons import ButtonFactory
+from src.view.modules.city_selector import is_windows, CitySelectionWindow
 
 
 class GUI2:
@@ -198,18 +199,28 @@ class GUI2:
         )
         label_municipio_campo.pack(pady=(0, 5))
         
-        # Dropdown com municípios
-        self.dropdown_municipio = ctk.CTkOptionMenu(
-            frame_municipio_campo,
-            values=self._obter_opcoes_municipios(),
-            variable=self.municipio_var,
-            font=ctk.CTkFont(size=14),
-            dropdown_font=ctk.CTkFont(size=12),
-            width=300,
-            height=40,
-            command=self._on_municipio_change
-        )
-        self.dropdown_municipio.pack()
+        if is_windows():
+            # Windows: Botão que abre janela de seleção
+            self.btn_selecionar_municipios = ButtonFactory.create_primary_button(
+                frame_municipio_campo,
+                text="SELECIONAR MUNICÍPIOS",
+                command=self._abrir_janela_municipios,
+                width=300
+            )
+            self.btn_selecionar_municipios.pack()
+        else:
+            # Unix: Dropdown com municípios
+            self.dropdown_municipio = ctk.CTkOptionMenu(
+                frame_municipio_campo,
+                values=self._obter_opcoes_municipios(),
+                variable=self.municipio_var,
+                font=ctk.CTkFont(size=14),
+                dropdown_font=ctk.CTkFont(size=12),
+                width=300,
+                height=40,
+                command=self._on_municipio_change
+            )
+            self.dropdown_municipio.pack()
         
         # Label de status da seleção
         self.label_status_municipios = ctk.CTkLabel(
@@ -566,6 +577,38 @@ class GUI2:
             
         self._habilitar_interface(True)
         self._mostrar_erro(f"Erro durante execução: {erro}")
+    
+    def _abrir_janela_municipios(self):
+        """Abre janela de seleção de municípios no Windows"""
+        if not self.lista_municipios:
+            return
+        
+        # Cria e mostra janela
+        selector = CitySelectionWindow(
+            self.main_frame.winfo_toplevel(),
+            self.lista_municipios,
+            "Seleção de Municípios"
+        )
+        municipios_selecionados = selector.show()
+        
+        # Atualiza seleção
+        if municipios_selecionados:
+            self.municipios_selecionados = municipios_selecionados
+            count = len(municipios_selecionados)
+            if count == len(self.lista_municipios):
+                self.label_status_municipios.configure(
+                    text=f"Todos os municípios de MG selecionados ({count} municípios)"
+                )
+            else:
+                self.label_status_municipios.configure(
+                    text=f"{count} município(s) selecionado(s)"
+                )
+        else:
+            # Se nenhum município selecionado, seleciona todos
+            self.municipios_selecionados = self.lista_municipios.copy()
+            self.label_status_municipios.configure(
+                text=f"Todos os municípios de MG selecionados ({len(self.lista_municipios)} municípios)"
+            )
     
     def _abrir_pasta_fnde(self):
         """Abre a pasta de arquivos FNDE no explorador"""
