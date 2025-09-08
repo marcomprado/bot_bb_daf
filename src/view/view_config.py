@@ -19,7 +19,7 @@ from src.classes.config_page import ConfigManager
 from src.view.modules.buttons import ButtonFactory
 
 
-class GUI3:
+class ConfigGUI:
     """Interface de configuração do sistema"""
     
     def __init__(self, parent_frame):

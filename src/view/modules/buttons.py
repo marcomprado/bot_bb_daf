@@ -461,6 +461,43 @@ class ButtonFactory:
         return button
     
     @classmethod
+    def create_icon_config_button(cls, parent, command=None):
+        """
+        Cria um botão circular pequeno com ícone de configurações
+        
+        Args:
+            parent: Container pai do botão
+            command: Função a ser executada ao clicar
+        """
+        icon_image = None
+        icon_text = "⚙️"  # Usa emoji como padrão
+        
+        try:
+            from PIL import Image
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.join(os.path.dirname(current_dir), '..', 'assets', 'applications-system-svgrepo-com.png')
+            
+            if os.path.exists(icon_path):
+                pil_image = Image.open(icon_path)
+                pil_image = pil_image.resize((cls.ICON_SIZE, cls.ICON_SIZE), Image.Resampling.LANCZOS)
+                icon_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(cls.ICON_SIZE, cls.ICON_SIZE))
+                icon_text = ""
+        except:
+            pass
+        
+        return ctk.CTkButton(
+            parent,
+            text=icon_text,
+            image=icon_image,
+            font=ctk.CTkFont(size=16),
+            width=cls.ICON_BUTTON_SIZE,
+            height=cls.ICON_BUTTON_SIZE,
+            corner_radius=cls.ICON_BUTTON_SIZE // 2,
+            command=command,
+            **cls.STYLES['icon_button']
+        )
+    
+    @classmethod
     def add_icon_hover_effect(cls, button):
         """
         Adiciona efeito hover específico para botões de ícone

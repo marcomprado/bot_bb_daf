@@ -13,7 +13,7 @@ from typing import Dict, Optional
 # Importa as GUIs
 from src.view.gui1 import GUI1
 from src.view.gui2 import GUI2
-from src.view.view_config import GUI3
+from src.view.view_config import ConfigGUI
 
 # Importa funções de gerenciamento de caminhos
 from src.classes.path_manager import obter_caminho_dados, copiar_arquivo_cidades_se_necessario
@@ -44,7 +44,7 @@ class SistemaFVN:
         # Janela principal
         self.janela = ctk.CTk()
         self.janela.title("Sistema FVN - Automação Web")
-        self.janela.geometry("900x750")
+        self.janela.geometry("600x900")
         self.janela.resizable(True, True)
         self.janela.minsize(700, 600)
         self.janela.configure(fg_color="#f8f9fa")
@@ -124,8 +124,8 @@ class SistemaFVN:
         # Cria GUI2 (FNDE)
         self.gui2 = GUI2(self.container_conteudo)
         
-        # Cria GUI3 (Configurações)
-        self.gui3 = GUI3(self.container_conteudo)
+        # Cria ConfigGUI (Configurações)
+        self.config_gui = ConfigGUI(self.container_conteudo)
         
         # Mostra aba inicial
         self._mostrar_aba("bbdaf")
@@ -167,24 +167,25 @@ class SistemaFVN:
         )
         self.aba_fnde.pack(side="left", padx=5)
         
-        # Aba Configurações usando ButtonFactory
-        self.aba_config = ButtonFactory.create_inactive_tab(
-            frame_abas,
-            text="Configurações",
-            command=lambda: self._mostrar_aba("config"),
-            width=140
+        # Removido - botão de configurações agora é ícone à direita
+        
+        # Botão de ícone para configurações - posicionado à direita
+        self.botao_config = ButtonFactory.create_icon_config_button(
+            container_abas,
+            command=lambda: self._mostrar_aba("config")
         )
-        self.aba_config.pack(side="left", padx=5)
+        self.botao_config.pack(side="right", padx=(10, 10), pady=7)
         
         # Botão de ícone para abrir pasta - posicionado à direita
         self.botao_pasta = ButtonFactory.create_icon_folder_button(
             container_abas,
             command=self._abrir_pasta_arquivos
         )
-        self.botao_pasta.pack(side="right", padx=(10, 20), pady=7)
+        self.botao_pasta.pack(side="right", padx=(0, 10), pady=7)
         
-        # Adiciona efeito hover ao botão de ícone
+        # Adiciona efeito hover aos botões de ícone
         ButtonFactory.add_icon_hover_effect(self.botao_pasta)
+        ButtonFactory.add_icon_hover_effect(self.botao_config)
     
     def _mostrar_aba(self, aba: str):
         """
@@ -199,29 +200,26 @@ class SistemaFVN:
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_active(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_config)
             # Mostra GUI1
             self.gui1.mostrar()
             self.gui2.ocultar()
-            self.gui3.ocultar()
+            self.config_gui.ocultar()
         
         elif aba == "fnde":
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_active(self.aba_fnde)
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_config)
             # Mostra GUI2
             self.gui2.mostrar()
             self.gui1.ocultar()
-            self.gui3.ocultar()
+            self.config_gui.ocultar()
         
         elif aba == "config":
             # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_active(self.aba_config)
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
-            # Mostra GUI3
-            self.gui3.mostrar()
+            # Mostra ConfigGUI
+            self.config_gui.mostrar()
             self.gui1.ocultar()
             self.gui2.ocultar()
     
