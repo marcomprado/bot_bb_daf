@@ -100,7 +100,7 @@ class BotBetha:
         try:
             print(f"Navegando para: {self.url}")
             self.navegador.get(self.url)
-            time.sleep(1)  # Aguarda carregamento inicial
+            time.sleep(0.3)  # Aguarda carregamento inicial
             print("✓ Página carregada")
             return True
             
@@ -117,7 +117,6 @@ class BotBetha:
         """
         try:
             print("Fazendo login...")
-            time.sleep(1)  # Pausa para visualização
             
             # Preenche campo de usuário
             print("  - Preenchendo usuário...")
@@ -126,20 +125,18 @@ class BotBetha:
             )
             campo_usuario.clear()
             campo_usuario.send_keys(self.usuario)
-            time.sleep(1)  # Pausa para visualização
             
             # Preenche campo de senha
             print("  - Preenchendo senha...")
             campo_senha = self.navegador.find_element(By.ID, "login:senha")
             campo_senha.clear()
             campo_senha.send_keys(self.senha)
-            time.sleep(1)  # Pausa para visualização
             
             # Clica no botão de login
             print("  - Clicando em Acessar...")
             botao_acessar = self.navegador.find_element(By.XPATH, "//span[@class='text' and text()='Acessar']")
             botao_acessar.click()
-            time.sleep(3)  # Aguarda login processar
+            time.sleep(0.8)  # Aguarda login processar
             
             print("✓ Login realizado com sucesso")
             return True
@@ -162,14 +159,13 @@ class BotBetha:
             nome_sem_acentos = self._remover_acentos(self.nome_cidade.upper())
             municipio_texto = f"MUNICIPIO DE {nome_sem_acentos}"
             print(f"Selecionando município: {municipio_texto}...")
-            time.sleep(1)  # Pausa para visualização
             
             # Clica no município
             municipio = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, f"//h3[@class='ng-binding' and text()='{municipio_texto}']"))
             )
             municipio.click()
-            time.sleep(1)  # Aguarda carregar
+            time.sleep(0.2)  # Aguarda carregar
             
             print(f"✓ {municipio_texto} selecionado")
             return True
@@ -191,14 +187,13 @@ class BotBetha:
         try:
             ppa_texto = f"PPA {self.ppa_inicio} - {self.ppa_fim}"
             print(f"Selecionando {ppa_texto}...")
-            time.sleep(1)  # Pausa para visualização
             
             # Clica no PPA
             ppa = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, f"//h3[@class='ng-binding' and text()='{ppa_texto}']"))
             )
             ppa.click()
-            time.sleep(1)  # Aguarda carregar
+            time.sleep(0.2)  # Aguarda carregar
             
             print(f"✓ {ppa_texto} selecionado")
             return True
@@ -220,14 +215,13 @@ class BotBetha:
         try:
             exercicio_texto = f"Exercício {self.ano}"
             print(f"Selecionando {exercicio_texto}...")
-            time.sleep(1)  # Pausa para visualização
             
             # Clica no exercício
             exercicio = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, f"//h3[@class='ng-binding' and text()='{exercicio_texto}']"))
             )
             exercicio.click()
-            time.sleep(1)  # Aguarda carregar
+            time.sleep(0.2)  # Aguarda carregar
             
             print(f"✓ {exercicio_texto} selecionado")
             return True
@@ -248,12 +242,11 @@ class BotBetha:
         """
         try:
             print("Pressionando F4...")
-            time.sleep(1)  # Pausa para visualização
             
             # Envia F4 para o body da página
             body = self.navegador.find_element(By.TAG_NAME, "body")
             body.send_keys(Keys.F4)
-            time.sleep(1)  # Aguarda ação ser processada
+            time.sleep(0.2)  # Aguarda ação ser processada
             
             print("✓ F4 pressionado")
             return True
@@ -271,14 +264,13 @@ class BotBetha:
         """
         try:
             print("Navegando para Relatórios Favoritos...")
-            time.sleep(1)  # Pausa para visualização
             
             # Clica em Relatórios Favoritos
             relatorios_favoritos = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//a[@data-ng-click=\"executandoCtrl.alterarVisualizacao('RELATORIOSFAVORITOS')\"]"))
             )
             relatorios_favoritos.click()
-            time.sleep(1)  # Aguarda carregar
+            time.sleep(0.2)  # Aguarda carregar
             
             print("✓ Relatórios Favoritos acessado")
             return True
@@ -433,7 +425,6 @@ class BotBetha:
         """
         try:
             print(f"\nExecutando script específico para: {self.nome_cidade}")
-            time.sleep(1)
             
             # Mapeia cidades para suas funções específicas
             scripts_cidades = {
