@@ -16,8 +16,9 @@ class ChromeDriverSimples:
     Classe para conectar direto ao ChromeDriver sem webdriver-manager
     """
     
-    def __init__(self):
+    def __init__(self, download_dir=None):
         self.navegador = None
+        self.download_dir = download_dir
     
     def conectar(self):
         """
@@ -34,6 +35,17 @@ class ChromeDriverSimples:
             opcoes.add_argument("--disable-blink-features=AutomationControlled")
             opcoes.add_experimental_option("excludeSwitches", ["enable-automation"])
             opcoes.add_experimental_option('useAutomationExtension', False)
+            
+            # Configurar diretório de download se especificado
+            if self.download_dir:
+                prefs = {
+                    "download.default_directory": self.download_dir,
+                    "download.prompt_for_download": False,
+                    "download.directory_upgrade": True,
+                    "safebrowsing.enabled": True,
+                    "plugins.always_open_pdf_externally": True
+                }
+                opcoes.add_experimental_option("prefs", prefs)
             
             # Tenta conectar direto ao Chrome (usa ChromeDriver do sistema)
             self.navegador = webdriver.Chrome(options=opcoes)

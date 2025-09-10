@@ -19,6 +19,7 @@ import unicodedata
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
+from src.classes.file_converter import FileConverter
 
 
 class BotBetha:
@@ -69,7 +70,12 @@ class BotBetha:
             bool: True se configurado com sucesso
         """
         try:
-            driver_simples = ChromeDriverSimples()
+            # Obter o diretório de download temporário para o município
+            nome_cidade_normalizado = self._normalizar_nome_cidade(self.nome_cidade)
+            file_converter = FileConverter(nome_cidade_normalizado)
+            download_dir = file_converter.obter_pasta_temp()
+            
+            driver_simples = ChromeDriverSimples(download_dir=download_dir)
             self.navegador = driver_simples.conectar()
             
             if self.navegador:
@@ -460,14 +466,30 @@ class BotBetha:
             from src.bots.betha.bot_ribeirao import executar_script_ribeirao
             
             print("Executando script de Ribeirão das Neves...")
-            return executar_script_ribeirao(self.navegador, self.wait)
+            nome_cidade_normalizado = self._normalizar_nome_cidade("Ribeirão das Neves")
+            return executar_script_ribeirao(self.navegador, self.wait, self.ano, nome_cidade_normalizado)
             
         except ImportError:
             print("✗ Módulo bot_ribeirao não encontrado")
-            print("  Executando script genérico...")
-            return self._executar_script_generico()
+            return False
         except Exception as e:
             print(f"✗ Erro no script de Ribeirão: {e}")
             return False
     
+    def _normalizar_nome_cidade(self, nome_cidade):
+        """
+        Normaliza o nome da cidade para uso em caminhos de arquivo
+        Remove acentos, espaços e converte para lowercase com underscores
+        
+        Args:
+            nome_cidade: Nome da cidade original
+            
+        Returns:
+            str: Nome normalizado (ex: "Ribeirão das Neves" -> "ribeirao_neves")
+        """
+        # Remove acentos
+        nome_sem_acentos = self._remover_acentos(nome_cidade)
+        # Converte para lowercase e substitui espaços por underscores
+        nome_normalizado = nome_sem_acentos.lower().replace(" ", "_")
+        return nome_normalizado
     
