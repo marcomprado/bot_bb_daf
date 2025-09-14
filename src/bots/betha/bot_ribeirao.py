@@ -67,7 +67,7 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Processar Anexo IV
         if not _processar_anexo_iv(navegador, wait, ano):
             print("⚠ Falha ao processar Anexo IV")
-            return False'''
+            return False
         
         # Processar Anexo VII
         if not _processar_anexo_vii(navegador, wait, ano):
@@ -82,7 +82,7 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Processar Baixar os ultimos 5 (Primeiro lote)
         if not _baixar_ultimos_5(navegador, wait, 1, file_converter):
             print("⚠ Falha ao baixar primeiro lote de arquivos")
-            # Continuar mesmo se falhar
+            # Continuar mesmo se falhar '''
         
         # Processar Balancete da Receita
         if not _processar_balancete_receita(navegador, wait, ano):
@@ -656,72 +656,72 @@ def _processar_balancete_despesa(navegador, wait, ano):
         campo_ano.send_keys(str(ano))
         time.sleep(1)
         
-        # 3. Alterar dropdown de "Natureza da despesa (LOA)" para "Número despesa + Recurso (LOA)" (ID: select2-chosen-144)
+        # 3. Alterar dropdown de "Natureza da despesa (LOA)" para "Número despesa + Recurso (LOA)" (ID: select2-chosen-9)
         print("  - Selecionando 'Número despesa + Recurso (LOA)'...")
         dropdown_natureza = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-144']]"))
+            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-9']]"))
         )
         dropdown_natureza.click()
         time.sleep(1)
         
         opcao_numero_despesa = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Número despesa + Recurso (LOA)')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-9']//div[contains(text(), 'Número despesa + Recurso (LOA)')]"))
         )
         opcao_numero_despesa.click()
         time.sleep(1)
         
-        # 4. Selecionar "Organograma Nível 2" (ID: select2-chosen-145)
+        # 4. Selecionar "Organograma Nível 2" (ID: select2-chosen-10)
         print("  - Selecionando 'Organograma Nível 2'...")
         dropdown_organograma = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-145']]"))
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-10']]"))
         )
         dropdown_organograma.click()
         time.sleep(1)
-        
+
         opcao_organograma = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Organograma Nível 2')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-10']//div[contains(text(), 'Organograma Nível 2')]"))
         )
         opcao_organograma.click()
         time.sleep(1)
         
-        # 5. Selecionar "Função" (ID: select2-chosen-146)
+        # 5. Selecionar "Função" (ID: select2-chosen-11)
         print("  - Selecionando 'Função'...")
         dropdown_funcao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-146']]"))
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-11']]"))
         )
         dropdown_funcao.click()
         time.sleep(1)
-        
+
         opcao_funcao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Função')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-11']//div[contains(text(), 'Função')]"))
         )
         opcao_funcao.click()
         time.sleep(1)
         
-        # 6. Selecionar "Subfunção" (ID: select2-chosen-147)
+        # 6. Selecionar "Subfunção" (ID: select2-chosen-12)
         print("  - Selecionando 'Subfunção'...")
         dropdown_subfuncao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-147']]"))
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-12']]"))
         )
         dropdown_subfuncao.click()
         time.sleep(1)
-        
+
         opcao_subfuncao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Subfunção')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-12']//div[contains(text(), 'Subfunção')]"))
         )
         opcao_subfuncao.click()
         time.sleep(1)
         
-        # 7. Selecionar "2 / Especificação da Fonte" (ID: select2-chosen-155)
+        # 7. Selecionar "2 / Especificação da Fonte" (ID: select2-chosen-20)
         print("  - Selecionando '2 / Especificação da Fonte'...")
         dropdown_especificacao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-155']]"))
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-20']]"))
         )
         dropdown_especificacao.click()
         time.sleep(1)
         
         opcao_especificacao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), '2 / Especificação da Fonte')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-20']//div[contains(text(), '2 / Especificação da Fonte')]"))
         )
         opcao_especificacao.click()
         time.sleep(1)

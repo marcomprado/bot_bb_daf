@@ -197,3 +197,4 @@ Manual validation through:
 - File permissions and directory creation
 - Dependency verification in main.py
 - City configuration JSON validation
+- add to memory . Use this 'contains' for this class type elements
