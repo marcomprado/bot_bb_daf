@@ -21,12 +21,14 @@ from src.classes.file_converter import FileConverter
         # # Anexo IV
         # # Anexo VII
         # # Balancete da Despesa
-        # # Baixar os ultimos 5
+        
         # # Balancete da Receita
         # # Extrato da Receita
         # # Relacao de Empenhos - CMM
         # # Relacao de Pagamentos Efetuados 
         # # Relacao geral de liquidacoes por periodo
+
+        # # Baixar todos os arquivos
         
         
 def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_neves"):
@@ -77,12 +79,12 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Processar Balancete da Despesa
         if not _processar_balancete_despesa(navegador, wait, ano):
             print("⚠ Falha ao processar Balancete da Despesa")
-            return False
+            return False'''
         
         # Processar Baixar os ultimos 5 (Primeiro lote)
         if not _baixar_ultimos_5(navegador, wait, 1, file_converter):
             print("⚠ Falha ao baixar primeiro lote de arquivos")
-            # Continuar mesmo se falhar '''
+            # Continuar mesmo se falhar 
         
         # Processar Balancete da Receita
         if not _processar_balancete_receita(navegador, wait, ano):
@@ -1497,7 +1499,7 @@ def _baixar_ultimos_5(navegador, wait, lote, file_converter):
                 ))
             )
             gerenciador.click()
-            time.sleep(3)
+            time.sleep(1)
             
             # 2. Clicar no botão Atualizar andamento
             print("  - Atualizando andamento...")
@@ -1508,7 +1510,7 @@ def _baixar_ultimos_5(navegador, wait, lote, file_converter):
                 ))
             )
             botao_atualizar.click()
-            time.sleep(2)
+            time.sleep(1)
             
             # 3. Encontrar e clicar em todos os botões de download "Resultado"
             print("  - Procurando botões de download...")
@@ -1530,7 +1532,7 @@ def _baixar_ultimos_5(navegador, wait, lote, file_converter):
                     print(f"    ⚠ Erro ao baixar arquivo {i}: {e}")
             
             # Aguardar downloads serem salvos
-            time.sleep(3)
+            time.sleep(1)
             
             # Verificar quantos arquivos foram baixados para a pasta temp
             arquivos_na_temp = file_converter.contar_arquivos_temp()
