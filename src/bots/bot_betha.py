@@ -418,54 +418,86 @@ class BotBetha:
     
     def _executar_script_cidade(self):
         """
-        Executa o script específico para cada cidade
-        
+        Executa dinamicamente o script específico para cada cidade
+        Procura por arquivo bot_[nome_cidade].py e executa função executar_script_[nome_cidade]
+
         Returns:
             bool: True se executado com sucesso
         """
         try:
             print(f"\nExecutando script específico para: {self.nome_cidade}")
-            
-            # Mapeia cidades para suas funções específicas
-            scripts_cidades = {
-                'Ribeirão das Neves': self._executar_script_ribeirao,
-                # Adicionar outras cidades conforme necessário
-            }
-            
-            # Busca função específica da cidade
-            funcao_cidade = scripts_cidades.get(self.nome_cidade)
-            
-            if funcao_cidade:
-                return funcao_cidade()
-            else:
-                print(f"⚠ Script específico não encontrado para {self.nome_cidade}")
-                
+
+            # Converte nome da cidade para nome do módulo usando mapeamento especial
+            nome_modulo, nome_funcao = self._obter_nomes_modulo_funcao(self.nome_cidade)
+
+            print(f"Procurando módulo: {nome_modulo}")
+
+            try:
+                # Importa dinamicamente o módulo específico da cidade
+                modulo_cidade = __import__(f"src.bots.betha.{nome_modulo}", fromlist=[nome_funcao])
+
+                # Obtém a função específica do módulo
+                if hasattr(modulo_cidade, nome_funcao):
+                    funcao_script = getattr(modulo_cidade, nome_funcao)
+                    print(f"✓ Script encontrado: {nome_funcao}")
+
+                    # Executa o script específico da cidade
+                    nome_cidade_normalizado = self._normalizar_nome_cidade(self.nome_cidade)
+                    return funcao_script(self.navegador, self.wait, self.ano, nome_cidade_normalizado)
+                else:
+                    print(f"✗ Função {nome_funcao} não encontrada no módulo {nome_modulo}")
+                    return self._executar_script_generico()
+
+            except ImportError:
+                print(f"⚠ Módulo {nome_modulo} não encontrado, usando processamento genérico")
+                return self._executar_script_generico()
+
         except Exception as e:
             print(f"✗ Erro ao executar script da cidade: {e}")
             return False
-    
-    def _executar_script_ribeirao(self):
+
+    def _obter_nomes_modulo_funcao(self, nome_cidade):
         """
-        Script específico para Ribeirão das Neves
-        Importado do módulo bot_ribeirao
-        
+        Converte nome da cidade para nome do módulo e função
+        Usa mapeamento especial para cidades com nomes complexos
+
+        Args:
+            nome_cidade: Nome completo da cidade
+
         Returns:
-            bool: True se executado com sucesso
+            tuple: (nome_modulo, nome_funcao)
         """
-        try:
-            # Importa dinamicamente o módulo específico
-            from src.bots.betha.bot_ribeirao import executar_script_ribeirao
-            
-            print("Executando script de Ribeirão das Neves...")
-            nome_cidade_normalizado = self._normalizar_nome_cidade("Ribeirão das Neves")
-            return executar_script_ribeirao(self.navegador, self.wait, self.ano, nome_cidade_normalizado)
-            
-        except ImportError:
-            print("✗ Módulo bot_ribeirao não encontrado")
-            return False
-        except Exception as e:
-            print(f"✗ Erro no script de Ribeirão: {e}")
-            return False
+        # Mapeamentos especiais para cidades com nomes que não seguem padrão simples
+        mapeamentos_especiais = {
+            'Ribeirão das Neves': ('bot_ribeirao', 'executar_script_ribeirao'),
+            # Futuros mapeamentos especiais podem ser adicionados aqui
+            # 'São João del Rei': ('bot_sao_joao_del_rei', 'executar_script_sao_joao_del_rei'),
+        }
+
+        # Verifica se existe mapeamento especial
+        if nome_cidade in mapeamentos_especiais:
+            return mapeamentos_especiais[nome_cidade]
+
+        # Usa normalização padrão para outras cidades
+        nome_normalizado = self._normalizar_nome_cidade(nome_cidade)
+        nome_modulo = f"bot_{nome_normalizado}"
+        nome_funcao = f"executar_script_{nome_normalizado}"
+        return nome_modulo, nome_funcao
+
+    def _executar_script_generico(self):
+        """
+        Script genérico para cidades sem implementação específica
+
+        Returns:
+            bool: True (placeholder para implementação futura)
+        """
+        print(f"⚠ Executando processamento genérico para {self.nome_cidade}")
+        print("📝 Implementação específica pode ser criada em:")
+        nome_cidade_normalizado = self._normalizar_nome_cidade(self.nome_cidade)
+        print(f"   src/bots/betha/bot_{nome_cidade_normalizado}.py")
+
+        # Placeholder - aqui poderia ter lógica genérica no futuro
+        return True
     
     def _normalizar_nome_cidade(self, nome_cidade):
         """
