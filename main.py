@@ -297,7 +297,7 @@ class SistemaFVN:
             else:
                 # Execução individual
                 self.bot_atual = BotBBDAF()
-                self.bot_atual.configurar_extrator_dados(DataExtractor())
+                self.bot_atual.configurar_extrator_dados(DataExtractor("bbdaf"))
                 
                 resultado = self.bot_atual.executar_completo(
                     cidades=parametros.get('cidades'),
@@ -442,7 +442,7 @@ def main():
             from classes.data_extractor import DataExtractor
             
             bot = BotBBDAF()
-            bot.configurar_extrator_dados(DataExtractor())
+            bot.configurar_extrator_dados(DataExtractor("bbdaf"))
             
             # Pega datas dos argumentos ou usa padrão
             data_inicial = sys.argv[2] if len(sys.argv) > 2 else None

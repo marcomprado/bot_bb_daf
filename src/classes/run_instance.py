@@ -25,7 +25,7 @@ def main():
     
     # Inicializa e executa o bot
     bot = BotBBDAF()
-    bot.configurar_extrator_dados(DataExtractor())
+    bot.configurar_extrator_dados(DataExtractor("bbdaf"))
     
     resultado = bot.executar_completo(
         arquivo_cidades=arquivo_cidades,

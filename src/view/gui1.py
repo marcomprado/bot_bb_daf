@@ -522,9 +522,9 @@ class GUI1:
             raise Exception(f"Erro ao salvar cidades: {str(e)}")
     
     def _abrir_pasta_arquivos(self):
-        """Abre a pasta de arquivos baixados no explorador do sistema"""
+        """Abre a pasta de arquivos BB DAF no explorador do sistema"""
         try:
-            pasta_arquivos = obter_caminho_dados("arquivos_baixados")
+            pasta_arquivos = obter_caminho_dados("bbdaf")
             
             # Cria a pasta se não existir
             if not os.path.exists(pasta_arquivos):

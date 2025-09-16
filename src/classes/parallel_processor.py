@@ -163,7 +163,7 @@ class ProcessadorParalelo:
                 for arquivo_info in arquivos_criados:
                     # Cria nova instância do bot para cada thread
                     bot = BotBBDAF()
-                    bot.configurar_extrator_dados(DataExtractor())
+                    bot.configurar_extrator_dados(DataExtractor("bbdaf"))
                     self.bots_ativos.append(bot)  # Registra bot ativo
                     
                     future = self.executor.submit(

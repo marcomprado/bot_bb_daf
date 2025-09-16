@@ -485,8 +485,7 @@ class GUI3:
         """Abre a pasta de arquivos Betha"""
         try:
             # Caminho da pasta Betha
-            diretorio_base = obter_caminho_dados("arquivos_baixados")
-            pasta_betha = os.path.join(diretorio_base, "betha")
+            pasta_betha = obter_caminho_dados("betha")
             
             # Cria a pasta se não existir
             if not os.path.exists(pasta_betha):

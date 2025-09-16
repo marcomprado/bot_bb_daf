@@ -539,7 +539,7 @@ class BotBBDAF:
                 for arquivo_info in arquivos_criados:
                     # Cria nova instância do bot para cada thread
                     bot = BotBBDAF()
-                    bot.configurar_extrator_dados(DataExtractor())
+                    bot.configurar_extrator_dados(DataExtractor("bbdaf"))
                     
                     # Submete para execução
                     future = executor.submit(

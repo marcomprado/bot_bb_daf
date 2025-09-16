@@ -56,8 +56,10 @@ class BotFNDE:
         self._em_execucao = False
         
         # Configuração de diretórios
-        self.diretorio_base = obter_caminho_dados("arquivos_baixados")
-        self.diretorio_fnde = os.path.join(self.diretorio_base, "fnde")
+        # Chama apenas "fnde" para evitar duplicação da pasta arquivos_baixados
+        self.diretorio_fnde = obter_caminho_dados("fnde")
+        # Para compatibilidade com código existente
+        self.diretorio_base = os.path.dirname(self.diretorio_fnde)
         self.data_hoje = datetime.now().strftime("%Y-%m-%d")
         self.diretorio_saida = os.path.join(self.diretorio_fnde, self.data_hoje)
         

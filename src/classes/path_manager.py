@@ -38,10 +38,10 @@ def obter_caminho_recurso(nome_arquivo):
 def obter_caminho_dados(nome_arquivo):
     """
     Obtém o caminho correto para arquivos de dados (que precisam ser modificáveis)
-    
+
     Args:
         nome_arquivo (str): Nome do arquivo de dados
-        
+
     Returns:
         str: Caminho completo para o arquivo de dados
     """
@@ -49,10 +49,10 @@ def obter_caminho_dados(nome_arquivo):
         # Importa ConfigManager aqui para evitar importação circular
         from src.classes.config_page import ConfigManager
         config_manager = ConfigManager()
-        
+
         # Casos especiais que NÃO devem usar o diretório configurado
         arquivos_sistema = ['cidades.txt', 'listed_cities.txt']
-        
+
         if any(nome_arquivo.endswith(arquivo) for arquivo in arquivos_sistema):
             # Arquivos do sistema ficam no diretório da aplicação
             if hasattr(sys, '_MEIPASS'):
@@ -63,18 +63,27 @@ def obter_caminho_dados(nome_arquivo):
                     user_data_dir = os.path.expanduser("~/Documents/Sistema_FVN")
                 else:  # Linux
                     user_data_dir = os.path.expanduser("~/.sistema_fvn")
-                
+
                 # Cria o diretório se não existir
                 if not os.path.exists(user_data_dir):
                     os.makedirs(user_data_dir)
-                    
+
                 return os.path.join(user_data_dir, nome_arquivo)
             else:
                 # No desenvolvimento, usa o diretório atual
                 return nome_arquivo
         else:
-            # Para arquivos_baixados e outros, usa o diretório configurado
-            return config_manager.get_file_path(nome_arquivo)
+            # Evita duplicação de arquivos_baixados no caminho
+            if nome_arquivo == "arquivos_baixados":
+                # Se alguém está pedindo apenas "arquivos_baixados", retorna o diretório base
+                return config_manager.get_download_directory()
+            elif nome_arquivo.startswith("arquivos_baixados"):
+                # Se já tem "arquivos_baixados" no início, remove para evitar duplicação
+                nome_arquivo_clean = nome_arquivo.replace("arquivos_baixados/", "").replace("arquivos_baixados\\", "")
+                return config_manager.get_file_path(nome_arquivo_clean)
+            else:
+                # Para subpastas normais (fnde, betha, etc.), usa normalmente
+                return config_manager.get_file_path(nome_arquivo)
             
     except Exception:
         # Fallback para o comportamento original
