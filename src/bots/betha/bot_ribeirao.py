@@ -59,12 +59,12 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         '''# Processar Anexo 03
         if not _processar_anexo_03(navegador, wait):
             print("⚠ Falha ao processar Anexo 03")
-            return False 
+            return False
         
         # Processar Anexo 08
         if not _processar_anexo_08(navegador, wait):
             print("⚠ Falha ao processar Anexo 08")
-            return False
+            return False 
         
         # Processar Anexo IV
         if not _processar_anexo_iv(navegador, wait, ano):
@@ -74,12 +74,12 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Processar Anexo VII
         if not _processar_anexo_vii(navegador, wait, ano):
             print("⚠ Falha ao processar Anexo VII")
-            return False
+            return False 
         
         # Processar Balancete da Despesa
         if not _processar_balancete_despesa(navegador, wait, ano):
             print("⚠ Falha ao processar Balancete da Despesa")
-            return False
+            return False '''
 
         # Processar Balancete da Receita
         if not _processar_balancete_receita(navegador, wait, ano):
@@ -89,17 +89,17 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Processar Extrato da Receita
         if not _processar_extrato_receita(navegador, wait, ano):
             print("⚠ Falha ao processar Extrato da Receita")
-            return False '''
+            return False 
         
         # Processar Relação de Empenhos - CMM
         if not _processar_relacao_empenhos(navegador, wait, ano):
             print("⚠ Falha ao processar Relação de Empenhos - CMM")
-            return False
+            return False 
         
         # Processar Relação de Pagamentos Efetuados
         if not _processar_relacao_pagamentos(navegador, wait, ano):
             print("⚠ Falha ao processar Relação de Pagamentos Efetuados")
-            return False
+            return False 
         
         # Processar Relação geral de liquidações por período
         if not _processar_relacao_liquidacoes(navegador, wait, ano):
@@ -154,7 +154,7 @@ def _processar_anexo_03(navegador, wait):
         try:
             # Tentar primeiro pelo ID do span
             dropdown_sim = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-1']]"))
+                EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-1']/parent::a"))
             )
         except TimeoutException:
             # Fallback: clicar no link pai com classe select2-choice
@@ -205,7 +205,7 @@ def _processar_anexo_03(navegador, wait):
         mes_formatado = f"{mes_atual:02d}"
         
         campo_mes = wait.until(
-            EC.element_to_be_clickable((By.ID, "75525299"))
+            EC.element_to_be_clickable((By.ID, "76014315"))
         )
         campo_mes.clear()
         campo_mes.send_keys(mes_formatado)
@@ -277,10 +277,7 @@ def _processar_anexo_08(navegador, wait):
         print("  - Alterando de Bimestral para Mensal...")
         # Localizar especificamente o dropdown que contém "Bimestral"
         select2_dropdown = wait.until(
-            EC.element_to_be_clickable((
-                By.XPATH, 
-                "//a[@class='select2-choice' and .//span[@id='select2-chosen-4' and contains(text(), 'Bimestral')]]"
-            ))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-4']/parent::a"))
         )
         select2_dropdown.click()
         time.sleep(1)
@@ -393,7 +390,7 @@ def _processar_anexo_iv(navegador, wait, ano):
         dropdown_anual = wait.until(
             EC.element_to_be_clickable((
                 By.XPATH, 
-                "//a[@class='select2-choice' and .//span[@id='select2-chosen-4' and contains(text(), 'Anual')]]"
+                "//span[@id='select2-chosen-4']/parent::a"
             ))
         )
         dropdown_anual.click()
@@ -509,13 +506,10 @@ def _processar_anexo_vii(navegador, wait, ano):
         anexo_vii.click()
         time.sleep(2)
         
-        # 2. Selecionar ano no dropdown (select2-chosen-5)
+        # 2. Selecionar ano no dropdown (s2id_autogen4)
         print(f"  - Selecionando ano: {ano}...")
         dropdown_ano = wait.until(
-            EC.element_to_be_clickable((
-                By.XPATH, 
-                "//a[contains(@class, 'select2-choice') and .//span[@id='select2-chosen-5']]"
-            ))
+            EC.element_to_be_clickable((By.XPATH, "//div[@id='s2id_autogen4']/a"))
         )
         dropdown_ano.click()
         time.sleep(1)
@@ -532,7 +526,7 @@ def _processar_anexo_vii(navegador, wait, ano):
         dropdown_nao = wait.until(
             EC.element_to_be_clickable((
                 By.XPATH, 
-                "//a[@class='select2-choice' and .//span[@id='select2-chosen-6' and contains(text(), 'Não')]]"
+                "//span[@id='select2-chosen-6']/parent::a"
             ))
         )
         dropdown_nao.click()
@@ -553,7 +547,7 @@ def _processar_anexo_vii(navegador, wait, ano):
         dropdown_mes = wait.until(
             EC.element_to_be_clickable((
                 By.XPATH, 
-                "//a[contains(@class, 'select2-choice') and .//span[@id='select2-chosen-7']]"
+                "//span[@id='select2-chosen-7']/parent::a"
             ))
         )
         dropdown_mes.click()
@@ -653,7 +647,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
         # 3. Alterar dropdown de "Natureza da despesa (LOA)" para "Número despesa + Recurso (LOA)" (ID: select2-chosen-9)
         print("  - Selecionando 'Número despesa + Recurso (LOA)'...")
         dropdown_natureza = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-9']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-9']/parent::a"))
         )
         dropdown_natureza.click()
         time.sleep(1)
@@ -667,7 +661,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
         # 4. Selecionar "Organograma Nível 2" (ID: select2-chosen-10)
         print("  - Selecionando 'Organograma Nível 2'...")
         dropdown_organograma = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-10']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-10']/parent::a"))
         )
         dropdown_organograma.click()
         time.sleep(1)
@@ -681,7 +675,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
         # 5. Selecionar "Função" (ID: select2-chosen-11)
         print("  - Selecionando 'Função'...")
         dropdown_funcao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-11']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-11']/parent::a"))
         )
         dropdown_funcao.click()
         time.sleep(1)
@@ -695,7 +689,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
         # 6. Selecionar "Subfunção" (ID: select2-chosen-12)
         print("  - Selecionando 'Subfunção'...")
         dropdown_subfuncao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-12']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-12']/parent::a"))
         )
         dropdown_subfuncao.click()
         time.sleep(1)
@@ -709,7 +703,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
         # 7. Selecionar "2 / Especificação da Fonte" (ID: select2-chosen-20)
         print("  - Selecionando '2 / Especificação da Fonte'...")
         dropdown_especificacao = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[contains(@class, 'select2-choice')][.//span[@id='select2-chosen-20']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-20']/parent::a"))
         )
         dropdown_especificacao.click()
         time.sleep(1)
@@ -1094,7 +1088,6 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
         campo_municipio.click()
-        campo_municipio.send_keys("MUNICIPIO DE RIBEIRAO DAS NEVES")
         time.sleep(1)
 
         # Selecionar a opção que aparece
@@ -1273,10 +1266,10 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         campo_ano.send_keys(str(ano))
         time.sleep(1)
         
-        # 3. Alterar "Sim" para "Não" (ID: select2-chosen-311)
+        # 3. Alterar "Sim" para "Não" (ID: select2-chosen-1)
         print("  - Selecionando 'Não'...")
         dropdown_sim = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-311']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-1']/parent::a"))
         )
         dropdown_sim.click()
         time.sleep(1)
@@ -1287,26 +1280,25 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         opcao_nao.click()
         time.sleep(1)
         
-        # 4. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: s2id_autogen313)
+        # 4. Selecionar opção "MUNICIPIO DE RIBEIRAO DAS NEVES" no dropdown.
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         campo_municipio = wait.until(
-            EC.element_to_be_clickable((By.ID, "s2id_autogen313"))
+            EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
         campo_municipio.click()
-        campo_municipio.send_keys("MUNICIPIO DE RIBEIRAO DAS NEVES")
         time.sleep(1)
-        
-        # Selecionar a opção que aparece
+
+        # Selecionar a opção diretamente
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
         time.sleep(1)
-        
-        # 5. Alterar "Data específica" para "Primeiro dia do mês" (ID: select2-chosen-316)
+
+        # 5. Alterar "Data específica" para "Primeiro dia do mês" (ID: select2-chosen-6)
         print("  - Selecionando 'Primeiro dia do mês'...")
         dropdown_data_inicio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-316']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-6']/parent::a"))
         )
         dropdown_data_inicio.click()
         time.sleep(1)
@@ -1317,10 +1309,10 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         opcao_primeiro_dia.click()
         time.sleep(1)
         
-        # 6. Alterar "Data específica" para "Último dia do mês" (ID: select2-chosen-318)
+        # 6. Alterar "Data específica" para "Último dia do mês" (ID: select2-chosen-49)
         print("  - Selecionando 'Último dia do mês'...")
         dropdown_data_fim = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-318']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-8']/parent::a"))
         )
         dropdown_data_fim.click()
         time.sleep(1)
@@ -1330,17 +1322,6 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         )
         opcao_ultimo_dia.click()
         time.sleep(1)
-        
-        # 7. Clicar no botão de fechar seleção (se necessário)
-        print("  - Limpando seleção se necessário...")
-        try:
-            botao_fechar = wait.until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "abbr.select2-search-choice-close"))
-            )
-            botao_fechar.click()
-            time.sleep(1)
-        except TimeoutException:
-            print("    - Nenhuma seleção para limpar")
         
         # 8. Abrir opções de execução
         print("  - Abrindo opções de execução...")
@@ -1417,10 +1398,10 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         relacao_liquidacoes.click()
         time.sleep(2)
         
-        # 2. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-407)
+        # 2. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         dropdown_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-407']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-2']/parent::a"))
         )
         dropdown_municipio.click()
         time.sleep(1)
@@ -1444,7 +1425,7 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         # 4. Alterar "Data específica" para "Primeiro dia do ano" (ID: select2-chosen-409)
         print("  - Selecionando 'Primeiro dia do ano'...")
         dropdown_data_inicio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-409']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-4']/parent::a"))
         )
         dropdown_data_inicio.click()
         time.sleep(1)
@@ -1458,7 +1439,7 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         # 5. Alterar "Data específica" para "Último dia do ano" (ID: select2-chosen-411)
         print("  - Selecionando 'Último dia do ano'...")
         dropdown_data_fim = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice'][.//span[@id='select2-chosen-411']]"))
+            EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-6']/parent::a"))
         )
         dropdown_data_fim.click()
         time.sleep(1)
