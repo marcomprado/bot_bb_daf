@@ -20,9 +20,10 @@ import unicodedata
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.file_converter import FileConverter
+from src.classes.cancel_method import BotBase
 
 
-class BotBetha:
+class BotBetha(BotBase):
     """
     Classe responsável pela automação do sistema Betha Cloud
     
@@ -35,15 +36,14 @@ class BotBetha:
     
     def __init__(self, cidade_config=None, ano=None):
         """Inicializa o bot Betha
-        
+
         Args:
             cidade_config: Dict com 'nome', 'Login' e 'Senha' da cidade
             ano: Ano para processar (usado para selecionar PPA e exercício)
         """
+        super().__init__()  # Inicializa BotBase
         self.url = "https://contabil.betha.cloud/#/entidades/ZGF0YWJhc2U6NjI4LGVudGl0eToxMTI4"
         self.timeout = 30
-        self.navegador = None
-        self.wait = None
         
         # Configuração da cidade
         if cidade_config:
@@ -258,34 +258,141 @@ class BotBetha:
     def navegar_relatorios_favoritos(self):
         """
         Navega para Relatórios Favoritos
-        
+
         Returns:
             bool: True se navegou com sucesso
         """
         try:
             print("Navegando para Relatórios Favoritos...")
-            
+
             # Clica em Relatórios Favoritos
             relatorios_favoritos = self.wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//a[@data-ng-click=\"executandoCtrl.alterarVisualizacao('RELATORIOSFAVORITOS')\"]"))
             )
             relatorios_favoritos.click()
             time.sleep(0.2)  # Aguarda carregar
-            
+
             print("✓ Relatórios Favoritos acessado")
             return True
-            
+
         except TimeoutException:
             print("✗ Timeout ao navegar para Relatórios Favoritos")
             return False
         except Exception as e:
             print(f"✗ Erro ao navegar para Relatórios Favoritos: {e}")
             return False
-    
+
+    def executar_relatorio_individual(self, nome_relatorio, func_relatorio, args_relatorio):
+        """
+        Executa um único relatório com navegador novo
+
+        Args:
+            nome_relatorio: Nome do relatório para log
+            func_relatorio: Função que processa o relatório
+            args_relatorio: Argumentos para a função do relatório
+
+        Returns:
+            bool: True se executado com sucesso
+        """
+        try:
+            # Verifica cancelamento antes de iniciar
+            if self._cancelado:
+                print(f"Processamento de {nome_relatorio} cancelado")
+                return False
+            print("\n" + "="*50)
+            print(f"INICIANDO PROCESSAMENTO: {nome_relatorio}")
+            print("="*50)
+
+            # 1. Configurar navegador
+            if not self.configurar_navegador():
+                print(f"✗ Falha ao configurar navegador para {nome_relatorio}")
+                return False
+
+            # Verifica cancelamento após configuração
+            if self._cancelado:
+                self.fechar_navegador()
+                return False
+
+            # 2. Navegar para página
+            if not self._cancelado and not self.navegar_para_pagina():
+                print(f"✗ Falha ao navegar para página para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 3. Fazer login
+            if not self._cancelado and not self.fazer_login():
+                print(f"✗ Falha ao fazer login para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 4. Selecionar município
+            if not self._cancelado and not self.selecionar_municipio():
+                print(f"✗ Falha ao selecionar município para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 5. Selecionar PPA
+            if not self._cancelado and not self.selecionar_ppa():
+                print(f"✗ Falha ao selecionar PPA para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 6. Selecionar exercício
+            if not self._cancelado and not self.selecionar_exercicio():
+                print(f"✗ Falha ao selecionar exercício para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 7. Pressionar F4
+            if not self._cancelado and not self.pressionar_f4():
+                print(f"✗ Falha ao pressionar F4 para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # 8. Navegar para Relatórios Favoritos
+            if not self._cancelado and not self.navegar_relatorios_favoritos():
+                print(f"✗ Falha ao navegar para Relatórios Favoritos para {nome_relatorio}")
+                self.fechar_navegador()
+                return False
+
+            # Verifica cancelamento antes de executar relatório
+            if self._cancelado:
+                self.fechar_navegador()
+                return False
+
+            print(f"\n--- Executando {nome_relatorio} ---")
+
+            # 9. Executar o relatório específico
+            # Atualizar args com navegador e wait atuais
+            args_atualizados = list(args_relatorio)
+            args_atualizados[0] = self.navegador  # Substituir navegador
+            args_atualizados[1] = self.wait       # Substituir wait
+
+            sucesso = func_relatorio(*args_atualizados)
+
+            if sucesso:
+                print(f"✓ {nome_relatorio} processado com sucesso")
+            else:
+                print(f"✗ Falha ao processar {nome_relatorio}")
+
+            # 10. Fechar navegador
+            self.fechar_navegador()
+
+            print("="*50 + "\n")
+            return sucesso
+
+        except Exception as e:
+            print(f"✗ Erro ao executar {nome_relatorio}: {e}")
+            self.fechar_navegador()
+            return False
+
     def executar_completo(self) -> Dict:
         """
         Executa o fluxo completo do bot
-        
+
+        TODAS as cidades usam estratégia de navegadores individuais.
+        Vai direto para o script da cidade sem navegação prévia.
+
         Returns:
             Dict: Resultado da execução com status e mensagens
         """
@@ -294,90 +401,44 @@ class BotBetha:
             'mensagem': '',
             'etapas_concluidas': []
         }
-        
+
         try:
+            # Verifica cancelamento antes de iniciar
+            if self._cancelado:
+                resultado['mensagem'] = "Processamento cancelado"
+                return resultado
             print("\n" + "="*60)
             print("INICIANDO BOT BETHA")
             print("="*60 + "\n")
-            
-            # 1. Configurar navegador
-            if not self.configurar_navegador():
-                resultado['mensagem'] = "Falha ao configurar navegador"
-                return resultado
-            resultado['etapas_concluidas'].append("Navegador configurado")
-            
-            # 2. Navegar para página
-            if not self.navegar_para_pagina():
-                resultado['mensagem'] = "Falha ao navegar para página"
-                return resultado
-            resultado['etapas_concluidas'].append("Página carregada")
-            
-            # 3. Fazer login
-            if not self.fazer_login():
-                resultado['mensagem'] = "Falha ao fazer login"
-                return resultado
-            resultado['etapas_concluidas'].append("Login realizado")
-            
-            # 4. Selecionar município
-            if not self.selecionar_municipio():
-                resultado['mensagem'] = "Falha ao selecionar município"
-                return resultado
-            resultado['etapas_concluidas'].append("Município selecionado")
-            
-            # 5. Selecionar PPA
-            if not self.selecionar_ppa():
-                resultado['mensagem'] = "Falha ao selecionar PPA"
-                return resultado
-            resultado['etapas_concluidas'].append("PPA selecionado")
-            
-            # 6. Selecionar exercício
-            if not self.selecionar_exercicio():
-                resultado['mensagem'] = "Falha ao selecionar exercício"
-                return resultado
-            resultado['etapas_concluidas'].append("Exercício selecionado")
-            
-            # 7. Pressionar F4
-            if not self.pressionar_f4():
-                resultado['mensagem'] = "Falha ao pressionar F4"
-                return resultado
-            resultado['etapas_concluidas'].append("F4 pressionado")
-            
-            # 8. Navegar para Relatórios Favoritos
-            if not self.navegar_relatorios_favoritos():
-                resultado['mensagem'] = "Falha ao navegar para Relatórios Favoritos"
-                return resultado
-            resultado['etapas_concluidas'].append("Relatórios Favoritos acessado")
-            
-            # 9. Script de acordo com a cidade
+
+            print(f"✓ Processando: {self.nome_cidade}")
+            print("  → Usando estratégia de navegadores individuais")
+            print("  → Script da cidade gerenciará toda a navegação\n")
+
+            # Executar script da cidade diretamente (sem navegador prévio)
+            # TODAS as cidades agora usam navegadores individuais
             if not self._executar_script_cidade():
                 resultado['mensagem'] = f"Falha ao executar script específico da cidade {self.nome_cidade}"
                 return resultado
+
             resultado['etapas_concluidas'].append(f"Script da cidade {self.nome_cidade} executado")
-            
+
             # Sucesso
             resultado['sucesso'] = True
-            resultado['mensagem'] = "Processo concluído com sucesso! Navegador mantido aberto."
-            
+            resultado['mensagem'] = "Processo concluído com sucesso!"
+
             print("\n" + "="*60)
-            print("PROCESSO CONCLUÍDO - NAVEGADOR MANTIDO ABERTO")
+            print("PROCESSO CONCLUÍDO")
             print("="*60 + "\n")
-            
+
             return resultado
-            
+
         except Exception as e:
             resultado['mensagem'] = f"Erro inesperado: {str(e)}"
             print(f"\n✗ Erro inesperado: {e}")
             return resultado
     
-    def fechar_navegador(self):
-        """Fecha o navegador se estiver aberto"""
-        try:
-            if self.navegador:
-                self.navegador.quit()
-                self.navegador = None
-                print("✓ Navegador fechado")
-        except Exception as e:
-            print(f"Aviso: Erro ao fechar navegador - {e}")
+    # Métodos de cancelamento e fechamento herdados de BotBase
     
     def _remover_acentos(self, texto):
         """
@@ -421,10 +482,16 @@ class BotBetha:
         Executa dinamicamente o script específico para cada cidade
         Procura por arquivo bot_[nome_cidade].py e executa função executar_script_[nome_cidade]
 
+        TODAS as cidades agora usam navegadores individuais.
+
         Returns:
             bool: True se executado com sucesso
         """
         try:
+            # Verifica cancelamento
+            if self._cancelado:
+                print("Script da cidade cancelado")
+                return False
             print(f"\nExecutando script específico para: {self.nome_cidade}")
 
             # Converte nome da cidade para nome do módulo usando mapeamento especial
@@ -441,16 +508,28 @@ class BotBetha:
                     funcao_script = getattr(modulo_cidade, nome_funcao)
                     print(f"✓ Script encontrado: {nome_funcao}")
 
-                    # Executa o script específico da cidade
                     nome_cidade_normalizado = self._normalizar_nome_cidade(self.nome_cidade)
-                    return funcao_script(self.navegador, self.wait, self.ano, nome_cidade_normalizado)
+
+                    # TODAS as cidades usam navegadores individuais
+                    # Passar None para navegador e wait - o script criará seus próprios
+                    # Passar callback de cancelamento para verificar o estado
+                    print("  → Executando com navegadores individuais")
+                    try:
+                        # Tentar passar o callback de cancelamento
+                        return funcao_script(None, None, self.ano, nome_cidade_normalizado,
+                                           cancelado_callback=lambda: self._cancelado)
+                    except TypeError:
+                        # Se o script não aceita o parâmetro cancelado_callback, executar sem ele
+                        print("  → Script não suporta cancelamento, executando sem callback")
+                        return funcao_script(None, None, self.ano, nome_cidade_normalizado)
                 else:
                     print(f"✗ Função {nome_funcao} não encontrada no módulo {nome_modulo}")
-                    return self._executar_script_generico()
+                    return False
 
             except ImportError:
-                print(f"⚠ Módulo {nome_modulo} não encontrado, usando processamento genérico")
-                return self._executar_script_generico()
+                print(f"✗ Módulo {nome_modulo} não encontrado")
+                print(f"✗ Cidade {self.nome_cidade} não possui implementação")
+                return False
 
         except Exception as e:
             print(f"✗ Erro ao executar script da cidade: {e}")
@@ -484,20 +563,6 @@ class BotBetha:
         nome_funcao = f"executar_script_{nome_normalizado}"
         return nome_modulo, nome_funcao
 
-    def _executar_script_generico(self):
-        """
-        Script genérico para cidades sem implementação específica
-
-        Returns:
-            bool: True (placeholder para implementação futura)
-        """
-        print(f"⚠ Executando processamento genérico para {self.nome_cidade}")
-        print("📝 Implementação específica pode ser criada em:")
-        nome_cidade_normalizado = self._normalizar_nome_cidade(self.nome_cidade)
-        print(f"   src/bots/betha/bot_{nome_cidade_normalizado}.py")
-
-        # Placeholder - aqui poderia ter lógica genérica no futuro
-        return True
     
     def _normalizar_nome_cidade(self, nome_cidade):
         """

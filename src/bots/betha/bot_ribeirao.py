@@ -15,6 +15,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.file_converter import FileConverter
+from src.bots.bot_betha import BotBetha
+import json
         ### Order of the scripts
         # # Anexo 03
         # # Anexo 08
@@ -31,93 +33,178 @@ from src.classes.file_converter import FileConverter
         # # Baixar todos os arquivos
         
         
-def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_neves"):
+def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_neves", cancelado_callback=None):
     """
     Executa o script especifico para Ribeirao das Neves
-    
+
     Este script e executado apos chegar em "Relatorios Favoritos"
     e contem a logica especifica para este municipio
-    
+
     Args:
         navegador: Instancia do WebDriver
         wait: Instancia do WebDriverWait
         ano: Ano para processar os relatorios
         nome_cidade: Nome da cidade para organização de pastas
-        
+        cancelado_callback: Função que retorna True se a execução foi cancelada
+
     Returns:
         bool: True se executado com sucesso
     """
     try:
         print("\n" + "="*60)
-        print("SCRIPT RIBEIRAO DAS NEVES - PROCESSANDO RELATORIOS")
+        print("SCRIPT RIBEIRAO DAS NEVES - NOVA ESTRATÉGIA")
+        print("Cada relatório será processado com navegador novo")
         print("="*60)
-        
+
+        # Obter configuração da cidade
+        cidade_config = None
+        try:
+            # Buscar configuração do arquivo JSON
+            json_path = os.path.join(os.path.dirname(__file__), 'city_betha.json')
+            with open(json_path, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+                for cidade in config_data['cidades']:
+                    if cidade['nome'].lower().replace(' ', '_') == nome_cidade.lower().replace(' ', '_'):
+                        cidade_config = cidade
+                        break
+        except Exception as e:
+            print(f"⚠ Aviso: Não foi possível carregar configuração da cidade: {e}")
+            # Usar configuração padrão se não encontrar
+            cidade_config = {
+                'nome': 'Ribeirão das Neves',
+                'Login': 'breno.ribeirao',
+                'Senha': 'Brc123456789!'
+            }
+
         # Inicializar conversor de arquivos
         file_converter = FileConverter(nome_cidade)
         print(f"\n✓ Sistema de arquivos inicializado para {nome_cidade}")
-        
-        '''# Processar Anexo 03
-        if not _processar_anexo_03(navegador, wait):
-            print("⚠ Falha ao processar Anexo 03")
-            return False
-        
-        # Processar Anexo 08
-        if not _processar_anexo_08(navegador, wait):
-            print("⚠ Falha ao processar Anexo 08")
-            return False 
-        
-        # Processar Anexo IV
-        if not _processar_anexo_iv(navegador, wait, ano):
-            print("⚠ Falha ao processar Anexo IV")
-            return False
-        
-        # Processar Anexo VII
-        if not _processar_anexo_vii(navegador, wait, ano):
-            print("⚠ Falha ao processar Anexo VII")
-            return False 
-        
-        # Processar Balancete da Despesa
-        if not _processar_balancete_despesa(navegador, wait, ano):
-            print("⚠ Falha ao processar Balancete da Despesa")
-            return False '''
 
-        # Processar Balancete da Receita
-        if not _processar_balancete_receita(navegador, wait, ano):
-            print("⚠ Falha ao processar Balancete da Receita")
-            return False 
-        
-        # Processar Extrato da Receita
-        if not _processar_extrato_receita(navegador, wait, ano):
-            print("⚠ Falha ao processar Extrato da Receita")
-            return False 
-        
-        # Processar Relação de Empenhos - CMM
-        if not _processar_relacao_empenhos(navegador, wait, ano):
-            print("⚠ Falha ao processar Relação de Empenhos - CMM")
-            return False 
-        
-        # Processar Relação de Pagamentos Efetuados
-        if not _processar_relacao_pagamentos(navegador, wait, ano):
-            print("⚠ Falha ao processar Relação de Pagamentos Efetuados")
-            return False 
-        
-        # Processar Relação geral de liquidações por período
-        if not _processar_relacao_liquidacoes(navegador, wait, ano):
-            print("⚠ Falha ao processar Relação geral de liquidações por período")
-            return False
+        # Lista de relatórios para processar
+        relatorios = [
+            {"nome": "Anexo 03", "func": _processar_anexo_03, "args": (None, None)},
+            {"nome": "Anexo 08", "func": _processar_anexo_08, "args": (None, None)},
+            {"nome": "Anexo IV", "func": _processar_anexo_iv, "args": (None, None, ano)},
+            {"nome": "Anexo VII", "func": _processar_anexo_vii, "args": (None, None, ano)},
+            {"nome": "Balancete da Despesa", "func": _processar_balancete_despesa, "args": (None, None, ano)},
+            {"nome": "Balancete da Receita", "func": _processar_balancete_receita, "args": (None, None, ano)},
+            {"nome": "Extrato da Receita", "func": _processar_extrato_receita, "args": (None, None, ano)},
+            {"nome": "Relação de Empenhos - CMM", "func": _processar_relacao_empenhos, "args": (None, None, ano)},
+            {"nome": "Relação de Pagamentos Efetuados", "func": _processar_relacao_pagamentos, "args": (None, None, ano)},
+            {"nome": "Relação geral de liquidações por período", "func": _processar_relacao_liquidacoes, "args": (None, None, ano)}
+        ]
 
-        # Baixar todos os arquivos do Gerenciador de extensões
+        # Lista para rastrear relatórios processados com sucesso
+        relatorios_processados = []
+        relatorios_falhados = []
+
+        # Processar cada relatório com navegador novo
+        for i, relatorio in enumerate(relatorios):
+            # Verificar se foi cancelado
+            if cancelado_callback and cancelado_callback():
+                print("\n⚠ Processamento cancelado pelo usuário")
+                relatorios_falhados.append(relatorio['nome'] + " (cancelado)")
+                break
+
+            print(f"\n[{i+1}/{len(relatorios)}] Iniciando navegador novo para: {relatorio['nome']}")
+
+            # Criar nova instância do bot para cada relatório
+            bot_temp = BotBetha(cidade_config, ano)
+
+            # Se temos um callback de cancelamento, verificar antes de executar
+            if cancelado_callback and cancelado_callback():
+                print(f"⚠ Cancelado antes de executar {relatorio['nome']}")
+                bot_temp.fechar_navegador()
+                relatorios_falhados.append(relatorio['nome'] + " (cancelado)")
+                break
+
+            # Executar relatório individual com navegador próprio
+            sucesso = bot_temp.executar_relatorio_individual(
+                nome_relatorio=relatorio['nome'],
+                func_relatorio=relatorio['func'],
+                args_relatorio=relatorio['args']
+            )
+
+            if sucesso:
+                relatorios_processados.append(relatorio['nome'])
+                print(f"✓ [{i+1}/{len(relatorios)}] {relatorio['nome']} concluído com sucesso")
+            else:
+                relatorios_falhados.append(relatorio['nome'])
+                print(f"✗ [{i+1}/{len(relatorios)}] {relatorio['nome']} falhou")
+
+            # Navegador já foi fechado automaticamente pelo executar_relatorio_individual
+            print(f"Navegador fechado. Relatórios processados: {len(relatorios_processados)}/{len(relatorios)}")
+
+        # Resumo do processamento
         print("\n" + "="*60)
-        print("INICIANDO DOWNLOAD DE TODOS OS ARQUIVOS GERADOS")
+        print("RESUMO DO PROCESSAMENTO")
+        print("="*60)
+        print(f"✓ Relatórios processados com sucesso: {len(relatorios_processados)}")
+        if relatorios_processados:
+            for rel in relatorios_processados:
+                print(f"  • {rel}")
+
+        if relatorios_falhados:
+            print(f"\n✗ Relatórios que falharam: {len(relatorios_falhados)}")
+            for rel in relatorios_falhados:
+                print(f"  • {rel}")
+
+        # Verificar se foi cancelado antes da fase de download
+        foi_cancelado = cancelado_callback and cancelado_callback()
+
+        # FASE FINAL: Abrir navegador uma última vez para baixar todos os arquivos (se não foi cancelado)
+        if not foi_cancelado:
+            print("\n" + "="*60)
+            print("FASE FINAL: DOWNLOAD DE TODOS OS ARQUIVOS")
+            print("="*60)
+
+        if len(relatorios_processados) > 0 and not foi_cancelado:
+            print("\nAbrindo navegador para baixar arquivos gerados...")
+
+            # Criar nova instância do bot para download
+            bot_download = BotBetha(cidade_config, ano)
+
+            # Configurar e navegar até Relatórios Favoritos
+            if bot_download.configurar_navegador():
+                if (bot_download.navegar_para_pagina() and
+                    bot_download.fazer_login() and
+                    bot_download.selecionar_municipio() and
+                    bot_download.selecionar_ppa() and
+                    bot_download.selecionar_exercicio() and
+                    bot_download.pressionar_f4() and
+                    bot_download.navegar_relatorios_favoritos()):
+
+                    print("\n✓ Navegação concluída, iniciando download de arquivos...")
+
+                    # Baixar todos os arquivos
+                    if baixar_arquivos(bot_download.navegador, bot_download.wait, file_converter,
+                                     min_arquivos=len(relatorios_processados)):
+                        print("\n✓ Download e conversão de arquivos concluídos com sucesso")
+                    else:
+                        print("\n⚠ Alguns arquivos podem não ter sido baixados/convertidos")
+
+                    # Fechar navegador de download
+                    bot_download.fechar_navegador()
+                else:
+                    print("\n✗ Falha na navegação para download de arquivos")
+                    bot_download.fechar_navegador()
+            else:
+                print("\n✗ Falha ao configurar navegador para download")
+        elif foi_cancelado:
+            print("\n⚠ Fase de download cancelada pelo usuário")
+        else:
+            print("\n⚠ Nenhum relatório foi processado com sucesso, pulando download")
+
+        print("\n" + "="*60)
+        if foi_cancelado:
+            print("SCRIPT RIBEIRAO DAS NEVES - CANCELADO")
+        else:
+            print("SCRIPT RIBEIRAO DAS NEVES CONCLUÍDO")
+        print(f"Total processado: {len(relatorios_processados)}/{len(relatorios)} relatórios")
         print("="*60)
 
-        if baixar_arquivos(navegador, wait, file_converter, min_arquivos=10):
-            print("\n✓ Download e conversão de arquivos concluídos com sucesso")
-        else:
-            print("\n⚠ Alguns arquivos podem não ter sido baixados/convertidos")
-
-        print("\n✓ Script de Ribeirao das Neves concluido com sucesso")
-        return True
+        # Retornar sucesso apenas se não foi cancelado e teve processamentos
+        return len(relatorios_processados) > 0 and not foi_cancelado
         
     except Exception as e:
         print(f"\n✗ Erro no script de Ribeirao das Neves: {e}")

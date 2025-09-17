@@ -9,6 +9,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
+from src.classes.cancel_method import BotBase
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -26,7 +27,7 @@ from typing import List, Dict, Optional
 from src.classes.path_manager import obter_caminho_dados
 
 
-class BotFNDE:
+class BotFNDE(BotBase):
     """
     Bot de scraping para o site do FNDE
     
@@ -41,14 +42,13 @@ class BotFNDE:
     def __init__(self, timeout=8):
         """
         Inicializa o bot FNDE
-        
+
         Args:
             timeout (int): Tempo limite para aguardar elementos (segundos) - otimizado para 8s
         """
+        super().__init__()  # Inicializa BotBase
         self.base_url = "https://www.fnde.gov.br/pls/simad/internet_fnde.LIBERACOES_01_PC"
         self.timeout = timeout
-        self.navegador = None
-        self.wait = None
         self.municipios_mg = self._carregar_municipios_mg()
         
         # Flags de controle para evitar vazamento de memória
@@ -643,53 +643,23 @@ class BotFNDE:
         """Garante fechamento do navegador ao destruir objeto"""
         self.limpar_recursos()
     
-    def cancelar(self):
+    # Método cancelar() sobrescrito para gerenciar _em_execucao
+    def cancelar(self, forcado=False):
         """Cancela execução e limpa recursos"""
-        print("Cancelando processamento...")
-        self._cancelado = True
         self._em_execucao = False
-        self.limpar_recursos()
-        print("Processamento cancelado e recursos liberados")
-    
-    def cancelar_forcado(self):
-        """Cancela e força fechamento de TODAS as abas do Chrome"""
-        print("Cancelamento forçado FNDE: fechando todas as abas do Chrome...")
-        self._cancelado = True
-        self._em_execucao = False
-        
-        # Se tiver processador paralelo ativo, cancela ele também
-        if hasattr(self, 'processador_paralelo') and self.processador_paralelo:
+
+        # Se tiver processador paralelo ativo e for forçado, cancela ele também
+        if forcado and hasattr(self, 'processador_paralelo') and self.processador_paralelo:
             print("Cancelando processador paralelo FNDE...")
             self.processador_paralelo.cancelar()
             self.processador_paralelo = None
-        
-        if hasattr(self, 'navegador') and self.navegador:
-            try:
-                # Fecha TODAS as janelas e abas abertas
-                handles = self.navegador.window_handles.copy()  # Copia a lista
-                for handle in handles:
-                    try:
-                        self.navegador.switch_to.window(handle)
-                        self.navegador.close()
-                    except:
-                        pass  # Ignora erros ao fechar abas individuais
-                
-                # Força encerramento do processo
-                self.navegador.quit()
-                self.navegador = None
-                self.wait = None
-                
-            except Exception as e:
-                print(f"Erro durante cancelamento forçado: {e}")
-                # Tenta encerramento direto como último recurso
-                try:
-                    self.navegador.quit()
-                    self.navegador = None
-                    self.wait = None
-                except:
-                    pass
-        
-        print("Cancelamento forçado concluído - todas as abas fechadas")
+
+        # Chama método da classe pai
+        super().cancelar(forcado=forcado)
+    
+    def cancelar_forcado(self):
+        """Mantido para compatibilidade - usar cancelar(forcado=True)"""
+        self.cancelar(forcado=True)
     
     def obter_lista_municipios(self) -> List[str]:
         """

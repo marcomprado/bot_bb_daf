@@ -25,9 +25,10 @@ from src.classes.date_calculator import DateCalculator
 from src.classes.file_manager import FileManager
 from src.classes.city_splitter import CitySplitter
 from src.classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
+from src.classes.cancel_method import BotBase
 
 
-class BotBBDAF:
+class BotBBDAF(BotBase):
     """
     Classe principal responsável pela automação web do sistema de arrecadação federal
     
@@ -47,10 +48,9 @@ class BotBBDAF:
             url (str): URL do sistema a ser acessado (padrão: config.py)
             timeout (int): Tempo limite para espera de elementos (padrão: config.py)
         """
+        super().__init__()  # Inicializa BotBase
         self.url = url or SISTEMA_CONFIG['url_sistema']
         self.timeout = timeout or SISTEMA_CONFIG['timeout_selenium']
-        self.navegador = None
-        self.wait = None
         self.data_extractor = None  # Extrator de dados (opcional)
     
     def configurar_extrator_dados(self, data_extractor):
@@ -405,44 +405,13 @@ class BotBBDAF:
         print("\nVerifique os resultados na janela do navegador.")
         input("Pressione Enter para fechar o navegador...")
     
-    def fechar_navegador(self):
-        """
-        Fecha o navegador e limpa recursos
-        """
-        if self.navegador:
-            self.navegador.quit()
-    
+    # Métodos de cancelamento e fechamento herdados de BotBase
+
+    # Métodos de cancelamento e fechamento herdados de BotBase
+
     def cancelar_forcado(self):
-        """Cancela execução e força fechamento de TODAS as abas do Chrome"""
-        print("Cancelamento forçado BB DAF: fechando todas as abas do Chrome...")
-        
-        if hasattr(self, 'navegador') and self.navegador:
-            try:
-                # Fecha TODAS as janelas e abas abertas
-                handles = self.navegador.window_handles.copy()  # Copia a lista
-                for handle in handles:
-                    try:
-                        self.navegador.switch_to.window(handle)
-                        self.navegador.close()
-                    except:
-                        pass  # Ignora erros ao fechar abas individuais
-                
-                # Força encerramento do processo
-                self.navegador.quit()
-                self.navegador = None
-                self.wait = None
-                
-            except Exception as e:
-                print(f"Erro durante cancelamento forçado: {e}")
-                # Tenta encerramento direto como último recurso
-                try:
-                    self.navegador.quit()
-                    self.navegador = None
-                    self.wait = None
-                except:
-                    pass
-        
-        print("Cancelamento forçado BB DAF concluído - todas as abas fechadas")
+        """Mantido para compatibilidade - usar cancelar(forcado=True)"""
+        self.cancelar(forcado=True)
     
     def executar_completo(self, cidades: List[str] = None, data_inicial: str = None, 
                          data_final: str = None, arquivo_cidades: str = None):

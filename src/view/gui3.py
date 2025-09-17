@@ -29,11 +29,12 @@ class GUI3:
     
     def __init__(self, parent_container):
         self.parent_container = parent_container
-        
+
         # Estado da execução
         self.executando = False
         self.bot_betha = None
         self.thread_execucao = None
+        self._cancelado = False
         
         # Variáveis de configuração
         self.ano_var = ctk.StringVar()
@@ -42,7 +43,12 @@ class GUI3:
         self.lista_cidades_betha = []
         self.anos_selecionados = []
         self.cidades_selecionadas = []
-        
+
+        # Armazena referência do executor para cancelamento
+        self.executor = None
+        self.futures = []
+        self.bots_ativos = []  # Lista de instâncias BotBetha ativas
+
         self._configurar_valores_padrao()
         self._criar_interface()
     
@@ -467,19 +473,21 @@ class GUI3:
             )
     
     def _executar_scraper(self):
-        """Executa o scraper Betha"""
+        """Executa o scraper ou cancela execução"""
         if self.executando:
-            messagebox.showwarning("Aviso", "Uma execução já está em andamento!")
+            self._cancelar_execucao()
             return
-        
+
         # Validar seleções
         if not self._validar_selecoes():
             return
-        
-        # Executar em thread separada
-        self.executando = True
-        self.thread_execucao = threading.Thread(target=self._executar_processo, daemon=True)
-        self.thread_execucao.start()
+
+        try:
+            # Executar em thread separada
+            self._executar_processo_thread()
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao executar: {str(e)}")
+            self._habilitar_interface(True)
     
     def _abrir_pasta_betha(self):
         """Abre a pasta de arquivos Betha"""
@@ -511,11 +519,79 @@ class GUI3:
         """Oculta esta interface"""
         self.main_frame.pack_forget()
     
+    def _habilitar_interface(self, habilitado=True):
+        """Habilita/desabilita elementos da interface"""
+        self.executando = not habilitado
+
+        # Atualiza controles de ano
+        if hasattr(self, 'dropdown_ano'):
+            self.dropdown_ano.configure(state="normal" if habilitado else "disabled")
+        elif hasattr(self, 'btn_selecionar_anos'):
+            self.btn_selecionar_anos.configure(state="normal" if habilitado else "disabled")
+
+        # Atualiza controles de cidade
+        if hasattr(self, 'dropdown_cidade'):
+            self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
+        elif hasattr(self, 'btn_selecionar_cidades'):
+            self.btn_selecionar_cidades.configure(state="normal" if habilitado else "disabled")
+
+        # Atualiza dropdown de modo
+        self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
+
+        # Botão abrir pasta sempre fica habilitado
+        self.botao_abrir_pasta.configure(state="normal")
+
+        # Atualiza botão executar/cancelar
+        if habilitado:
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=False)
+            self.botao_executar.configure(state="normal")
+        else:
+            ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=True)
+            self.botao_executar.configure(state="normal")
+
+    def _cancelar_execucao(self):
+        """Cancela a execução em andamento"""
+        try:
+            self._cancelado = True
+
+            # Cancela bot Betha principal se existir
+            if self.bot_betha:
+                if hasattr(self.bot_betha, 'cancelar'):
+                    self.bot_betha.cancelar()
+                else:
+                    self.bot_betha.fechar_navegador()
+
+            # Cancela todos os bots ativos (execução paralela)
+            for bot in self.bots_ativos:
+                try:
+                    if hasattr(bot, 'cancelar'):
+                        bot.cancelar()
+                    else:
+                        bot.fechar_navegador()
+                except:
+                    pass  # Ignorar erros ao cancelar bots
+            self.bots_ativos.clear()
+
+            # Cancela executor paralelo se existir
+            if self.executor:
+                # Tenta cancelar futures pendentes
+                for future in self.futures:
+                    future.cancel()
+                # Shutdown sem esperar
+                self.executor.shutdown(wait=False)
+                self.executor = None
+                self.futures = []
+
+            self._habilitar_interface(True)
+            messagebox.showinfo("Cancelado", "Processamento cancelado")
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao cancelar: {str(e)}")
+            self._habilitar_interface(True)
+
     def cancelar_execucao(self):
-        """Cancela execução em andamento"""
-        if self.bot_betha:
-            self.bot_betha.fechar_navegador()
-        self.executando = False
+        """Método público para cancelamento (mantido para compatibilidade)"""
+        self._cancelar_execucao()
     
     def _validar_selecoes(self):
         """Valida as seleções do usuário"""
@@ -544,7 +620,18 @@ class GUI3:
                 self.cidades_selecionadas = [cidade_selecionada]
         
         return True
-    
+
+    def _executar_processo_thread(self):
+        """Wrapper para executar processo em thread"""
+        # Desabilita interface e muda botão para cancelar
+        self._habilitar_interface(False)
+        self._cancelado = False
+        self.executando = True
+
+        # Executa em thread separada
+        self.thread_execucao = threading.Thread(target=self._executar_processo, daemon=True)
+        self.thread_execucao.start()
+
     def _executar_processo(self):
         """Executa o processo de scraping"""
         try:
@@ -559,21 +646,27 @@ class GUI3:
                 self._executar_individual()
             
         except Exception as e:
-            print(f"Erro na execução: {e}")
-            messagebox.showerror("Erro", f"Erro durante execução: {str(e)}")
+            if not self._cancelado:
+                print(f"Erro na execução: {e}")
+                self.parent_container.after(0, lambda: messagebox.showerror("Erro", f"Erro durante execução: {str(e)}"))
         finally:
+            self.parent_container.after(0, lambda: self._habilitar_interface(True))
             self.executando = False
-    
+
     def _executar_individual(self):
         """Executa o scraping de forma individual (sequencial)"""
         print("\n" + "="*60)
         print("EXECUÇÃO INDIVIDUAL - BETHA")
         print("="*60)
-        
+
         total_processamentos = len(self.cidades_selecionadas) * len(self.anos_selecionados)
         contador = 0
-        
+
         for cidade_nome in self.cidades_selecionadas:
+            # Verifica cancelamento
+            if self._cancelado:
+                print("\nProcessamento cancelado pelo usuário")
+                break
             # Buscar configuração da cidade
             cidade_config = self._buscar_config_cidade(cidade_nome)
             if not cidade_config:
@@ -581,9 +674,14 @@ class GUI3:
                 continue
             
             for ano in self.anos_selecionados:
+                # Verifica cancelamento
+                if self._cancelado:
+                    print("\nProcessamento cancelado pelo usuário")
+                    return
+
                 contador += 1
                 print(f"\n[{contador}/{total_processamentos}] Processando {cidade_nome} - Ano {ano}")
-                
+
                 try:
                     # Criar instância do bot com configurações específicas
                     self.bot_betha = BotBetha(cidade_config, int(ano))
@@ -609,25 +707,31 @@ class GUI3:
         print("\n" + "="*60)
         print("EXECUÇÃO CONCLUÍDA")
         print("="*60)
-        
-        # Mostrar mensagem de conclusão
-        messagebox.showinfo(
-            "Concluído",
-            f"Processamento concluído!\n\n"
-            f"Total: {total_processamentos} combinações\n"
-            f"Cidades: {len(self.cidades_selecionadas)}\n"
-            f"Anos: {len(self.anos_selecionados)}"
-        )
+
+        # Mostrar mensagem de conclusão apenas se não foi cancelado
+        if not self._cancelado:
+            self.parent_container.after(0, lambda: messagebox.showinfo(
+                "Concluído",
+                f"Processamento concluído!\n\n"
+                f"Total: {total_processamentos} combinações\n"
+                f"Cidades: {len(self.cidades_selecionadas)}\n"
+                f"Anos: {len(self.anos_selecionados)}"
+            ))
     
     def _executar_paralelo(self, num_instancias):
         """Executa o scraping em paralelo com múltiplas instâncias"""
         print(f"\n" + "="*60)
         print(f"EXECUÇÃO PARALELA - {num_instancias} INSTÂNCIAS")
         print("="*60)
-        
+
         # Preparar lista de tarefas
         tarefas = []
         for cidade_nome in self.cidades_selecionadas:
+            # Verifica cancelamento
+            if self._cancelado:
+                print("\nProcessamento cancelado pelo usuário")
+                return
+
             cidade_config = self._buscar_config_cidade(cidade_nome)
             if cidade_config:
                 for ano in self.anos_selecionados:
@@ -641,45 +745,80 @@ class GUI3:
         
         # Dividir tarefas entre as instâncias
         import concurrent.futures
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias) as executor:
+
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
+        self.futures = []
+
+        try:
             # Submeter tarefas
-            futures = []
             for cidade_config, ano in tarefas:
-                future = executor.submit(self._executar_tarefa, cidade_config, ano)
-                futures.append(future)
-            
-            # Aguardar conclusão
-            concurrent.futures.wait(futures)
+                if self._cancelado:
+                    break
+                future = self.executor.submit(self._executar_tarefa, cidade_config, ano)
+                self.futures.append(future)
+
+            # Aguardar conclusão (ou cancelamento)
+            if not self._cancelado:
+                concurrent.futures.wait(self.futures)
+        finally:
+            # Limpar executor
+            if self.executor:
+                self.executor.shutdown(wait=True)
+                self.executor = None
+                self.futures = []
         
         print("\n" + "="*60)
         print("EXECUÇÃO PARALELA CONCLUÍDA")
         print("="*60)
-        
-        messagebox.showinfo(
-            "Concluído",
-            f"Processamento paralelo concluído!\n\n"
-            f"Total de tarefas: {len(tarefas)}\n"
-            f"Instâncias utilizadas: {num_instancias}"
-        )
+
+        # Mostrar mensagem apenas se não foi cancelado
+        if not self._cancelado:
+            self.parent_container.after(0, lambda: messagebox.showinfo(
+                "Concluído",
+                f"Processamento paralelo concluído!\n\n"
+                f"Total de tarefas: {len(tarefas)}\n"
+                f"Instâncias utilizadas: {num_instancias}"
+            ))
     
     def _executar_tarefa(self, cidade_config, ano):
         """Executa uma tarefa individual (para uso em paralelo)"""
         try:
+            # Verifica cancelamento antes de iniciar
+            if self._cancelado:
+                return
+
             print(f"\n🔄 Iniciando: {cidade_config['nome']} - {ano}")
-            
+
             bot = BotBetha(cidade_config, ano)
+
+            # Adicionar à lista de bots ativos para possível cancelamento
+            self.bots_ativos.append(bot)
+
+            # Armazena referência para possível cancelamento
+            # (em execução paralela, múltiplos bots podem estar ativos)
             resultado = bot.executar_completo()
-            
+
+            if self._cancelado:
+                bot.fechar_navegador()
+                return
+
             if resultado['sucesso']:
                 print(f"✓ Concluído: {cidade_config['nome']} - {ano}")
             else:
                 print(f"✗ Falha: {cidade_config['nome']} - {ano}")
-            
+
             bot.fechar_navegador()
-            
+
+            # Remover da lista de bots ativos
+            if bot in self.bots_ativos:
+                self.bots_ativos.remove(bot)
+
         except Exception as e:
-            print(f"✗ Erro em {cidade_config['nome']} - {ano}: {e}")
+            if not self._cancelado:
+                print(f"✗ Erro em {cidade_config['nome']} - {ano}: {e}")
+            # Remover bot da lista em caso de erro
+            if 'bot' in locals() and bot in self.bots_ativos:
+                self.bots_ativos.remove(bot)
     
     def _buscar_config_cidade(self, nome_cidade):
         """Busca a configuração de uma cidade específica"""
