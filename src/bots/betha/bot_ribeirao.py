@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 from datetime import datetime
 import sys
@@ -17,6 +18,167 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.file_converter import FileConverter
 from src.bots.bot_betha import BotBetha
 import json
+
+
+class RelatorioProcessamento:
+    """
+    Classe para gerar relatório detalhado do processamento em arquivo TXT
+    """
+
+    def __init__(self, nome_cidade="ribeirao_neves", ano=None):
+        """
+        Inicializa o relatório de processamento
+
+        Args:
+            nome_cidade: Nome da cidade sendo processada
+            ano: Ano do processamento
+        """
+        self.nome_cidade = nome_cidade.upper().replace("_", " ")
+        self.ano = ano
+        self.eventos = []
+        self.inicio = datetime.now()
+        self.fim = None
+        self.arquivos_baixados = 0
+        self.arquivos_convertidos = 0
+        self.erros = []
+        self.avisos = []
+
+    def adicionar_evento(self, mensagem, tipo="INFO"):
+        """
+        Adiciona um evento ao relatório
+
+        Args:
+            mensagem: Mensagem do evento
+            tipo: Tipo do evento (INFO, ERRO, AVISO, SUCESSO)
+        """
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.eventos.append({
+            "timestamp": timestamp,
+            "tipo": tipo,
+            "mensagem": mensagem
+        })
+
+        if tipo == "ERRO":
+            self.erros.append(mensagem)
+        elif tipo == "AVISO":
+            self.avisos.append(mensagem)
+
+    def definir_arquivos_baixados(self, quantidade):
+        """Define a quantidade de arquivos baixados"""
+        self.arquivos_baixados = quantidade
+
+    def definir_arquivos_convertidos(self, quantidade):
+        """Define a quantidade de arquivos convertidos"""
+        self.arquivos_convertidos = quantidade
+
+    def finalizar(self):
+        """Marca o fim do processamento"""
+        self.fim = datetime.now()
+
+    def calcular_tempo_total(self):
+        """Calcula o tempo total de processamento"""
+        if self.fim:
+            delta = self.fim - self.inicio
+            minutos = delta.seconds // 60
+            segundos = delta.seconds % 60
+            return f"{minutos}min {segundos}seg"
+        return "Em andamento"
+
+    def gerar_relatorio(self):
+        """
+        Gera o conteúdo do relatório em formato texto
+
+        Returns:
+            str: Conteúdo do relatório formatado
+        """
+        linhas = []
+        linhas.append("="*60)
+        linhas.append(f"RELATÓRIO DE PROCESSAMENTO - {self.nome_cidade}")
+        linhas.append("="*60)
+        linhas.append(f"Data/Hora Início: {self.inicio.strftime('%d/%m/%Y %H:%M:%S')}")
+
+        if self.ano:
+            linhas.append(f"Ano Processado: {self.ano}")
+
+        linhas.append("")
+        linhas.append("EVENTOS DO PROCESSO:")
+        linhas.append("-"*40)
+
+        for evento in self.eventos:
+            prefixo = ""
+            if evento["tipo"] == "ERRO":
+                prefixo = "✗ "
+            elif evento["tipo"] == "AVISO":
+                prefixo = "⚠ "
+            elif evento["tipo"] == "SUCESSO":
+                prefixo = "✓ "
+
+            linhas.append(f"[{evento['timestamp']}] {prefixo}{evento['mensagem']}")
+
+        linhas.append("")
+        linhas.append("RESUMO:")
+        linhas.append("-"*40)
+        linhas.append(f"Total de arquivos baixados: {self.arquivos_baixados}")
+        linhas.append(f"Total de arquivos convertidos: {self.arquivos_convertidos}")
+        linhas.append(f"Erros encontrados: {len(self.erros)}")
+        linhas.append(f"Avisos registrados: {len(self.avisos)}")
+        linhas.append(f"Tempo total: {self.calcular_tempo_total()}")
+
+        if self.erros:
+            linhas.append("")
+            linhas.append("ERROS DETALHADOS:")
+            linhas.append("-"*40)
+            for i, erro in enumerate(self.erros, 1):
+                linhas.append(f"{i}. {erro}")
+
+        if self.avisos:
+            linhas.append("")
+            linhas.append("AVISOS DETALHADOS:")
+            linhas.append("-"*40)
+            for i, aviso in enumerate(self.avisos, 1):
+                linhas.append(f"{i}. {aviso}")
+
+        linhas.append("")
+        if self.fim:
+            linhas.append(f"Data/Hora Fim: {self.fim.strftime('%d/%m/%Y %H:%M:%S')}")
+            status = "SUCESSO" if self.arquivos_convertidos >= 10 else "PARCIAL"
+            if len(self.erros) > 0:
+                status = "COM ERROS"
+            linhas.append(f"Status Final: {status}")
+        else:
+            linhas.append("Status: EM ANDAMENTO")
+
+        linhas.append("="*60)
+
+        return "\n".join(linhas)
+
+    def salvar_relatorio(self, diretorio_destino):
+        """
+        Salva o relatório em arquivo TXT
+
+        Args:
+            diretorio_destino: Diretório onde salvar o relatório
+
+        Returns:
+            str: Caminho do arquivo salvo
+        """
+        try:
+            # Gera nome único para o arquivo
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            nome_arquivo = f"relatorio_processamento_{timestamp}.txt"
+            caminho_completo = os.path.join(diretorio_destino, nome_arquivo)
+
+            # Salva o relatório
+            conteudo = self.gerar_relatorio()
+            with open(caminho_completo, 'w', encoding='utf-8') as f:
+                f.write(conteudo)
+
+            print(f"\n✓ Relatório salvo em: {nome_arquivo}")
+            return caminho_completo
+
+        except Exception as e:
+            print(f"\n✗ Erro ao salvar relatório: {e}")
+            return None
         ### Order of the scripts
         # # Anexo 03
         # # Anexo 08
@@ -52,8 +214,7 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
     """
     try:
         print("\n" + "="*60)
-        print("SCRIPT RIBEIRAO DAS NEVES - NOVA ESTRATÉGIA")
-        print("Cada relatório será processado com navegador novo")
+        print("SCRIPT RIBEIRAO DAS NEVES")
         print("="*60)
 
         # Obter configuração da cidade
@@ -69,16 +230,11 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
                         break
         except Exception as e:
             print(f"⚠ Aviso: Não foi possível carregar configuração da cidade: {e}")
-            # Usar configuração padrão se não encontrar
-            cidade_config = {
-                'nome': 'Ribeirão das Neves',
-                'Login': 'breno.ribeirao',
-                'Senha': 'Brc123456789!'
-            }
 
         # Inicializar conversor de arquivos
         file_converter = FileConverter(nome_cidade)
         print(f"\n✓ Sistema de arquivos inicializado para {nome_cidade}")
+
 
         # Lista de relatórios para processar
         relatorios = [
@@ -135,6 +291,40 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
             # Navegador já foi fechado automaticamente pelo executar_relatorio_individual
             print(f"Navegador fechado. Relatórios processados: {len(relatorios_processados)}/{len(relatorios)}")
 
+            # Baixar arquivos após o 5º relatório (índice 4)
+            if i == 4 and len(relatorios_processados) > 0:
+                print("\n" + "="*60)
+                print("DOWNLOAD APÓS 5º RELATÓRIO")
+                print("="*60)
+                bot_download = BotBetha(cidade_config, ano)
+                if bot_download.configurar_navegador():
+                    if (bot_download.navegar_para_pagina() and
+                        bot_download.fazer_login() and
+                        bot_download.selecionar_municipio() and
+                        bot_download.selecionar_ppa() and
+                        bot_download.selecionar_exercicio() and
+                        bot_download.pressionar_f4() and
+                        bot_download.navegar_relatorios_favoritos()):
+                        baixar_ultimos_5_arquivos(bot_download.navegador, bot_download.wait, file_converter, 600)
+                    bot_download.fechar_navegador()
+
+            # Baixar arquivos após o 10º relatório (índice 9)
+            if i == 9 and len(relatorios_processados) > 0:
+                print("\n" + "="*60)
+                print("DOWNLOAD APÓS 10º RELATÓRIO")
+                print("="*60)
+                bot_download = BotBetha(cidade_config, ano)
+                if bot_download.configurar_navegador():
+                    if (bot_download.navegar_para_pagina() and
+                        bot_download.fazer_login() and
+                        bot_download.selecionar_municipio() and
+                        bot_download.selecionar_ppa() and
+                        bot_download.selecionar_exercicio() and
+                        bot_download.pressionar_f4() and
+                        bot_download.navegar_relatorios_favoritos()):
+                        baixar_ultimos_5_arquivos(bot_download.navegador, bot_download.wait, file_converter, 600)
+                    bot_download.fechar_navegador()
+
         # Resumo do processamento
         print("\n" + "="*60)
         print("RESUMO DO PROCESSAMENTO")
@@ -149,51 +339,24 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
             for rel in relatorios_falhados:
                 print(f"  • {rel}")
 
-        # Verificar se foi cancelado antes da fase de download
+        # Verificar se foi cancelado antes da conversão final
         foi_cancelado = cancelado_callback and cancelado_callback()
 
-        # FASE FINAL: Abrir navegador uma última vez para baixar todos os arquivos (se não foi cancelado)
-        if not foi_cancelado:
+        # FASE FINAL: Converter todos os arquivos baixados
+        if len(relatorios_processados) > 0 and not foi_cancelado:
             print("\n" + "="*60)
-            print("FASE FINAL: DOWNLOAD DE TODOS OS ARQUIVOS")
+            print("FASE FINAL: CONVERSÃO DOS ARQUIVOS")
             print("="*60)
 
-        if len(relatorios_processados) > 0 and not foi_cancelado:
-            print("\nAbrindo navegador para baixar arquivos gerados...")
+            total_baixados, total_convertidos = converter_arquivos_finais(file_converter)
 
-            # Criar nova instância do bot para download
-            bot_download = BotBetha(cidade_config, ano)
+            # Gerar relatório final
+            gerar_relatorio_final(relatorios_processados, relatorios_falhados, total_baixados, total_convertidos, ano, nome_cidade)
 
-            # Configurar e navegar até Relatórios Favoritos
-            if bot_download.configurar_navegador():
-                if (bot_download.navegar_para_pagina() and
-                    bot_download.fazer_login() and
-                    bot_download.selecionar_municipio() and
-                    bot_download.selecionar_ppa() and
-                    bot_download.selecionar_exercicio() and
-                    bot_download.pressionar_f4() and
-                    bot_download.navegar_relatorios_favoritos()):
-
-                    print("\n✓ Navegação concluída, iniciando download de arquivos...")
-
-                    # Baixar todos os arquivos
-                    if baixar_arquivos(bot_download.navegador, bot_download.wait, file_converter,
-                                     min_arquivos=len(relatorios_processados)):
-                        print("\n✓ Download e conversão de arquivos concluídos com sucesso")
-                    else:
-                        print("\n⚠ Alguns arquivos podem não ter sido baixados/convertidos")
-
-                    # Fechar navegador de download
-                    bot_download.fechar_navegador()
-                else:
-                    print("\n✗ Falha na navegação para download de arquivos")
-                    bot_download.fechar_navegador()
-            else:
-                print("\n✗ Falha ao configurar navegador para download")
         elif foi_cancelado:
-            print("\n⚠ Fase de download cancelada pelo usuário")
+            print("\n⚠ Conversão final cancelada pelo usuário")
         else:
-            print("\n⚠ Nenhum relatório foi processado com sucesso, pulando download")
+            print("\n⚠ Nenhum relatório foi processado com sucesso, pulando conversão")
 
         print("\n" + "="*60)
         if foi_cancelado:
@@ -234,7 +397,7 @@ def _processar_anexo_03(navegador, wait):
             ))
         )
         anexo_03.click()
-        time.sleep(3)  # Aguardar carregamento da página
+        time.sleep(1)  # Aguardar carregamento da página
         
         # 2. Alterar "Sim" para "Não"
         print("  - Selecionando 'Não'...")
@@ -329,7 +492,7 @@ def _processar_anexo_03(navegador, wait):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Anexo 03 processado com sucesso (mês {mes_formatado})")
         return True
@@ -358,7 +521,7 @@ def _processar_anexo_08(navegador, wait):
             ))
         )
         anexo_08.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Alterar de Bimestral para Mensal
         print("  - Alterando de Bimestral para Mensal...")
@@ -374,7 +537,7 @@ def _processar_anexo_08(navegador, wait):
             EC.element_to_be_clickable((By.XPATH, "//div[@class='select2-result-label' and text()='Mensal']"))
         )
         opcao_mensal.click()
-        time.sleep(2) 
+        time.sleep(1) 
         
         # 3. Inserir mês atual
         print("  - Inserindo mês atual...")
@@ -419,7 +582,7 @@ def _processar_anexo_08(navegador, wait):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Anexo 08 processado com sucesso (mês {mes_formatado})")
         return True
@@ -461,7 +624,7 @@ def _processar_anexo_iv(navegador, wait, ano):
             ))
         )
         anexo_iv.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano
         print(f"  - Inserindo ano: {ano}...")
@@ -533,7 +696,7 @@ def _processar_anexo_iv(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Anexo IV processado com sucesso (ano: {ano}, mês: {mes_sem_zero})")
         return True
@@ -591,7 +754,7 @@ def _processar_anexo_vii(navegador, wait, ano):
             ))
         )
         anexo_vii.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Selecionar ano no dropdown (s2id_autogen4)
         print(f"  - Selecionando ano: {ano}...")
@@ -678,7 +841,7 @@ def _processar_anexo_vii(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Anexo VII processado com sucesso (ano: {ano}, mês: {mes_formatado})")
         return True
@@ -720,7 +883,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
             ))
         )
         balancete_despesa.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano (ID: 75897447)
         print(f"  - Inserindo ano: {ano}...")
@@ -832,7 +995,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Balancete da Despesa processado com sucesso (ano: {ano})")
         return True
@@ -874,7 +1037,7 @@ def _processar_balancete_receita(navegador, wait, ano):
             ))
         )
         balancete_receita.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano (ID: 74984816)
         print(f"  - Inserindo ano: {ano}...")
@@ -944,7 +1107,7 @@ def _processar_balancete_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Balancete da Receita processado com sucesso (ano: {ano})")
         return True
@@ -986,7 +1149,7 @@ def _processar_extrato_receita(navegador, wait, ano):
             ))
         )
         extrato_receita.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano (ID: 75383299)
         print(f"  - Inserindo ano: {ano}...")
@@ -1116,7 +1279,7 @@ def _processar_extrato_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Extrato da Receita processado com sucesso (ano: {ano})")
         return True
@@ -1158,7 +1321,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             ))
         )
         relacao_empenhos.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano (ID: 74429635)
         print(f"  - Inserindo ano: {ano}...")
@@ -1225,7 +1388,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Organograma Nível 2')]"))
         )
         opcao_organograma.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 7. Selecionar "Subfunção" (ID: select2-chosen-72)
         print("  - Selecionando 'Subfunção'...")
@@ -1239,7 +1402,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Subfunção')]"))
         )
         opcao_subfuncao.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 8. Selecionar "Ação" (ID: select2-chosen-73)
         print("  - Selecionando 'Ação'...")
@@ -1253,7 +1416,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Ação')]"))
         )
         opcao_acao.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 9. Alterar "Não" para "Sim" (ID: select2-chosen-74)
         print("  - Selecionando 'Sim'...")
@@ -1267,7 +1430,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Sim')]"))
         )
         opcao_sim.click()
-        time.sleep(3)
+        time.sleep(1)
         
         # 10. Abrir opções de execução
         print("  - Abrindo opções de execução...")
@@ -1300,7 +1463,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Relação de Empenhos - CMM processada com sucesso (ano: {ano})")
         return True
@@ -1342,7 +1505,7 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
             ))
         )
         relacao_pagamentos.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Inserir ano (ID: 75685838)
         print(f"  - Inserindo ano: {ano}...")
@@ -1441,7 +1604,7 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Relação de Pagamentos Efetuados processada com sucesso (ano: {ano})")
         return True
@@ -1483,7 +1646,7 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
             ))
         )
         relacao_liquidacoes.click()
-        time.sleep(2)
+        time.sleep(1)
         
         # 2. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
@@ -1568,7 +1731,7 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "executarRelComParams"))
         )
         botao_executar.click()
-        time.sleep(3)  # Aguardar processamento
+        time.sleep(1)  # Aguardar processamento
         
         print(f"  ✓ Relação geral de liquidações processada com sucesso (ano: {ano})")
         return True
@@ -1581,197 +1744,189 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         return False
 
 
-def baixar_arquivos(navegador, wait, file_converter, min_arquivos=10, max_tentativas=2):
+def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=300):
     """
-    Função para baixar todos os arquivos do Gerenciador de extensões
-    Navega pelo gerenciador, baixa arquivos e implementa retry se necessário
+    Função simplificada para baixar os últimos 5 arquivos disponíveis
 
     Args:
         navegador: Instância do WebDriver
         wait: Instância do WebDriverWait
         file_converter: Instância do FileConverter
-        min_arquivos: Número mínimo de arquivos únicos esperados
-        max_tentativas: Número máximo de tentativas
+        espera_segundos: Tempo de espera antes de baixar (300 ou 600 segundos)
 
     Returns:
-        bool: True se conseguiu baixar o mínimo de arquivos
+        int: Número de arquivos baixados
+    """
+
+    print(f"\n--- Baixando arquivos (espera de {espera_segundos}s) ---")
+
+    # Aguardar o tempo especificado
+    print(f"⏳ Aguardando {espera_segundos} segundos...")
+    minutos = espera_segundos // 60
+    for i in range(minutos):
+        time.sleep(60)
+        restante = espera_segundos - (i + 1) * 60
+        if restante > 0:
+            print(f"   {restante} segundos restantes...")
+    print("✓ Tempo de espera concluído")
+
+    # Abrir Gerenciador de extensões
+    print("\nAbrindo Gerenciador de extensões...")
+    gerenciador = wait.until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "//a[@data-ng-click='executandoCtrl.abrirAdmExtensoes()' and contains(@title, 'execuções')]"
+        ))
+    )
+    gerenciador.click()
+    time.sleep(2)
+    print("✓ Gerenciador aberto")
+
+    # Atualizar andamento
+    print("Atualizando andamento...")
+    botao_atualizar = navegador.find_element(
+        By.XPATH,
+        "//button[@data-ng-click='vm.carregarMinhasExecucoes()']"
+    )
+    botao_atualizar.click()
+    time.sleep(2)
+    print("✓ Andamento atualizado")
+
+    # Baixar arquivos disponíveis (máximo 5)
+    print("\nBaixando arquivos disponíveis...")
+    botoes_download = navegador.find_elements(
+        By.XPATH,
+        "//button[@data-ng-show='vm.gerouResultado(execucao)' and @data-ng-click='vm.downloadResultado(execucao)']"
+    )
+
+    arquivos_baixados = 0
+    max_downloads = min(5, len(botoes_download))
+
+    if botoes_download:
+        print(f"Encontrados {len(botoes_download)} arquivos, baixando {max_downloads}...")
+        for i in range(max_downloads):
+            botao = botoes_download[i]
+            ActionChains(navegador).move_to_element(botao).click().perform()
+            arquivos_baixados += 1
+            print(f"  ✓ Download {i+1}/{max_downloads} iniciado")
+            time.sleep(2)
+    else:
+        print("⚠ Nenhum arquivo encontrado")
+
+    # Aguardar downloads completarem
+    if arquivos_baixados > 0:
+        print(f"\nAguardando conclusão de {arquivos_baixados} downloads...")
+        time.sleep(5)  # Aguarda 5 segundos para downloads terminarem
+        print("✓ Downloads concluídos")
+
+    print(f"\n✅ {arquivos_baixados} arquivos baixados\n")
+    return arquivos_baixados
+
+
+def converter_arquivos_finais(file_converter):
+    """
+    Converte todos os arquivos baixados de XLS para XLSX
+
+    Args:
+        file_converter: Instância do FileConverter
+
+    Returns:
+        tuple: (total_baixados, total_convertidos)
+    """
+    print("\n" + "="*60)
+    print("CONVERSÃO FINAL DOS ARQUIVOS")
+    print("="*60)
+
+    # Contar arquivos únicos baixados
+    arquivos_unicos = file_converter.contar_arquivos_unicos_temp()
+    print(f"\nTotal de arquivos únicos baixados: {arquivos_unicos}")
+
+    if arquivos_unicos == 0:
+        print("⚠ Nenhum arquivo para converter")
+        return 0, 0
+
+    # Mover arquivos para pasta raw
+    print("\nMovendo arquivos para processamento...")
+    movidos = file_converter.mover_unicos_temp_para_raw()
+    print(f"✓ {movidos} arquivos movidos")
+
+    # Converter XLS para XLSX
+    print("\nConvertendo arquivos XLS para XLSX...")
+    total, convertidos = file_converter.converter_todos_raw()
+
+    if convertidos > 0:
+        print(f"\n✅ CONVERSÃO COMPLETA: {convertidos} arquivos convertidos")
+    else:
+        print("\n⚠ Nenhum arquivo foi convertido")
+
+    return total, convertidos
+
+
+def gerar_relatorio_final(relatorios_processados, relatorios_falhados, total_baixados, total_convertidos, ano, nome_cidade):
+    """
+    Gera um arquivo de relatório TXT com o resumo do processamento
+
+    Args:
+        relatorios_processados: Lista de relatórios processados com sucesso
+        relatorios_falhados: Lista de relatórios que falharam
+        total_baixados: Total de arquivos baixados
+        total_convertidos: Total de arquivos convertidos
+        ano: Ano do processamento
+        nome_cidade: Nome da cidade
     """
     try:
-        print("\n" + "="*60)
-        print("PROCESSO DE DOWNLOAD DE ARQUIVOS")
-        print("="*60)
+        from datetime import datetime
+        import os
 
-        tentativa = 1
+        # Criar pasta de saída se não existir
+        pasta_saida = os.path.join("arquivos_baixados", "betha", nome_cidade, str(ano))
+        os.makedirs(pasta_saida, exist_ok=True)
 
-        while tentativa <= max_tentativas:
-            print(f"\n--- Tentativa {tentativa}/{max_tentativas} ---")
+        # Nome do arquivo de relatório
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        arquivo_relatorio = os.path.join(pasta_saida, f"relatorio_processamento_{timestamp}.txt")
 
-            # Limpar pasta temp antes de começar
-            if tentativa == 1:
-                file_converter.limpar_pasta_temp()
+        # Gerar conteúdo do relatório
+        with open(arquivo_relatorio, 'w', encoding='utf-8') as f:
+            f.write("="*60 + "\n")
+            f.write("RELATÓRIO DE PROCESSAMENTO - BETHA SISTEMAS\n")
+            f.write("="*60 + "\n\n")
 
-            # 1. Abrir Gerenciador de extensões
-            print("\n  - Abrindo Gerenciador de extensões...")
-            try:
-                gerenciador_link = wait.until(
-                    EC.element_to_be_clickable((
-                        By.XPATH,
-                        "//a[@data-ng-click='executandoCtrl.abrirAdmExtensoes()' and contains(@title, 'execuções')]"
-                    ))
-                )
-                gerenciador_link.click()
-                time.sleep(3)  # Aguarda carregamento
-            except TimeoutException:
-                print("  ✗ Não foi possível abrir o Gerenciador de extensões")
-                tentativa += 1
-                continue
+            f.write(f"Município: {nome_cidade.replace('_', ' ').title()}\n")
+            f.write(f"Ano: {ano}\n")
+            f.write(f"Data/Hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+            f.write("\n")
 
-            arquivos_baixados = 0
-            paginas_processadas = 0
-            max_paginas = 10  # Limite de segurança
+            f.write("-"*60 + "\n")
+            f.write("RESUMO DO PROCESSAMENTO\n")
+            f.write("-"*60 + "\n")
+            f.write(f"Total de relatórios processados: {len(relatorios_processados)}/{len(relatorios_processados) + len(relatorios_falhados)}\n")
+            f.write(f"Total de arquivos baixados: {total_baixados}\n")
+            f.write(f"Total de arquivos convertidos: {total_convertidos}\n")
+            f.write("\n")
 
-            # 2. Navegar pelas páginas e baixar arquivos
-            while paginas_processadas < max_paginas:
-                print(f"\n  - Processando página {paginas_processadas + 1}...")
+            if relatorios_processados:
+                f.write("RELATÓRIOS PROCESSADOS COM SUCESSO:\n")
+                for i, rel in enumerate(relatorios_processados, 1):
+                    f.write(f"  {i}. {rel}\n")
+                f.write("\n")
 
-                # Atualizar andamento
-                try:
-                    botao_atualizar = wait.until(
-                        EC.element_to_be_clickable((
-                            By.XPATH,
-                            "//button[@data-ng-click='vm.carregarMinhasExecucoes()' and contains(., 'Atualizar andamento')]"
-                        ))
-                    )
-                    botao_atualizar.click()
-                    time.sleep(2)
-                except TimeoutException:
-                    print("    ⚠ Botão de atualizar não encontrado")
+            if relatorios_falhados:
+                f.write("RELATÓRIOS QUE FALHARAM:\n")
+                for i, rel in enumerate(relatorios_falhados, 1):
+                    f.write(f"  {i}. {rel}\n")
+                f.write("\n")
 
-                # Baixar arquivos "Resultado" na página atual
-                try:
-                    botoes_download = navegador.find_elements(
-                        By.XPATH,
-                        "//button[@data-ng-click='vm.downloadResultado(execucao)' and contains(., 'Resultado')]"
-                    )
+            f.write("-"*60 + "\n")
+            f.write("FIM DO RELATÓRIO\n")
+            f.write("-"*60 + "\n")
 
-                    if botoes_download:
-                        print(f"    - {len(botoes_download)} arquivos encontrados")
-                        for i, botao in enumerate(botoes_download, 1):
-                            try:
-                                if botao.is_enabled():
-                                    botao.click()
-                                    arquivos_baixados += 1
-                                    print(f"      ✓ Download {i}/{len(botoes_download)} iniciado")
-                                    time.sleep(1)
-                                else:
-                                    print(f"      ⚠ Download {i}/{len(botoes_download)} ainda não disponível")
-                            except Exception as e:
-                                print(f"      ✗ Erro ao baixar arquivo {i}: {e}")
-                    else:
-                        print("    - Nenhum arquivo disponível nesta página")
-
-                except Exception as e:
-                    print(f"    ✗ Erro ao buscar arquivos: {e}")
-
-                # Tentar ir para próxima página
-                try:
-                    botao_proxima = navegador.find_element(
-                        By.XPATH,
-                        "//button[@data-ng-click='vm.nextPage()' and contains(., 'Próxima')]"
-                    )
-
-                    if botao_proxima.is_enabled() and "disabled" not in botao_proxima.get_attribute("class"):
-                        botao_proxima.click()
-                        time.sleep(2)
-                        paginas_processadas += 1
-                    else:
-                        print("\n    - Fim da paginação")
-                        break
-
-                except Exception:
-                    print("\n    - Não há mais páginas")
-                    break
-
-            # 3. Processar downloads completados
-            sucesso = False
-            if arquivos_baixados > 0:
-                print(f"\n  - Aguardando conclusão de {arquivos_baixados} downloads...")
-                if file_converter.aguardar_downloads_completos(timeout=60):
-                    print("    ✓ Downloads concluídos")
-                    sucesso = True
-                else:
-                    print("    ⚠ Alguns downloads podem não ter sido concluídos")
-                    sucesso = True  # Continua mesmo assim
-            else:
-                print("\n  ⚠ Nenhum arquivo foi baixado")
-
-            if sucesso:
-                # Contar arquivos únicos
-                arquivos_unicos = file_converter.contar_arquivos_unicos_temp()
-                print(f"\n  - Total de arquivos únicos: {arquivos_unicos}")
-
-                if arquivos_unicos >= min_arquivos:
-                    print(f"  ✓ Objetivo alcançado: {arquivos_unicos}/{min_arquivos} arquivos")
-
-                    # Mover arquivos únicos para pasta raw
-                    print("\n--- Movendo arquivos para processamento ---")
-                    movidos = file_converter.mover_unicos_temp_para_raw()
-
-                    if movidos > 0:
-                        # Converter arquivos XLS para XLSX
-                        print("\n--- Convertendo arquivos para XLSX ---")
-                        total, convertidos = file_converter.converter_todos_raw()
-
-                        if convertidos > 0:
-                            print(f"\n✓ Processo completo: {convertidos} arquivos convertidos")
-                            return True
-                        else:
-                            print("\n⚠ Nenhum arquivo foi convertido")
-                    else:
-                        print("\n⚠ Nenhum arquivo foi movido para processamento")
-
-                else:
-                    print(f"  ⚠ Apenas {arquivos_unicos}/{min_arquivos} arquivos únicos")
-
-                    if tentativa < max_tentativas:
-                        print(f"\n  - Aguardando 300 segundos antes da próxima tentativa...")
-                        print("    (Aguardando sistema gerar mais relatórios)")
-
-                        # Mostrar progresso a cada 30 segundos
-                        for i in range(10):
-                            time.sleep(30)
-                            tempo_restante = 300 - (i + 1) * 30
-                            if tempo_restante > 0:
-                                print(f"    ... {tempo_restante} segundos restantes")
-
-                        # Voltar para Relatórios Favoritos antes da próxima tentativa
-                        print("\n  - Retornando aos Relatórios Favoritos...")
-                        try:
-                            navegador.back()  # Voltar da página do gerenciador
-                            time.sleep(2)
-                        except:
-                            pass
-
-            tentativa += 1
-
-        print(f"\n✗ Não foi possível baixar {min_arquivos} arquivos únicos após {max_tentativas} tentativas")
-
-        # Mesmo falhando, tenta processar o que conseguiu
-        arquivos_unicos = file_converter.contar_arquivos_unicos_temp()
-        if arquivos_unicos > 0:
-            print(f"\n  - Processando {arquivos_unicos} arquivos disponíveis...")
-            movidos = file_converter.mover_unicos_temp_para_raw()
-            if movidos > 0:
-                total, convertidos = file_converter.converter_todos_raw()
-                if convertidos > 0:
-                    print(f"  ✓ {convertidos} arquivos convertidos com sucesso")
-                    return True
-
-        return False
+        print(f"\n✓ Relatório salvo em: {arquivo_relatorio}")
+        return arquivo_relatorio
 
     except Exception as e:
-        print(f"\n✗ Erro no processo de download: {e}")
-        return False
+        print(f"\n⚠ Erro ao gerar relatório: {e}")
+        return None
 
 
 # end
