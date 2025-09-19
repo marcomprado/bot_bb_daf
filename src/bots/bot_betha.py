@@ -111,13 +111,13 @@ class BotBetha(BotBase):
     def fazer_login(self):
         """
         Realiza login no sistema
-        
+
         Returns:
             bool: True se login realizado com sucesso
         """
         try:
             print("Fazendo login...")
-            
+
             # Preenche campo de usuário
             print("  - Preenchendo usuário...")
             campo_usuario = self.wait.until(
@@ -125,27 +125,60 @@ class BotBetha(BotBase):
             )
             campo_usuario.clear()
             campo_usuario.send_keys(self.usuario)
-            
+
             # Preenche campo de senha
             print("  - Preenchendo senha...")
             campo_senha = self.navegador.find_element(By.ID, "login:senha")
             campo_senha.clear()
             campo_senha.send_keys(self.senha)
-            
+
             # Clica no botão de login
             print("  - Clicando em Acessar...")
             botao_acessar = self.navegador.find_element(By.XPATH, "//span[@class='text' and text()='Acessar']")
             botao_acessar.click()
             time.sleep(0.8)  # Aguarda login processar
-            
+
             print("✓ Login realizado com sucesso")
             return True
-            
+
         except TimeoutException:
             print("✗ Timeout ao tentar fazer login")
             return False
         except Exception as e:
             print(f"✗ Erro ao fazer login: {e}")
+            return False
+
+    def fechar_propaganda(self):
+        """
+        Fecha o popup de propaganda que aparece após o login
+        Clica no botão "Não mostrar novamente"
+
+        Returns:
+            bool: True se fechou a propaganda, False se não encontrou
+        """
+        try:
+            # Aguarda um pouco para o popup aparecer
+            time.sleep(1)
+
+            # Tenta encontrar o botão de fechar propaganda com timeout curto
+            print("  - Verificando propaganda...")
+            botao_fechar = WebDriverWait(self.navegador, 3).until(
+                EC.element_to_be_clickable((By.ID, "btn-banner-close-rankingStn2025"))
+            )
+
+            # Clica no botão "Não mostrar novamente"
+            botao_fechar.click()
+            print("  ✓ Propaganda fechada")
+            time.sleep(0.5)  # Aguarda fechar
+            return True
+
+        except TimeoutException:
+            # Propaganda não apareceu - não é um erro
+            print("  - Sem propaganda")
+            return False
+        except Exception as e:
+            # Erro ao tentar fechar, mas não é crítico
+            print(f"  - Aviso: não foi possível fechar propaganda: {e}")
             return False
     
     def selecionar_municipio(self):
@@ -166,8 +199,12 @@ class BotBetha(BotBase):
             )
             municipio.click()
             time.sleep(0.2)  # Aguarda carregar
-            
+
             print(f"✓ {municipio_texto} selecionado")
+
+            # Fechar propaganda se aparecer após selecionar município
+            self.fechar_propaganda()
+
             return True
             
         except TimeoutException:

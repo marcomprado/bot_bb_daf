@@ -1746,7 +1746,7 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
 
 def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=300):
     """
-    Função simplificada para baixar os últimos 5 arquivos disponíveis
+    Função para baixar todos os arquivos disponíveis
 
     Args:
         navegador: Instância do WebDriver
@@ -1755,7 +1755,7 @@ def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=3
         espera_segundos: Tempo de espera antes de baixar (300 ou 600 segundos)
 
     Returns:
-        int: Número de arquivos baixados
+        int: Número de arquivos baixados com sucesso
     """
 
     print(f"\n--- Baixando arquivos (espera de {espera_segundos}s) ---")
@@ -1792,7 +1792,7 @@ def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=3
     time.sleep(2)
     print("✓ Andamento atualizado")
 
-    # Baixar arquivos disponíveis (máximo 5)
+    # Baixar todos os arquivos disponíveis
     print("\nBaixando arquivos disponíveis...")
     botoes_download = navegador.find_elements(
         By.XPATH,
@@ -1800,16 +1800,21 @@ def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=3
     )
 
     arquivos_baixados = 0
-    max_downloads = min(5, len(botoes_download))
+    total_botoes = len(botoes_download)
 
     if botoes_download:
-        print(f"Encontrados {len(botoes_download)} arquivos, baixando {max_downloads}...")
-        for i in range(max_downloads):
-            botao = botoes_download[i]
-            ActionChains(navegador).move_to_element(botao).click().perform()
-            arquivos_baixados += 1
-            print(f"  ✓ Download {i+1}/{max_downloads} iniciado")
-            time.sleep(2)
+        print(f"Encontrados {total_botoes} botões de download...")
+        for i, botao in enumerate(botoes_download, 1):
+            try:
+                # Tentar clicar no botão
+                ActionChains(navegador).move_to_element(botao).click().perform()
+                arquivos_baixados += 1
+                print(f"  ✓ Download {arquivos_baixados} iniciado (botão {i}/{total_botoes})")
+                time.sleep(1)  # Pequena pausa entre cliques
+            except Exception as e:
+                # Botão não é clicável, apenas pular para o próximo
+                print(f"  - Botão {i}/{total_botoes} não clicável, pulando...")
+                continue
     else:
         print("⚠ Nenhum arquivo encontrado")
 
@@ -1819,7 +1824,7 @@ def baixar_ultimos_5_arquivos(navegador, wait, file_converter, espera_segundos=3
         time.sleep(5)  # Aguarda 5 segundos para downloads terminarem
         print("✓ Downloads concluídos")
 
-    print(f"\n✅ {arquivos_baixados} arquivos baixados\n")
+    print(f"\n✅ {arquivos_baixados} arquivos baixados com sucesso\n")
     return arquivos_baixados
 
 
