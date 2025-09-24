@@ -20,7 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.bots.bot_betha import BotBetha
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.city_selector import is_windows, CitySelectionWindow
-from src.classes.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados
 import time
 
 

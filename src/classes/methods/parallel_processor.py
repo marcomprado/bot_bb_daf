@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.classes.city_splitter import CitySplitter
 from src.classes.date_calculator import DateCalculator
-from src.classes.file_manager import FileManager
+from src.classes.file.file_manager import FileManager
 from src.classes.config import ARQUIVOS_CONFIG
 
 

@@ -46,6 +46,7 @@ wheels/
 # Arquivos de configuração local (se houver)
 config_local.py
 
+
 # Arquivo dinâmico de cidades selecionadas (gerado pela GUI)
 listed_cities.txt
 

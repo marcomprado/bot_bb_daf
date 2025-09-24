@@ -4,9 +4,13 @@
 from .chrome_driver import ChromeDriverSimples
 from .data_extractor import DataExtractor
 from .date_calculator import DateCalculator
-from .file_manager import FileManager
+from .file.file_manager import FileManager
+from .file.file_converter import FileConverter
+from .file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from .city_splitter import CitySplitter
-from .parallel_processor import ProcessadorParalelo
+from .methods.parallel_processor import ProcessadorParalelo
+from .methods.cancel_method import BotBase
+from .methods.auto_execution import AutomaticExecutor
 from .config import *
 
 __all__ = [
@@ -14,6 +18,12 @@ __all__ = [
     'DataExtractor',
     'DateCalculator',
     'FileManager',
+    'FileConverter',
     'CitySplitter',
-    'ProcessadorParalelo'
+    'ProcessadorParalelo',
+    'BotBase',
+    'AutomaticExecutor',
+    'obter_caminho_dados',
+    'obter_caminho_recurso',
+    'copiar_arquivo_cidades_se_necessario'
 ]

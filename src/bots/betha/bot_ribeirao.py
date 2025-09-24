@@ -15,7 +15,7 @@ from datetime import datetime
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from src.classes.file_converter import FileConverter
+from src.classes.file.file_converter import FileConverter
 from src.bots.bot_betha import BotBetha
 import json
 

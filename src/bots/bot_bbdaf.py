@@ -22,10 +22,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.data_extractor import DataExtractor
 from src.classes.date_calculator import DateCalculator
-from src.classes.file_manager import FileManager
+from src.classes.file.file_manager import FileManager
 from src.classes.city_splitter import CitySplitter
 from src.classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
-from src.classes.cancel_method import BotBase
+from src.classes.methods.cancel_method import BotBase
 
 
 class BotBBDAF(BotBase):

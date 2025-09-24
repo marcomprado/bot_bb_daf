@@ -17,7 +17,7 @@ from typing import Dict, Callable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.classes.city_splitter import CitySplitter
-from src.classes.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
+from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.city_selector import is_windows, CitySelectionWindow
 

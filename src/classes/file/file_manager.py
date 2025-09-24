@@ -5,7 +5,7 @@ Classe responsável por gerenciar operações com arquivos
 import os
 import sys
 import platform
-from src.classes.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados
 
 
 class FileManager:

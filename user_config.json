@@ -3,5 +3,26 @@
     "window_geometry": {
         "width": 900,
         "height": 750
+    },
+    "automatic_execution": {
+        "enabled": false,
+        "scripts": {
+            "bb_daf": true,
+            "fnde": false,
+            "betha": false
+        },
+        "period": "Diariamente",
+        "weekdays": {
+            "seg": true,
+            "ter": false,
+            "qua": true,
+            "qui": false,
+            "sex": true,
+            "sab": false,
+            "dom": false
+        },
+        "time": "14:49",
+        "execution_mode": "Paralela",
+        "parallel_instances": 5
     }
 }

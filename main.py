@@ -17,15 +17,18 @@ from src.view.gui3 import GUI3
 from src.view.view_config import ConfigGUI
 
 # Importa funções de gerenciamento de caminhos
-from src.classes.path_manager import obter_caminho_dados, copiar_arquivo_cidades_se_necessario
+from src.classes.file.path_manager import obter_caminho_dados, copiar_arquivo_cidades_se_necessario
 
 # Importa o bot principal e processador paralelo
 from src.bots.bot_bbdaf import BotBBDAF
-from src.classes.parallel_processor import ProcessadorParalelo
+from src.classes.methods.parallel_processor import ProcessadorParalelo
 from src.classes.data_extractor import DataExtractor
 
 # Importa ButtonFactory para botões de aba
 from src.view.modules.buttons import ButtonFactory
+
+# Importa o sistema de execução automática
+from src.classes.methods.auto_execution import get_automatic_executor
 
 
 class SistemaFVN:
@@ -65,6 +68,9 @@ class SistemaFVN:
         
         # Cria interface
         self._criar_interface()
+
+        # Inicia sistema de execução automática se configurado
+        self._iniciar_execucao_automatica()
     
     def _configurar_icone(self):
         """Configura o ícone da aplicação se disponível"""
@@ -387,6 +393,22 @@ class SistemaFVN:
         except Exception as e:
             print(f"Erro ao abrir pasta de arquivos: {str(e)}")
     
+    def _iniciar_execucao_automatica(self):
+        """Inicia o sistema de execução automática se estiver configurado"""
+        try:
+            executor = get_automatic_executor()
+            status = executor.get_status()
+
+            if status.get('enabled', False):
+                executor.start_monitoring()
+                print("✓ Sistema de execução automática iniciado")
+
+                next_exec = status.get('next_execution')
+                if next_exec:
+                    print(f"  Próxima execução: {next_exec}")
+        except Exception as e:
+            print(f"⚠ Não foi possível iniciar execução automática: {e}")
+
     def executar(self):
         """Executa o loop principal da aplicação"""
         self.janela.mainloop()

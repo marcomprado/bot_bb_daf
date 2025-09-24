@@ -619,7 +619,7 @@ class GUI2:
         """Abre a pasta de arquivos FNDE no explorador"""
         try:
             # Caminho da pasta FNDE usando a mesma lógica do bot_fnde.py
-            from src.classes.path_manager import obter_caminho_dados
+            from src.classes.file.path_manager import obter_caminho_dados
             pasta_fnde = obter_caminho_dados("fnde")
             
             # Cria a pasta se não existir

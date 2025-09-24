@@ -19,8 +19,8 @@ import unicodedata
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
-from src.classes.file_converter import FileConverter
-from src.classes.cancel_method import BotBase
+from src.classes.file.file_converter import FileConverter
+from src.classes.methods.cancel_method import BotBase
 
 
 class BotBetha(BotBase):

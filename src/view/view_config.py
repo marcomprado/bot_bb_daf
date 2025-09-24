@@ -19,30 +19,38 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.config_page import ConfigManager
 from src.view.modules.buttons import ButtonFactory
 
+# Importa o sistema de execução automática
+from src.classes.methods.auto_execution import (
+    update_execution_config,
+    get_execution_status,
+    start_automatic_execution,
+    stop_automatic_execution
+)
+
 
 class ConfigGUI:
     """Interface de configuração do sistema"""
-    
+
     def __init__(self, parent_frame):
         """
         Inicializa a GUI de configurações
-        
+
         Args:
             parent_frame: Frame pai onde a GUI será renderizada
         """
         self.parent_frame = parent_frame
         self.config_manager = ConfigManager()
 
-        # Variáveis de controle para execução automática
+        # Variáveis de controle para execução automática - SEM valores default
         self.execucao_auto_var = tk.BooleanVar(value=False)
         self.script_bb_var = tk.BooleanVar(value=False)
         self.script_fnde_var = tk.BooleanVar(value=False)
         self.script_betha_var = tk.BooleanVar(value=False)
-        self.periodo_var = tk.StringVar(value="Diariamente")
-        self.horario_var = tk.StringVar(value="08:00")
-        self.hora_var = tk.StringVar(value="08")
-        self.minuto_var = tk.StringVar(value="00")
-        self.modo_exec_var = tk.StringVar(value="Individual")
+        self.periodo_var = tk.StringVar(value="")  # Vazio - será preenchido do JSON
+        self.horario_var = tk.StringVar(value="")  # Vazio - será preenchido do JSON
+        self.hora_var = tk.StringVar(value="")     # Vazio - será preenchido do JSON
+        self.minuto_var = tk.StringVar(value="")   # Vazio - será preenchido do JSON
+        self.modo_exec_var = tk.StringVar(value="")  # Vazio - será preenchido do JSON
 
         # Variáveis para dias da semana
         self.dia_seg_var = tk.BooleanVar(value=False)
@@ -52,6 +60,11 @@ class ConfigGUI:
         self.dia_sex_var = tk.BooleanVar(value=False)
         self.dia_sab_var = tk.BooleanVar(value=False)
         self.dia_dom_var = tk.BooleanVar(value=False)
+
+        # Timer para debounce de salvamento
+        self._save_timer = None
+        # IMPORTANTE: Inicia com True para prevenir salvamentos durante inicialização
+        self._loading_config = True
         
         # Frame principal (inicialmente oculto)
         self.main_frame = ctk.CTkFrame(
@@ -271,8 +284,7 @@ class ConfigGUI:
         # Seção de modo de execução
         self._criar_selecao_modo_execucao(self.campos_exec_frame)
 
-        # Inicializar estado (oculto por padrão)
-        self._toggle_execucao_automatica()
+        # NÃO chamar toggle durante inicialização - valores vêm apenas do JSON
 
     def _criar_selecao_scripts(self, parent):
         """Cria checkboxes para seleção de scripts"""
@@ -302,6 +314,7 @@ class ConfigGUI:
             checks_frame,
             text="BB DAF",
             variable=self.script_bb_var,
+            command=self._on_config_change,
             font=ctk.CTkFont(size=13)
         )
         self.check_bb.pack(side="left", padx=(0, 20))
@@ -310,6 +323,7 @@ class ConfigGUI:
             checks_frame,
             text="FNDE",
             variable=self.script_fnde_var,
+            command=self._on_config_change,
             font=ctk.CTkFont(size=13)
         )
         self.check_fnde.pack(side="left", padx=(0, 20))
@@ -318,6 +332,7 @@ class ConfigGUI:
             checks_frame,
             text="Betha",
             variable=self.script_betha_var,
+            command=self._on_config_change,
             font=ctk.CTkFont(size=13)
         )
         self.check_betha.pack(side="left")
@@ -406,6 +421,7 @@ class ConfigGUI:
                 dias_checks_frame,
                 text=dia_nome,
                 variable=dia_var,
+                command=self._on_config_change,
                 font=ctk.CTkFont(size=12),
                 width=60
             )
@@ -479,6 +495,19 @@ class ConfigGUI:
         self.entry_minuto.bind("<KeyRelease>", self._validar_minuto)
         self.entry_minuto.bind("<FocusOut>", self._formatar_minuto)
 
+        # Botão Salvar
+        self.btn_salvar_horario = ctk.CTkButton(
+            time_frame,
+            text="Salvar",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            width=70,
+            height=40,
+            fg_color="#28a745",
+            hover_color="#218838",
+            command=self._salvar_horario_manual
+        )
+        self.btn_salvar_horario.pack(side="left", padx=(10, 0))
+
         # Label de exemplo
         label_exemplo = ctk.CTkLabel(
             frame_horario_campo,
@@ -550,7 +579,7 @@ class ConfigGUI:
         self.label_info_modo.pack(pady=(5, 15))
 
     def _toggle_execucao_automatica(self):
-        """Mostra/oculta campos baseado no switch"""
+        """Mostra/oculta campos baseado no switch e atualiza configuração"""
         estado = self.execucao_auto_var.get()
 
         # Mostrar ou ocultar o container de campos
@@ -567,6 +596,11 @@ class ConfigGUI:
                 self.dias_frame.pack_forget()
             # Voltar cor padrão
             self.secao_exec_frame.configure(fg_color="#f8f9fa", border_color="#dee2e6")
+
+        # Salva a configuração apenas se não estiver carregando
+        if not self._loading_config:
+            self._salvar_config_execucao_automatica()
+
 
     def _validar_hora(self, event):
         """Valida entrada de hora"""
@@ -616,12 +650,32 @@ class ConfigGUI:
         else:
             self.minuto_var.set("00")
 
+    def _salvar_horario_manual(self):
+        """Salva o horário quando o botão Salvar é clicado"""
+        # Formata os valores
+        hora = self.hora_var.get().zfill(2)
+        minuto = self.minuto_var.get().zfill(2)
+
+        # Atualiza as variáveis
+        self.hora_var.set(hora)
+        self.minuto_var.set(minuto)
+
+        # Salva a configuração
+        self._salvar_config_execucao_automatica()
+
+        # Feedback visual
+        self.btn_salvar_horario.configure(text="✓ Salvo", fg_color="#17a2b8")
+        self.parent_frame.after(1500, lambda: self.btn_salvar_horario.configure(text="Salvar", fg_color="#28a745"))
+
     def _on_periodo_change(self, periodo):
         """Mostra/oculta dias da semana baseado no período selecionado"""
         if periodo == "Semanalmente":
             self.dias_frame.pack(fill="x", pady=(0, 15), after=self.dropdown_periodo.master.master.master)
         else:
             self.dias_frame.pack_forget()
+
+        # Salva configuração quando muda o período
+        self._on_config_change()
 
     def _on_modo_change_exec(self, valor):
         """Callback quando modo de execução é alterado"""
@@ -634,6 +688,9 @@ class ConfigGUI:
             self.label_info_modo.configure(
                 text="Modo Individual: Processa sequencialmente"
             )
+
+        # Salva configuração quando muda o modo
+        self._on_config_change()
 
     def _criar_botoes_acao(self, parent):
         """
@@ -756,6 +813,9 @@ class ConfigGUI:
     
     def mostrar(self):
         """Mostra a GUI de configurações"""
+        # Marca que está carregando para evitar salvamentos desnecessários
+        self._loading_config = True
+
         # Atualiza valores antes de mostrar
         current_dir = self.config_manager.get_download_directory()
         self.dir_entry.configure(state="normal")
@@ -763,16 +823,143 @@ class ConfigGUI:
         self.dir_entry.insert(0, current_dir)
         self.dir_entry.configure(state="readonly")
 
-        # Atualiza horário para manter consistência
-        horario_atual = self.horario_var.get()
-        if ":" in horario_atual:
-            hora, minuto = horario_atual.split(":")
-            self.hora_var.set(hora.zfill(2))
-            self.minuto_var.set(minuto.zfill(2))
+        # Carrega configuração da execução automática do user_config.json
+        saved_config = self.config_manager.get_config('automatic_execution', None)
+
+        if saved_config:
+            # Usa configuração salva
+            self.execucao_auto_var.set(saved_config.get('enabled', False))
+
+            # Carrega scripts habilitados
+            scripts = saved_config.get('scripts', {})
+            self.script_bb_var.set(scripts.get('bb_daf', False))
+            self.script_fnde_var.set(scripts.get('fnde', False))
+            self.script_betha_var.set(scripts.get('betha', False))
+
+            # Carrega período e horário EXATAMENTE como está no JSON
+            self.periodo_var.set(saved_config.get('period', ''))
+            scheduled_time = saved_config.get('time', '')
+            if scheduled_time and ':' in scheduled_time:
+                hora, minuto = scheduled_time.split(':')
+                # NÃO usa zfill - mantém exatamente como está no JSON
+                self.hora_var.set(hora)
+                self.minuto_var.set(minuto)
+                self.horario_var.set(scheduled_time)
+
+            # Carrega dias da semana
+            weekdays = saved_config.get('weekdays', {})
+            self.dia_seg_var.set(weekdays.get('seg', False))
+            self.dia_ter_var.set(weekdays.get('ter', False))
+            self.dia_qua_var.set(weekdays.get('qua', False))
+            self.dia_qui_var.set(weekdays.get('qui', False))
+            self.dia_sex_var.set(weekdays.get('sex', False))
+            self.dia_sab_var.set(weekdays.get('sab', False))
+            self.dia_dom_var.set(weekdays.get('dom', False))
+
+            # Carrega modo de execução
+            exec_mode = saved_config.get('execution_mode', 'Individual')
+            parallel_instances = saved_config.get('parallel_instances', 2)
+            if exec_mode == 'Paralela':
+                self.modo_exec_var.set(f"Paralelo ({parallel_instances} instâncias)")
+            else:
+                self.modo_exec_var.set("Individual")
+
+            # Atualiza visualização dos campos
+            if self.execucao_auto_var.get():
+                self.campos_exec_frame.pack(fill="x", padx=15, pady=(0, 15))
+                self.secao_exec_frame.configure(
+                    fg_color="#e8f4fd",
+                    border_color="#0066cc"
+                )
+            else:
+                self.campos_exec_frame.pack_forget()
+                self.secao_exec_frame.configure(
+                    fg_color="#f8f9fa",
+                    border_color="#dee2e6"
+                )
+        else:
+            # Não há configuração salva, define valores mínimos para não quebrar a UI
+            # Mas NÃO salva ainda - só salva quando usuário fizer mudanças
+            self.execucao_auto_var.set(False)
+
+            # Define valores mínimos para os campos não ficarem vazios
+            self.periodo_var.set("Diariamente")
+            self.hora_var.set("08")
+            self.minuto_var.set("00")
+            self.horario_var.set("08:00")
+            self.modo_exec_var.set("Individual")
+
+        # NÃO modifica valores - mantém exatamente como vieram do JSON
+        # Removido código que usava zfill() para modificar valores
+
+        # Marca que terminou de carregar
+        self._loading_config = False
 
         # Mostra o frame
         self.main_frame.pack(fill="both", expand=True)
     
+    def _on_config_change(self):
+        """Chamado quando qualquer configuração muda (exceto horário)"""
+        # Salva imediatamente para configurações que não são o horário
+        self._salvar_config_execucao_automatica()
+
+    def _salvar_config_execucao_automatica(self):
+        """Salva as configurações de execução automática"""
+        # Obtém horário SEM modificação - vem direto do JSON
+        hora = self.hora_var.get()
+        minuto = self.minuto_var.get()
+        # Só cria horário se ambos existem
+        if hora and minuto:
+            horario = f"{hora}:{minuto}"
+        else:
+            # Usa o valor que já estava salvo
+            horario = self.horario_var.get()
+
+        # Obtém número de instâncias paralelas do modo selecionado
+        modo_exec = self.modo_exec_var.get()
+        parallel_instances = 2  # Padrão
+        if "Paralelo" in modo_exec:
+            try:
+                parallel_instances = int(modo_exec.split("(")[1].split(" ")[0])
+            except:
+                parallel_instances = 2
+
+        # Cria dicionário de configuração
+        config = {
+            'enabled': self.execucao_auto_var.get(),
+            'scripts': {
+                'bb_daf': self.script_bb_var.get(),
+                'fnde': self.script_fnde_var.get(),
+                'betha': self.script_betha_var.get()
+            },
+            'period': self.periodo_var.get(),
+            'weekdays': {
+                'seg': self.dia_seg_var.get(),
+                'ter': self.dia_ter_var.get(),
+                'qua': self.dia_qua_var.get(),
+                'qui': self.dia_qui_var.get(),
+                'sex': self.dia_sex_var.get(),
+                'sab': self.dia_sab_var.get(),
+                'dom': self.dia_dom_var.get()
+            },
+            'time': horario,
+            'execution_mode': 'Paralela' if "Paralelo" in modo_exec else 'Individual',
+            'parallel_instances': parallel_instances
+        }
+
+        # Salva no arquivo user_config.json
+        self.config_manager.set_config('automatic_execution', config)
+        self.config_manager.save_config_to_file()  # Salva explicitamente no arquivo
+
+        # Atualiza a configuração no executor automático
+        update_execution_config(config)
+
+        # Se habilitado, inicia o monitoramento; senão, para
+        if config['enabled']:
+            start_automatic_execution()
+        else:
+            stop_automatic_execution()
+
     def ocultar(self):
         """Oculta a GUI de configurações"""
         self.main_frame.pack_forget()

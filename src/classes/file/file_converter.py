@@ -8,7 +8,7 @@ import glob
 import shutil
 import pandas as pd
 from pathlib import Path
-from src.classes.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados
 
 
 class FileConverter:

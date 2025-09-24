@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
-from src.classes.cancel_method import BotBase
+from src.classes.methods.cancel_method import BotBase
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -24,7 +24,7 @@ import time
 import io
 from datetime import datetime
 from typing import List, Dict, Optional
-from src.classes.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados
 
 
 class BotFNDE(BotBase):

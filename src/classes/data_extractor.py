@@ -8,7 +8,7 @@ import os
 import sys
 import platform
 from datetime import datetime
-from src.classes.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados
 
 
 class DataExtractor:
