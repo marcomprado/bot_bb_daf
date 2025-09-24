@@ -249,12 +249,12 @@ class ConfigGUI:
         )
         descricao.pack(anchor="w", padx=15, pady=(0, 15))
 
-        # Container para todos os campos (inicialmente desabilitado)
+        # Container para todos os campos (inicialmente oculto)
         self.campos_exec_frame = ctk.CTkFrame(
             self.secao_exec_frame,
             fg_color="transparent"
         )
-        self.campos_exec_frame.pack(fill="x", padx=15, pady=(0, 15))
+        # Não fazer pack aqui - será controlado pelo toggle
 
         # Seção de seleção de scripts
         self._criar_selecao_scripts(self.campos_exec_frame)
@@ -271,7 +271,7 @@ class ConfigGUI:
         # Seção de modo de execução
         self._criar_selecao_modo_execucao(self.campos_exec_frame)
 
-        # Inicializar estado desabilitado
+        # Inicializar estado (oculto por padrão)
         self._toggle_execucao_automatica()
 
     def _criar_selecao_scripts(self, parent):
@@ -550,35 +550,22 @@ class ConfigGUI:
         self.label_info_modo.pack(pady=(5, 15))
 
     def _toggle_execucao_automatica(self):
-        """Habilita/desabilita campos baseado no switch"""
+        """Mostra/oculta campos baseado no switch"""
         estado = self.execucao_auto_var.get()
 
-        # Lista de widgets para habilitar/desabilitar
-        widgets = [
-            self.check_bb,
-            self.check_fnde,
-            self.check_betha,
-            self.dropdown_periodo,
-            self.entry_hora,
-            self.entry_minuto,
-            self.dropdown_modo
-        ]
-
-        # Adicionar checkboxes de dias se existirem
-        if hasattr(self, 'dias_checks'):
-            widgets.extend(self.dias_checks)
-
-        # Configurar estado de todos os widgets
-        for widget in widgets:
-            if estado:
-                widget.configure(state="normal")
-            else:
-                widget.configure(state="disabled")
-
-        # Atualizar cor de fundo da seção e borda
+        # Mostrar ou ocultar o container de campos
         if estado:
+            # Mostrar campos
+            self.campos_exec_frame.pack(fill="x", padx=15, pady=(0, 15))
+            # Atualizar cor de fundo da seção para indicar ativação
             self.secao_exec_frame.configure(fg_color="#e8f4fd", border_color="#0066cc")
         else:
+            # Ocultar campos
+            self.campos_exec_frame.pack_forget()
+            # Ocultar também dias da semana se estiver visível
+            if hasattr(self, 'dias_frame'):
+                self.dias_frame.pack_forget()
+            # Voltar cor padrão
             self.secao_exec_frame.configure(fg_color="#f8f9fa", border_color="#dee2e6")
 
     def _validar_hora(self, event):
