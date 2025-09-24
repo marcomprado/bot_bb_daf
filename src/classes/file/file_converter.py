@@ -7,6 +7,7 @@ import os
 import glob
 import shutil
 import pandas as pd
+import xlwings as xw
 from pathlib import Path
 from src.classes.file.path_manager import obter_caminho_dados
 
@@ -99,11 +100,12 @@ class FileConverter:
     
     def converter_xls_para_xlsx(self, arquivo_xls):
         """
-        Converte um arquivo XLS para XLSX
-        
+        Converte um arquivo XLS para XLSX usando xlwings
+        Preserva toda a formatação original
+
         Args:
             arquivo_xls: Caminho do arquivo XLS
-            
+
         Returns:
             str: Caminho do arquivo XLSX convertido ou None se falhou
         """
@@ -112,16 +114,17 @@ class FileConverter:
             nome_base = os.path.basename(arquivo_xls)
             nome_sem_ext = os.path.splitext(nome_base)[0]
             arquivo_xlsx = os.path.join(self.converted_dir, f"{nome_sem_ext}.xlsx")
-            
-            # Lê o arquivo XLS
-            df = pd.read_excel(arquivo_xls, engine='xlrd')
-            
-            # Salva como XLSX
-            df.to_excel(arquivo_xlsx, index=False, engine='openpyxl')
-            
+
+            # Abre Excel, converte e salva preservando toda formatação
+            app = xw.App(visible=False)
+            wb = app.books.open(arquivo_xls)
+            wb.save(arquivo_xlsx)
+            wb.close()
+            app.quit()
+
             print(f"    ✓ Convertido: {nome_base} → {nome_sem_ext}.xlsx")
             return arquivo_xlsx
-            
+
         except Exception as e:
             print(f"    ✗ Erro ao converter {arquivo_xls}: {e}")
             return None
