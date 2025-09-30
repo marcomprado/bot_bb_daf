@@ -100,14 +100,15 @@ hiddenimports += [
 datas += [
     ('cidades.txt', '.'),  # Arquivo de cidades
     ('user_config.json', '.'),  # Configuração do usuário
-    ('assets/*.ico', 'assets'),  # Ícones
-    ('assets/*.png', 'assets'),  # Imagens PNG
+    # Assets estão em src/assets
+    ('src/assets/app_icon.ico', 'src/assets'),  # Ícone principal
+    ('src/assets/*.png', 'src/assets'),  # Imagens PNG
     # Adiciona toda a estrutura src
     ('src/view/*.py', 'src/view'),
     ('src/view/modules/*.py', 'src/view/modules'),
     ('src/bots/*.py', 'src/bots'),
     ('src/bots/betha/*.py', 'src/bots/betha'),
-    ('src/bots/betha/*.json', 'src/bots/betha'),
+    ('src/bots/betha/city_betha.json', 'src/bots/betha'),  # JSON de configuração das cidades
     ('src/classes/*.py', 'src/classes'),
     ('src/classes/file/*.py', 'src/classes/file'),
     ('src/classes/methods/*.py', 'src/classes/methods'),
@@ -130,37 +131,71 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.datas,
-    [],
-    name='Sistema_FVN',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,  # False para não mostrar console
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon='assets/app_icon.ico',
-)
-
-# Para macOS
+# Configuração diferente para macOS (onedir) vs outras plataformas (onefile)
 if sys.platform == 'darwin':
-    app = BUNDLE(
+    # macOS: usa onedir mode para evitar warning de deprecação
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],  # Sem binaries e datas embutidos para onedir
+        exclude_binaries=True,
+        name='Sistema_FVN',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,  # False para não mostrar console
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='src/assets/app_icon.ico',
+    )
+
+    # Cria o bundle para macOS
+    coll = COLLECT(
         exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name='Sistema_FVN',
+    )
+
+    app = BUNDLE(
+        coll,
         name='Sistema_FVN.app',
-        icon='assets/app_icon.ico',
+        icon='src/assets/app_icon.ico',
         bundle_identifier='com.fvn.sistema',
         info_plist={
             'NSHighResolutionCapable': 'True',
             'LSMinimumSystemVersion': '10.10.0',
         },
+    )
+else:
+    # Windows/Linux: usa onefile mode tradicional
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='Sistema_FVN',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=False,  # False para não mostrar console
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='src/assets/app_icon.ico',
     )
