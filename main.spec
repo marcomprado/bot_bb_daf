@@ -34,36 +34,83 @@ hiddenimports += [
 hiddenimports += [
     'pandas',
     'openpyxl',
+    'xlrd',
+    'xlwings',
+    'psutil',
+    'PIL',
+    'Pillow',
+    'lxml',
     'bs4',
+    'beautifulsoup4',
     'requests',
     'urllib3',
     'concurrent.futures',
+    'threading',
+    'dateutil',
+    'python_dateutil',
 ]
 
-# Adiciona classes e bots do projeto
+# Adiciona módulos src.view (GUIs)
 hiddenimports += [
-    'classes',
-    'classes.file_manager',
-    'classes.date_calculator',
-    'classes.data_extractor',
-    'classes.city_splitter',
-    'classes.chrome_driver',
-    'classes.config',
-    'classes.parallel_processor',
-    'bots',
-    'bots.bot_bbdaf',
-    'bots.bot_fnde',
+    'src',
+    'src.view',
+    'src.view.gui1',
+    'src.view.gui2',
+    'src.view.gui3',
+    'src.view.view_config',
+    'src.view.modules',
+    'src.view.modules.buttons',
+    'src.view.modules.city_selector',
+]
+
+# Adiciona módulos src.bots
+hiddenimports += [
+    'src.bots',
+    'src.bots.bot_bbdaf',
+    'src.bots.bot_fnde',
+    'src.bots.bot_betha',
+    'src.bots.betha',
+    'src.bots.betha.bot_ribeirao',
+]
+
+# Adiciona módulos src.classes
+hiddenimports += [
+    'src.classes',
+    'src.classes.__init__',
+    'src.classes.chrome_driver',
+    'src.classes.city_splitter',
+    'src.classes.config',
+    'src.classes.config_page',
+    'src.classes.data_extractor',
+    'src.classes.date_calculator',
+    'src.classes.run_instance',
+    # Submódulo file
+    'src.classes.file',
+    'src.classes.file.file_converter',
+    'src.classes.file.file_manager',
+    'src.classes.file.path_manager',
+    # Submódulo methods
+    'src.classes.methods',
+    'src.classes.methods.auto_execution',
+    'src.classes.methods.cancel_method',
+    'src.classes.methods.parallel_processor',
 ]
 
 # Adiciona arquivos de dados
 datas += [
     ('cidades.txt', '.'),  # Arquivo de cidades
-    ('assets/app_icon.ico', 'assets'),  # Ícone
-    ('classes/*.py', 'classes'),  # Módulos Python
-    ('bots/*.py', 'bots'),  # Bots
-    ('gui1.py', '.'),  # GUI BB DAF
-    ('gui2.py', '.'),  # GUI FNDE
-    ('run_instance.py', '.'),  # Helper para execução paralela
+    ('user_config.json', '.'),  # Configuração do usuário
+    ('assets/*.ico', 'assets'),  # Ícones
+    ('assets/*.png', 'assets'),  # Imagens PNG
+    # Adiciona toda a estrutura src
+    ('src/view/*.py', 'src/view'),
+    ('src/view/modules/*.py', 'src/view/modules'),
+    ('src/bots/*.py', 'src/bots'),
+    ('src/bots/betha/*.py', 'src/bots/betha'),
+    ('src/bots/betha/*.json', 'src/bots/betha'),
+    ('src/classes/*.py', 'src/classes'),
+    ('src/classes/file/*.py', 'src/classes/file'),
+    ('src/classes/methods/*.py', 'src/classes/methods'),
 ]
 
 # Configuração do Analysis
