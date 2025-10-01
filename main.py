@@ -485,7 +485,7 @@ def main():
         elif sys.argv[1] == "--parallel":
             # Modo paralelo via CLI
             print("Modo paralelo via CLI")
-            from classes.parallel_processor import ProcessadorParalelo
+            from src.classes.methods.parallel_processor import ProcessadorParalelo
             
             num_instancias = int(sys.argv[2]) if len(sys.argv) > 2 else 2
             processador = ProcessadorParalelo()

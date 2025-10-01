@@ -179,20 +179,6 @@ class RelatorioProcessamento:
         except Exception as e:
             print(f"\n✗ Erro ao salvar relatório: {e}")
             return None
-        ### Order of the scripts
-        # # Anexo 03
-        # # Anexo 08
-        # # Anexo IV
-        # # Anexo VII
-        # # Balancete da Despesa
-        
-        # # Balancete da Receita
-        # # Extrato da Receita
-        # # Relacao de Empenhos - CMM
-        # # Relacao de Pagamentos Efetuados 
-        # # Relacao geral de liquidacoes por periodo
-
-        # # Baixar todos os arquivos
         
         
 def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_neves", cancelado_callback=None):
@@ -322,7 +308,7 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
                         bot_download.selecionar_exercicio() and
                         bot_download.pressionar_f4() and
                         bot_download.navegar_relatorios_favoritos()):
-                        baixar_ultimos_5_arquivos(bot_download.navegador, bot_download.wait, file_converter, 600)
+                        baixar_ultimos_5_arquivos(bot_download.navegador, bot_download.wait, file_converter, 900)
                     bot_download.fechar_navegador()
 
         # Resumo do processamento
@@ -397,8 +383,7 @@ def _processar_anexo_03(navegador, wait):
             ))
         )
         anexo_03.click()
-        time.sleep(1)  # Aguardar carregamento da página
-        
+
         # 2. Alterar "Sim" para "Não"
         print("  - Selecionando 'Não'...")
         try:
@@ -412,17 +397,15 @@ def _processar_anexo_03(navegador, wait):
             dropdown_sim = wait.until(
                 EC.element_to_be_clickable((By.XPATH, "//a[@class='select2-choice' and .//span[text()='Sim']]"))
             )
-        
+
         dropdown_sim.click()
-        time.sleep(1)
-        
+
         # Selecionar "Não" na lista
         opcao_nao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and text()='Não']"))
         )
         opcao_nao.click()
-        time.sleep(1)
-        
+
         # 3. Selecionar município
         print("  - Selecionando município...")
         try:
@@ -440,15 +423,13 @@ def _processar_anexo_03(navegador, wait):
         campo_municipio.click()
         campo_municipio.clear()
         campo_municipio.send_keys("MUNICIPIO DE RIBEIRAO DAS NEVES")
-        time.sleep(1)
-        
+
         # Selecionar a opção que aparece
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
-        time.sleep(1)
-        
+
         # 4. Inserir mês atual
         print("  - Inserindo mês atual...")
         mes_atual = datetime.now().month
@@ -459,16 +440,14 @@ def _processar_anexo_03(navegador, wait):
         )
         campo_mes.clear()
         campo_mes.send_keys(mes_formatado)
-        time.sleep(1)
-        
+
         # 5. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
-        
+
         # 6. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
         try:
@@ -521,8 +500,7 @@ def _processar_anexo_08(navegador, wait):
             ))
         )
         anexo_08.click()
-        time.sleep(1)
-        
+
         # 2. Alterar de Bimestral para Mensal
         print("  - Alterando de Bimestral para Mensal...")
         # Localizar especificamente o dropdown que contém "Bimestral"
@@ -530,15 +508,13 @@ def _processar_anexo_08(navegador, wait):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-4']/parent::a"))
         )
         select2_dropdown.click()
-        time.sleep(1)
-        
+
         # Selecionar opção "Mensal"
         opcao_mensal = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[@class='select2-result-label' and text()='Mensal']"))
         )
         opcao_mensal.click()
-        time.sleep(1) 
-        
+
         # 3. Inserir mês atual
         print("  - Inserindo mês atual...")
         mes_atual = datetime.now().month
@@ -549,16 +525,14 @@ def _processar_anexo_08(navegador, wait):
         )
         campo_mes.clear()
         campo_mes.send_keys(mes_formatado)
-        time.sleep(1)
-        
+
         # 4. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
-        
+
         # 5. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
         try:
@@ -624,8 +598,7 @@ def _processar_anexo_iv(navegador, wait, ano):
             ))
         )
         anexo_iv.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -633,8 +606,7 @@ def _processar_anexo_iv(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Alterar "Anual" para "Mensal"
         print("  - Selecionando 'Mensal'...")
         dropdown_anual = wait.until(
@@ -644,15 +616,13 @@ def _processar_anexo_iv(navegador, wait, ano):
             ))
         )
         dropdown_anual.click()
-        time.sleep(1)
-        
+
         # Selecionar "Mensal" na lista
         opcao_mensal = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and text()='Mensal']"))
         )
         opcao_mensal.click()
-        time.sleep(1)
-        
+
         # 4. Inserir mês atual (sem zero na frente)
         print("  - Inserindo mês atual...")
         mes_atual = datetime.now().month
@@ -663,16 +633,14 @@ def _processar_anexo_iv(navegador, wait, ano):
         )
         campo_mes.clear()
         campo_mes.send_keys(mes_sem_zero)
-        time.sleep(1)
-        
+
         # 5. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
-        
+
         # 6. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
         try:
@@ -754,69 +722,61 @@ def _processar_anexo_vii(navegador, wait, ano):
             ))
         )
         anexo_vii.click()
-        time.sleep(1)
-        
+
         # 2. Selecionar ano no dropdown (s2id_autogen4)
         print(f"  - Selecionando ano: {ano}...")
         dropdown_ano = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[@id='s2id_autogen4']/a"))
         )
         dropdown_ano.click()
-        time.sleep(1)
-        
+
         # Selecionar o ano na lista
         opcao_ano = wait.until(
             EC.element_to_be_clickable((By.XPATH, f"//div[contains(@class, 'select2-result-label') and text()='{ano}']"))
         )
         opcao_ano.click()
-        time.sleep(1)
-        
+
         # 3. Alterar "Não" para "Sim" (select2-chosen-6)
         print("  - Selecionando 'Sim'...")
         dropdown_nao = wait.until(
             EC.element_to_be_clickable((
-                By.XPATH, 
+                By.XPATH,
                 "//span[@id='select2-chosen-6']/parent::a"
             ))
         )
         dropdown_nao.click()
-        time.sleep(1)
-        
+
         # Selecionar "Sim" na lista
         opcao_sim = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and text()='Sim']"))
         )
         opcao_sim.click()
-        time.sleep(1)
-        
+
         # 4. Selecionar mês atual no dropdown (select2-chosen-7)
         print("  - Selecionando mês atual...")
         mes_atual = datetime.now().month
         mes_formatado = meses_portugues[mes_atual]
-        
+
         dropdown_mes = wait.until(
             EC.element_to_be_clickable((
-                By.XPATH, 
+                By.XPATH,
                 "//span[@id='select2-chosen-7']/parent::a"
             ))
         )
         dropdown_mes.click()
-        time.sleep(1)
-        
+
         # Selecionar a opção do mês que aparece (formato "1 - Janeiro")
         opcao_mes = wait.until(
             EC.element_to_be_clickable((By.XPATH, f"//div[contains(@class, 'select2-result-label') and contains(text(), '{mes_formatado}')]"))
         )
         opcao_mes.click()
-        time.sleep(1)
-        
+
         # 5. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 6. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -883,8 +843,7 @@ def _processar_balancete_despesa(navegador, wait, ano):
             ))
         )
         balancete_despesa.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano (ID: 75897447)
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -892,85 +851,73 @@ def _processar_balancete_despesa(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Alterar dropdown de "Natureza da despesa (LOA)" para "Número despesa + Recurso (LOA)" (ID: select2-chosen-9)
         print("  - Selecionando 'Número despesa + Recurso (LOA)'...")
         dropdown_natureza = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-9']/parent::a"))
         )
         dropdown_natureza.click()
-        time.sleep(1)
-        
+
         opcao_numero_despesa = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-9']//div[contains(text(), 'Número despesa + Recurso (LOA)')]"))
         )
         opcao_numero_despesa.click()
-        time.sleep(1)
-        
+
         # 4. Selecionar "Organograma Nível 2" (ID: select2-chosen-10)
         print("  - Selecionando 'Organograma Nível 2'...")
         dropdown_organograma = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-10']/parent::a"))
         )
         dropdown_organograma.click()
-        time.sleep(1)
 
         opcao_organograma = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-10']//div[contains(text(), 'Organograma Nível 2')]"))
         )
         opcao_organograma.click()
-        time.sleep(1)
-        
+
         # 5. Selecionar "Função" (ID: select2-chosen-11)
         print("  - Selecionando 'Função'...")
         dropdown_funcao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-11']/parent::a"))
         )
         dropdown_funcao.click()
-        time.sleep(1)
 
         opcao_funcao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-11']//div[contains(text(), 'Função')]"))
         )
         opcao_funcao.click()
-        time.sleep(1)
-        
+
         # 6. Selecionar "Subfunção" (ID: select2-chosen-12)
         print("  - Selecionando 'Subfunção'...")
         dropdown_subfuncao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-12']/parent::a"))
         )
         dropdown_subfuncao.click()
-        time.sleep(1)
 
         opcao_subfuncao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-12']//div[contains(text(), 'Subfunção')]"))
         )
         opcao_subfuncao.click()
-        time.sleep(1)
-        
+
         # 7. Selecionar "2 / Especificação da Fonte" (ID: select2-chosen-20)
         print("  - Selecionando '2 / Especificação da Fonte'...")
         dropdown_especificacao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-20']/parent::a"))
         )
         dropdown_especificacao.click()
-        time.sleep(1)
-        
+
         opcao_especificacao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-20']//div[contains(text(), '2 / Especificação da Fonte')]"))
         )
         opcao_especificacao.click()
-        time.sleep(1)
-        
+
         # 8. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 9. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1037,8 +984,7 @@ def _processar_balancete_receita(navegador, wait, ano):
             ))
         )
         balancete_receita.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano (ID: 74984816)
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -1046,21 +992,18 @@ def _processar_balancete_receita(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Selecionar "Comparativo orçado/arrecadado (c/ previsão atualizada (Líquido))" (ID: select2-chosen-8)
         print("  - Selecionando 'Comparativo orçado/arrecadado (c/ previsão atualizada (Líquido))'...")
         dropdown_comparativo = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-8']/parent::a"))
         )
         dropdown_comparativo.click()
-        time.sleep(1)
 
         opcao_comparativo = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-8']//div[contains(@class, 'select2-result-label') and contains(text(), 'Comparativo orçado/arrecadado (c/ previsão atualizada (Líquido))')]"))
         )
         opcao_comparativo.click()
-        time.sleep(1)
 
         # 4. Selecionar "Recurso" no Agrupar por (ID: select2-chosen-11)
         print("  - Selecionando 'Recurso' no Agrupar por...")
@@ -1068,13 +1011,11 @@ def _processar_balancete_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-11']/parent::a"))
         )
         dropdown_agrupar.click()
-        time.sleep(1)
 
         opcao_recurso = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-11']//div[contains(@class, 'select2-result-label') and contains(text(), 'Recurso')]"))
         )
         opcao_recurso.click()
-        time.sleep(1)
 
         # 5. Abrir opções de execução
         print("  - Abrindo opções de execução...")
@@ -1082,7 +1023,6 @@ def _processar_balancete_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 6. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1149,8 +1089,7 @@ def _processar_extrato_receita(navegador, wait, ano):
             ))
         )
         extrato_receita.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano (ID: 75383299)
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -1158,21 +1097,18 @@ def _processar_extrato_receita(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         dropdown_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-2']/parent::a"))
         )
         dropdown_municipio.click()
-        time.sleep(1)
 
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-2']//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
-        time.sleep(1)
 
         # 4. Selecionar "Primeiro dia do mês" (ID: select2-chosen-4)
         print("  - Selecionando 'Primeiro dia do mês'...")
@@ -1180,13 +1116,11 @@ def _processar_extrato_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-4']/parent::a"))
         )
         dropdown_data_inicio.click()
-        time.sleep(1)
 
         opcao_primeiro_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-4']//div[contains(@class, 'select2-result-label') and contains(text(), 'Primeiro dia do mês')]"))
         )
         opcao_primeiro_dia.click()
-        time.sleep(1)
 
         # 5. Selecionar "Último dia do mês" (ID: select2-chosen-6)
         print("  - Selecionando 'Último dia do mês'...")
@@ -1194,13 +1128,11 @@ def _processar_extrato_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-6']/parent::a"))
         )
         dropdown_data_fim.click()
-        time.sleep(1)
 
         opcao_ultimo_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-6']//div[contains(@class, 'select2-result-label') and contains(text(), 'Último dia do mês')]"))
         )
         opcao_ultimo_dia.click()
-        time.sleep(1)
 
         # 6. Alterar "Realizado" para "Previsto/Realizado" (ID: select2-chosen-7)
         print("  - Selecionando 'Previsto/Realizado'...")
@@ -1208,13 +1140,11 @@ def _processar_extrato_receita(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-7']/parent::a"))
         )
         dropdown_realizado.click()
-        time.sleep(1)
 
         opcao_previsto_realizado = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-7']//div[contains(@class, 'select2-result-label') and contains(text(), 'Previsto/Realizado')]"))
         )
         opcao_previsto_realizado.click()
-        time.sleep(1)
 
         # 7. Adicionar "Conta Bancaria" nas Colunas Complementares (ID: s2id_autogen8)
         print("  - Adicionando 'Conta Bancaria' às colunas complementares...")
@@ -1223,14 +1153,12 @@ def _processar_extrato_receita(navegador, wait, ano):
         )
         campo_colunas.click()
         campo_colunas.send_keys("Conta Bancaria")
-        time.sleep(1)
 
         # Selecionar a opção "Conta Bancaria" quando aparecer
         opcao_conta_bancaria = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Conta Bancaria')]"))
         )
         opcao_conta_bancaria.click()
-        time.sleep(1)
 
         # 8. Adicionar "Recurso" no Agrupar por (ID: s2id_autogen9)
         print("  - Adicionando 'Recurso' ao agrupamento...")
@@ -1239,22 +1167,19 @@ def _processar_extrato_receita(navegador, wait, ano):
         )
         campo_agrupar.click()
         campo_agrupar.send_keys("Recurso")
-        time.sleep(1)
-        
+
         # Selecionar a opção "Recurso" quando aparecer
         opcao_recurso = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Recurso')]"))
         )
         opcao_recurso.click()
-        time.sleep(1)
-        
+
         # 9. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 10. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1321,8 +1246,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             ))
         )
         relacao_empenhos.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano (ID: 74429635)
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -1330,22 +1254,19 @@ def _processar_relacao_empenhos(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: s2id_autogen3)
         print("  - Selecionando município 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         campo_municipio = wait.until(
             EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
         campo_municipio.click()
-        time.sleep(1)
 
         # Selecionar a opção que aparece
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
-        time.sleep(1)
 
         # 4. Selecionar "Primeiro dia do ano" (ID: select2-chosen-7)
         print("  - Selecionando 'Primeiro dia do ano'...")
@@ -1353,92 +1274,79 @@ def _processar_relacao_empenhos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-7']/parent::a"))
         )
         dropdown_data_inicio.click()
-        time.sleep(1)
 
         opcao_primeiro_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Primeiro dia do ano')]"))
         )
         opcao_primeiro_dia.click()
-        time.sleep(1)
 
-        
+
         # 5. Alterar "Data específica" para "Último dia do ano" (ID: select2-chosen-9)
         print("  - Selecionando 'Último dia do ano'...")
         dropdown_data_final = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-9']/parent::a"))
         )
         dropdown_data_final.click()
-        time.sleep(1)
-        
+
         opcao_ultimo_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Último dia do ano')]"))
         )
         opcao_ultimo_dia.click()
-        time.sleep(1)
-        
+
         # 6. Selecionar "Organograma Nível 2" (ID: select2-chosen-71)
         print("  - Selecionando 'Organograma Nível 2'...")
         dropdown_organograma = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-16']/parent::a"))
         )
         dropdown_organograma.click()
-        time.sleep(1)
-        
+
         opcao_organograma = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Organograma Nível 2')]"))
         )
         opcao_organograma.click()
-        time.sleep(1)
-        
+
         # 7. Selecionar "Subfunção" (ID: select2-chosen-72)
         print("  - Selecionando 'Subfunção'...")
         dropdown_subfuncao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-17']/parent::a"))
         )
         dropdown_subfuncao.click()
-        time.sleep(1)
-        
+
         opcao_subfuncao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Subfunção')]"))
         )
         opcao_subfuncao.click()
-        time.sleep(1)
-        
+
         # 8. Selecionar "Ação" (ID: select2-chosen-73)
         print("  - Selecionando 'Ação'...")
         dropdown_acao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-18']/parent::a"))
         )
         dropdown_acao.click()
-        time.sleep(1)
-        
+
         opcao_acao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Ação')]"))
         )
         opcao_acao.click()
-        time.sleep(1)
-        
+
         # 9. Alterar "Não" para "Sim" (ID: select2-chosen-74)
         print("  - Selecionando 'Sim'...")
         dropdown_nao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-19']/parent::a"))
         )
         dropdown_nao.click()
-        time.sleep(1)
-        
+
         opcao_sim = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Sim')]"))
         )
         opcao_sim.click()
-        time.sleep(1)
-        
+
         # 10. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 11. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1505,8 +1413,7 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
             ))
         )
         relacao_pagamentos.click()
-        time.sleep(1)
-        
+
         # 2. Inserir ano (ID: 75685838)
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -1514,36 +1421,31 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         )
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
-        time.sleep(1)
-        
+
         # 3. Alterar "Sim" para "Não" (ID: select2-chosen-1)
         print("  - Selecionando 'Não'...")
         dropdown_sim = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-1']/parent::a"))
         )
         dropdown_sim.click()
-        time.sleep(1)
-        
+
         opcao_nao = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Não')]"))
         )
         opcao_nao.click()
-        time.sleep(1)
-        
+
         # 4. Selecionar opção "MUNICIPIO DE RIBEIRAO DAS NEVES" no dropdown.
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         campo_municipio = wait.until(
             EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
         campo_municipio.click()
-        time.sleep(1)
 
         # Selecionar a opção diretamente
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
-        time.sleep(1)
 
         # 5. Alterar "Data específica" para "Primeiro dia do mês" (ID: select2-chosen-6)
         print("  - Selecionando 'Primeiro dia do mês'...")
@@ -1551,35 +1453,30 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-6']/parent::a"))
         )
         dropdown_data_inicio.click()
-        time.sleep(1)
-        
+
         opcao_primeiro_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Primeiro dia do mês')]"))
         )
         opcao_primeiro_dia.click()
-        time.sleep(1)
-        
+
         # 6. Alterar "Data específica" para "Último dia do mês" (ID: select2-chosen-49)
         print("  - Selecionando 'Último dia do mês'...")
         dropdown_data_fim = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-8']/parent::a"))
         )
         dropdown_data_fim.click()
-        time.sleep(1)
-        
+
         opcao_ultimo_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Último dia do mês')]"))
         )
         opcao_ultimo_dia.click()
-        time.sleep(1)
-        
+
         # 8. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 9. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1646,22 +1543,19 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
             ))
         )
         relacao_liquidacoes.click()
-        time.sleep(1)
-        
+
         # 2. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
         print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
         dropdown_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-2']/parent::a"))
         )
         dropdown_municipio.click()
-        time.sleep(1)
-        
+
         opcao_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
         )
         opcao_municipio.click()
-        time.sleep(1)
-        
+
         # 3. Inserir ano usando campo com ng-model especial
         print(f"  - Inserindo ano: {ano}...")
         campo_ano = wait.until(
@@ -1670,43 +1564,37 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
         campo_ano.send_keys(Keys.ENTER)  # Pressionar Enter para confirmar
-        time.sleep(1)
-        
+
         # 4. Alterar "Data específica" para "Primeiro dia do ano" (ID: select2-chosen-409)
         print("  - Selecionando 'Primeiro dia do ano'...")
         dropdown_data_inicio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-4']/parent::a"))
         )
         dropdown_data_inicio.click()
-        time.sleep(1)
-        
+
         opcao_primeiro_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Primeiro dia do ano')]"))
         )
         opcao_primeiro_dia.click()
-        time.sleep(1)
-        
+
         # 5. Alterar "Data específica" para "Último dia do ano" (ID: select2-chosen-411)
         print("  - Selecionando 'Último dia do ano'...")
         dropdown_data_fim = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-6']/parent::a"))
         )
         dropdown_data_fim.click()
-        time.sleep(1)
-        
+
         opcao_ultimo_dia = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'Último dia do ano')]"))
         )
         opcao_ultimo_dia.click()
-        time.sleep(1)
-        
+
         # 6. Abrir opções de execução
         print("  - Abrindo opções de execução...")
         botao_opcoes = wait.until(
             EC.element_to_be_clickable((By.ID, "verOpcoes"))
         )
         botao_opcoes.click()
-        time.sleep(1)
         
         # 7. Selecionar formato XLS
         print("  - Selecionando formato XLS...")
@@ -1882,9 +1770,10 @@ def gerar_relatorio_final(relatorios_processados, relatorios_falhados, total_bai
     try:
         from datetime import datetime
         import os
+        from src.classes.file.path_manager import obter_caminho_dados
 
-        # Criar pasta de saída se não existir
-        pasta_saida = os.path.join("arquivos_baixados", "betha", nome_cidade, str(ano))
+        # Criar pasta de saída se não existir (usando diretório configurado pelo usuário)
+        pasta_saida = obter_caminho_dados(os.path.join("betha", nome_cidade, str(ano)))
         os.makedirs(pasta_saida, exist_ok=True)
 
         # Nome do arquivo de relatório

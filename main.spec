@@ -99,7 +99,7 @@ hiddenimports += [
 # Adiciona arquivos de dados
 datas += [
     ('cidades.txt', '.'),  # Arquivo de cidades
-    ('user_config.json', '.'),  # Configuração do usuário
+    # user_config.json NÃO incluído - será criado dinamicamente no sistema do usuário
     # Assets estão em src/assets
     ('src/assets/app_icon.ico', 'src/assets'),  # Ícone principal
     ('src/assets/*.png', 'src/assets'),  # Imagens PNG
@@ -146,7 +146,7 @@ if sys.platform == 'darwin':
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=False,  # False para não mostrar console
+        console=True,  # True para mostrar console e debug
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
@@ -191,7 +191,7 @@ else:
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=False,  # False para não mostrar console
+        console=True,  # True para mostrar console e debug
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,

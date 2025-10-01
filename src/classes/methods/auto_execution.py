@@ -12,14 +12,15 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
-# Adiciona o diretório raiz ao path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+# Adiciona o diretório raiz ao path (só em desenvolvimento, não em executável)
+if not hasattr(sys, '_MEIPASS'):
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 # Importa configurações e gerenciadores
 from src.classes.config_page import ConfigManager
 from src.classes.date_calculator import DateCalculator
 from src.classes.file.file_manager import FileManager
-from src.classes.file.path_manager import obter_caminho_dados
+from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso
 from src.classes.methods.cancel_method import BotBase
 
 # Importa os bots
@@ -170,13 +171,18 @@ class AutomaticExecutor(BotBase):
             return True
 
         self.monitoring_active = True
+
+        # Detecta se está rodando como executável PyInstaller
+        is_executable = hasattr(sys, '_MEIPASS')
+
+        # Em executável, não usar daemon para evitar problemas
         self.monitoring_thread = threading.Thread(
             target=self._monitoring_loop,
-            daemon=True
+            daemon=False if is_executable else True
         )
         self.monitoring_thread.start()
 
-        print("✓ Monitoramento de execução automática iniciado")
+        print(f"✓ Monitoramento de execução automática iniciado ({'executável' if is_executable else 'desenvolvimento'})")
         self._calculate_next_execution()
         if self.next_execution_time:
             print(f"  Próxima execução: {self.next_execution_time.strftime('%d/%m/%Y %H:%M')}")
@@ -247,8 +253,8 @@ class AutomaticExecutor(BotBase):
                 print(f"📅 Novo dia detectado: {now.date()}")
                 self.last_execution_time = None
                 self.last_execution_date_only = None
-            elif time_since_last < 90:
-                # Mesmo dia e executou há menos de 90 segundos - evita duplicação
+            elif time_since_last < 180:
+                # Mesmo dia e executou há menos de 3 minutos - evita duplicação
                 return False
 
         # Verifica horário
@@ -257,9 +263,9 @@ class AutomaticExecutor(BotBase):
             hour, minute = map(int, scheduled_time.split(':'))
             scheduled_datetime = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-            # Verifica se está no minuto correto (com tolerância de 90 segundos)
+            # Verifica se está no minuto correto (com tolerância de 45 segundos)
             time_diff = abs((now - scheduled_datetime).total_seconds())
-            if time_diff > 90:  # Mais de 90 segundos de diferença
+            if time_diff > 45:  # Mais de 45 segundos de diferença
                 return False
 
         except Exception as e:
@@ -407,8 +413,9 @@ class AutomaticExecutor(BotBase):
             data_final = datetime.now()
             data_inicial = data_final - timedelta(days=30)
 
-            # Carrega cidades do arquivo
-            cidades = self.file_manager.carregar_cidades()
+            # Carrega TODAS as cidades (cidades.txt) para execução automática
+            file_manager_auto = FileManager("cidades.txt")  # 852 cidades completas
+            cidades = file_manager_auto.carregar_cidades()
 
             if not cidades:
                 print("  ⚠ Nenhuma cidade configurada para BB DAF")
@@ -453,38 +460,82 @@ class AutomaticExecutor(BotBase):
 
     def _execute_fnde(self, mode: str):
         """
-        Executa o bot FNDE com parâmetros padrão
+        Executa o bot FNDE para todas as cidades
 
         Args:
-            mode: Modo de execução (não usado para FNDE)
+            mode: Modo de execução (Individual ou Paralela)
         """
         try:
-            # Parâmetros padrão
+            # Parâmetros
             ano = datetime.now().year
-            municipio = "RIBEIRAO DAS NEVES"  # Município padrão
+
+            # Carrega TODAS as cidades (cidades.txt) para execução automática
+            file_manager_auto = FileManager("cidades.txt")  # 852 cidades completas
+            municipios = file_manager_auto.carregar_cidades()
+
+            if not municipios:
+                print("  ⚠ Nenhuma cidade configurada para FNDE")
+                return
 
             print(f"  • Ano: {ano}")
-            print(f"  • Município: {municipio}")
+            print(f"  • Municípios: {len(municipios)} cidades")
+            print(f"  • Modo: {mode}")
 
-            bot = BotFNDE()
-            self.current_bots.append(bot)
+            if mode == 'Paralela':
+                # Execução paralela
+                num_instancias = self.exec_config.get('parallel_instances', 2)
 
-            if bot.configurar_navegador():
-                resultado = bot.executar_completo(
-                    ano=str(ano),
-                    municipio=municipio,
-                    tipo_repasse="FPM"
-                )
+                bot = BotFNDE()
+                self.current_bots.append(bot)
 
-                if resultado['sucesso']:
-                    print("  ✓ FNDE executado com sucesso")
+                resultado = bot.executar_paralelo(str(ano), num_instancias)
+
+                self.current_bots.remove(bot)
+
+                if resultado and resultado.get('sucesso'):
+                    print("  ✓ FNDE executado com sucesso (paralelo)")
                 else:
-                    print(f"  ✗ Falha na execução FNDE: {resultado.get('mensagem', 'Erro desconhecido')}")
+                    erro = resultado.get('erro', 'Erro desconhecido') if resultado else 'Erro na execução'
+                    print(f"  ✗ Falha na execução FNDE: {erro}")
             else:
-                print("  ✗ Erro ao configurar navegador para FNDE")
+                # Execução individual
+                bot = BotFNDE()
+                self.current_bots.append(bot)
 
-            bot.fechar_navegador()
-            self.current_bots.remove(bot)
+                if not bot.configurar_navegador():
+                    print("  ✗ Erro ao configurar navegador para FNDE")
+                    self.current_bots.remove(bot)
+                    return
+
+                # Processa cada município
+                sucessos = 0
+                falhas = 0
+
+                for municipio in municipios:
+                    if self.esta_cancelado():
+                        print("  ⚠ Execução cancelada pelo usuário")
+                        break
+
+                    try:
+                        resultado = bot.processar_municipio(
+                            ano=str(ano),
+                            municipio=municipio.upper()
+                        )
+
+                        if resultado['sucesso']:
+                            sucessos += 1
+                        else:
+                            falhas += 1
+                            print(f"  ✗ Falha em {municipio}: {resultado.get('mensagem', 'Erro desconhecido')}")
+
+                    except Exception as e:
+                        falhas += 1
+                        print(f"  ✗ Erro ao processar {municipio}: {e}")
+
+                print(f"  ✓ FNDE executado: {sucessos} sucessos, {falhas} falhas")
+
+                bot.fechar_navegador()
+                self.current_bots.remove(bot)
 
         except Exception as e:
             print(f"  ✗ Erro ao executar FNDE: {e}")
@@ -497,11 +548,11 @@ class AutomaticExecutor(BotBase):
             mode: Modo de execução
         """
         try:
-            # Carrega configurações das cidades
-            config_path = obter_caminho_dados("src/bots/betha/city_betha.json")
+            # Carrega configurações das cidades (recurso empacotado)
+            config_path = obter_caminho_recurso("src/bots/betha/city_betha.json")
 
             if not os.path.exists(config_path):
-                print("  ⚠ Arquivo de configuração city_betha.json não encontrado")
+                print(f"  ⚠ Arquivo de configuração city_betha.json não encontrado em: {config_path}")
                 return
 
             with open(config_path, 'r', encoding='utf-8') as f:

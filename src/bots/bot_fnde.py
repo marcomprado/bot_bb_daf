@@ -586,7 +586,7 @@ class BotFNDE(BotBase):
             Dict: Resultados consolidados do processamento paralelo com referência ao processador
         """
         try:
-            from classes.parallel_processor import ProcessadorParalelo
+            from src.classes.methods.parallel_processor import ProcessadorParalelo
             
             print(f"\n=== INICIANDO PROCESSAMENTO PARALELO FNDE ===")
             print(f"Ano: {ano}")

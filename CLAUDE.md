@@ -56,15 +56,25 @@ The system was recently refactored for clear separation of concerns with dedicat
 - **City-Specific Scripts** (`src/bots/betha/`): Municipality-specific processing logic after reaching "Relatórios Favoritos"
 
 **Utility Layer**: `src/classes/` directory contains shared utilities and configuration:
-- **ProcessadorParalelo** (`src/classes/parallel_processor.py`): Manages parallel execution across instances
-- **DataExtractor** (`src/classes/data_extractor.py`): HTML parsing and Excel generation with formatting
 - **ChromeDriverSimples** (`src/classes/chrome_driver.py`): Direct ChromeDriver connection without webdriver-manager
+- **DataExtractor** (`src/classes/data_extractor.py`): HTML parsing and Excel generation with formatting
 - **Configuration** (`src/classes/config.py`): Centralized settings, CSS selectors, and constants
+- **ConfigPage** (`src/classes/config_page.py`): Manages user preferences stored in `user_config.json`
+- **DateCalculator** (`src/classes/date_calculator.py`): Date range utilities for report processing
+- **CitySplitter** (`src/classes/city_splitter.py`): City distribution algorithm for parallel processing
+- **BotBase** (`src/classes/methods/cancel_method.py`): Base class providing cancellation support to all bots
+- **ProcessadorParalelo** (`src/classes/methods/parallel_processor.py`): Manages parallel execution (thread/subprocess modes)
+- **AutomaticExecutor** (`src/classes/methods/auto_execution.py`): Scheduled execution system for automated runs
+- **FileManager** (`src/classes/file/file_manager.py`): File operations and directory management
+- **FileConverter** (`src/classes/file/file_converter.py`): XLS to XLSX conversion using xlwings for Betha downloads
+- **PathManager** (`src/classes/file/path_manager.py`): Path resolution for bundled executables
 
 **UI Layer**: Separate GUI files for each scraper with tabbed interface:
 - **GUI1** (`src/view/gui1.py`): Pure UI for BB DAF system (parameter collection only)
 - **GUI2** (`src/view/gui2.py`): Pure UI for FNDE system
 - **GUI3** (`src/view/gui3.py`): Pure UI for Betha system (year/city/parallel selection)
+- **ConfigGUI** (`src/view/view_config.py`): Settings page for download directory and automatic execution
+- **UI Modules** (`src/view/modules/`): Reusable components (buttons, city selector)
 
 ### Key Architectural Principles
 
@@ -106,30 +116,44 @@ The system was recently refactored for clear separation of concerns with dedicat
 ├── main.py                     # System orchestrator and entry point
 ├── main.spec                   # PyInstaller build specification
 ├── requirements.txt            # Python dependencies
+├── user_config.json            # User preferences (download dir, auto-execution settings)
 ├── src/                        # Source code directory
 │   ├── view/                   # UI layer
 │   │   ├── gui1.py            # BB DAF UI (parameters only)
 │   │   ├── gui2.py            # FNDE UI (parameters only)
 │   │   ├── gui3.py            # Betha UI (year/city/parallel selection)
-│   │   └── modules/           # UI components (buttons, selectors)
+│   │   ├── view_config.py     # Settings UI (ConfigGUI)
+│   │   └── modules/           # UI components (buttons, city_selector)
 │   ├── bots/                   # Business logic engines
 │   │   ├── bot_bbdaf.py       # BB DAF complete automation logic
 │   │   ├── bot_fnde.py        # FNDE scraping logic
 │   │   ├── bot_betha.py       # Betha Cloud automation with dynamic city config
 │   │   └── betha/             # City-specific Betha processing scripts
+│   │       ├── city_betha.json        # Login credentials per municipality
+│   │       └── bot_[city_name].py     # City-specific report logic
 │   ├── classes/                # Shared utilities and config
-│   │   ├── config.py          # Centralized configuration
-│   │   ├── parallel_processor.py # Parallel execution manager
+│   │   ├── config.py          # Centralized configuration (URLs, selectors, timeouts)
+│   │   ├── config_page.py     # User config manager (reads/writes user_config.json)
 │   │   ├── chrome_driver.py   # Direct ChromeDriver connection
 │   │   ├── data_extractor.py  # Excel generation and formatting
 │   │   ├── date_calculator.py # Date range utilities
-│   │   ├── file_manager.py    # File operations
 │   │   ├── city_splitter.py   # City distribution for parallel processing
-│   │   └── run_instance.py    # Helper for subprocess parallel execution
-│   └── assets/                 # Static assets (icons, etc.)
+│   │   ├── run_instance.py    # Helper for subprocess parallel execution
+│   │   ├── methods/           # Advanced execution methods
+│   │   │   ├── parallel_processor.py  # Parallel execution manager
+│   │   │   ├── auto_execution.py      # Scheduled/automatic execution
+│   │   │   └── cancel_method.py       # BotBase with cancellation support
+│   │   └── file/              # File handling utilities
+│   │       ├── file_manager.py        # General file operations
+│   │       ├── file_converter.py      # XLS to XLSX conversion (xlwings)
+│   │       └── path_manager.py        # Path resolution for executables
+│   └── assets/                 # Static assets (icons, images)
 ├── cidades.txt                 # Static reference (852 MG cities)
-├── listed_cities.txt           # Dynamic file generated by GUI
+├── listed_cities.txt           # Dynamic file generated by GUI city selection
 ├── arquivos_baixados/          # Output directory for downloaded/generated files
+│   ├── YYYY-MM-DD/            # BB DAF files organized by date
+│   ├── fnde/                  # FNDE system outputs
+│   └── betha/                 # Betha Cloud reports
 ```
 
 ### Browser Requirements
@@ -140,11 +164,26 @@ The system was recently refactored for clear separation of concerns with dedicat
 
 ### Configuration Management
 
-All configuration is centralized in `src/classes/config.py`:
-- `SISTEMA_CONFIG`: URLs, timeouts, pauses
+The system uses two types of configuration:
+
+**System Configuration** (`src/classes/config.py`):
+- `SISTEMA_CONFIG`: URLs, timeouts, pauses (optimized for speed)
 - `SELETORES_CSS`: CSS selectors for web elements
 - `FNDE_CONFIG`: FNDE-specific settings
 - `ARQUIVOS_CONFIG`: File paths and encoding
+- `MENSAGENS`: Log messages and status indicators
+
+**User Configuration** (`user_config.json` managed by `src/classes/config_page.py`):
+- `download_directory`: Custom output directory for files
+- `window_geometry`: GUI window size preferences
+- `automatic_execution`: Scheduled execution settings
+  - `enabled`: Boolean to activate/deactivate auto-execution
+  - `scripts`: Which bots to run (bb_daf, fnde, betha)
+  - `period`: "Diariamente" or "Semanalmente"
+  - `weekdays`: Which days of week to run (seg, ter, qua, qui, sex, sab, dom)
+  - `time`: Execution time (HH:MM format)
+  - `execution_mode`: "Sequencial" or "Paralela"
+  - `parallel_instances`: Number of concurrent instances for parallel mode
 
 ### Import Path Structure
 
@@ -186,6 +225,13 @@ The Betha Cloud automation system has unique characteristics that require specia
 - XLS export format selection and automated execution
 - Visual feedback with time delays for development debugging
 
+#### **File Conversion for Betha**:
+- Betha Cloud exports XLS format (old Excel format)
+- FileConverter uses xlwings library for reliable XLS to XLSX conversion
+- Temporary download directory created per municipality: `arquivos_baixados/betha/[city_name]/temp/`
+- Files are converted and moved to final location: `arquivos_baixados/betha/[city_name]/[year]/`
+- Temporary files are cleaned up after successful conversion
+
 ### Testing & Validation
 
 Manual validation through:
@@ -195,6 +241,43 @@ Manual validation through:
 - Dependency verification in main.py
 - City configuration JSON validation
 
+### Automatic Execution System
+
+The system supports scheduled automatic execution via `AutomaticExecutor` class:
+
+**Activation**:
+- Configured through ConfigGUI settings page (gear icon in main window)
+- Settings stored in `user_config.json` under `automatic_execution`
+- Monitoring thread starts on application launch if `enabled: true`
+
+**Execution Flow**:
+1. AutomaticExecutor checks current time against configured schedule
+2. If time matches and enabled, creates appropriate bot instance(s)
+3. Executes in sequential or parallel mode based on configuration
+4. Logs execution status and errors
+5. Waits for next scheduled time
+
+**Scheduling Options**:
+- Daily execution at specific time
+- Weekly execution on selected weekdays
+- Per-script enable/disable (BB DAF, FNDE, Betha)
+- Parallel mode with configurable instance count
+
+### Bot Cancellation System
+
+All bots inherit from `BotBase` class providing cancellation support:
+
+**Implementation**:
+- `self.cancelado` flag tracked by all bot operations
+- `verificar_cancelamento()` method raises exception if cancelled
+- Called between automation steps to allow graceful termination
+
+**Usage in GUI**:
+- "Cancelar" button sets bot's `cancelado` flag to `True`
+- Bot checks flag periodically and terminates current operation
+- Browser closes and resources are cleaned up
+- Status returned to GUI for user feedback
+
 ### Selenium Automation Patterns
 
 #### **XPath Selectors for Select2 Dropdowns**:
@@ -203,3 +286,28 @@ For Select2 dropdowns, use: `//span[@id='select2-chosen-X']/parent::a`
 - Navigates to parent `<a>` element that needs to be clicked
 - Doesn't depend on CSS classes that may change
 - Cleaner XPath syntax
+
+### PyInstaller Build Configuration
+
+The `main.spec` file handles cross-platform executable generation:
+
+**macOS Build** (onedir mode):
+- Uses `BUNDLE` to create `.app` package
+- Directory structure: `Sistema_FVN.app/Contents/MacOS/`
+- Prevents deprecation warnings on macOS
+- Includes proper bundle identifier and Info.plist
+
+**Windows/Linux Build** (onefile mode):
+- Single executable file: `Sistema_FVN.exe` or `Sistema_FVN`
+- All dependencies embedded in executable
+- No console window (`console=False`)
+
+**Hidden Imports**:
+- All `src` modules explicitly listed to ensure inclusion
+- Selenium, pandas, openpyxl, xlwings, customtkinter
+- City-specific Betha scripts in `src/bots/betha/`
+
+**Data Files**:
+- `cidades.txt`, `user_config.json`, `city_betha.json`
+- Application icon and assets
+- All Python source files for runtime imports

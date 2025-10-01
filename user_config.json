@@ -5,10 +5,10 @@
         "height": 750
     },
     "automatic_execution": {
-        "enabled": false,
+        "enabled": true,
         "scripts": {
-            "bb_daf": true,
-            "fnde": false,
+            "bb_daf": false,
+            "fnde": true,
             "betha": false
         },
         "period": "Diariamente",
@@ -21,7 +21,7 @@
             "sab": false,
             "dom": false
         },
-        "time": "14:49",
+        "time": "16:08",
         "execution_mode": "Paralela",
         "parallel_instances": 5
     }

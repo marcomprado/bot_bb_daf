@@ -462,7 +462,7 @@ class GUI2:
                     num_instancias = int(modo_selecionado.split("(")[1].split(" ")[0])
                     
                     # Importa processador paralelo
-                    from classes.parallel_processor import ProcessadorParalelo
+                    from src.classes.methods.parallel_processor import ProcessadorParalelo
                     self.processador_paralelo = ProcessadorParalelo()
                     
                     print(f"Iniciando execução paralela com {num_instancias} instâncias")

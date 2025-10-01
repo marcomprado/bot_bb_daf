@@ -109,18 +109,44 @@ class FileConverter:
         Returns:
             str: Caminho do arquivo XLSX convertido ou None se falhou
         """
+        import sys
+        app = None
+        wb = None
+
         try:
             # Define o nome do arquivo de saída
             nome_base = os.path.basename(arquivo_xls)
             nome_sem_ext = os.path.splitext(nome_base)[0]
             arquivo_xlsx = os.path.join(self.converted_dir, f"{nome_sem_ext}.xlsx")
 
-            # Abre Excel, converte e salva preservando toda formatação
-            app = xw.App(visible=False)
-            wb = app.books.open(arquivo_xls)
+            # Detecta se está rodando como executável PyInstaller
+            is_executable = hasattr(sys, '_MEIPASS')
+
+            # Configuração especial para executável
+            if is_executable:
+                # Em executável: configuração mais restritiva
+                app = xw.App(
+                    visible=False,
+                    add_book=False,
+                    spec=None
+                )
+            else:
+                # Em desenvolvimento: configuração padrão
+                app = xw.App(visible=False)
+
+            # Abre o arquivo com opções para evitar problemas
+            wb = app.books.open(
+                arquivo_xls,
+                update_links=False,
+                read_only=True,
+                notify=False
+            )
+
+            # Salva como XLSX
             wb.save(arquivo_xlsx)
+
+            # Fecha o workbook
             wb.close()
-            app.quit()
 
             print(f"    ✓ Convertido: {nome_base} → {nome_sem_ext}.xlsx")
             return arquivo_xlsx
@@ -128,6 +154,23 @@ class FileConverter:
         except Exception as e:
             print(f"    ✗ Erro ao converter {arquivo_xls}: {e}")
             return None
+
+        finally:
+            # Garante que Excel sempre fecha, especialmente em executável
+            try:
+                if wb:
+                    wb.close()
+            except:
+                pass
+
+            try:
+                if app:
+                    app.quit()
+                    # Em executável, força o kill para garantir fechamento
+                    if hasattr(sys, '_MEIPASS'):
+                        app.kill()
+            except:
+                pass
     
     def converter_todos_raw(self):
         """

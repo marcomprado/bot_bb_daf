@@ -31,12 +31,14 @@ class ConfigManager:
     def _initialize(self):
         """Inicializa o gerenciador de configurações"""
         self._config_file_path = self._get_config_file_path()
+        # Garante que o diretório de configuração existe
+        self._ensure_config_directory()
         self._load_config()
-    
+
     def _get_config_file_path(self) -> str:
         """
         Obtém o caminho do arquivo de configuração baseado no sistema operacional
-        
+
         Returns:
             str: Caminho completo para o arquivo de configuração
         """
@@ -52,30 +54,79 @@ class ConfigManager:
         else:
             # Em desenvolvimento, usa diretório local
             config_dir = "."
-        
+
         return os.path.join(config_dir, "user_config.json")
+
+    def _ensure_config_directory(self):
+        """Garante que o diretório de configuração existe"""
+        try:
+            config_dir = os.path.dirname(self._config_file_path)
+            if config_dir and config_dir != ".":
+                os.makedirs(config_dir, exist_ok=True)
+                print(f"✓ Diretório de configuração: {config_dir}")
+        except Exception as e:
+            print(f"⚠ Erro ao criar diretório de configuração: {e}")
     
     
     def _load_config(self):
-        """Carrega as configurações do arquivo JSON que sempre existe"""
-        try:
-            with open(self._config_file_path, 'r', encoding='utf-8') as f:
-                self._config_data = json.load(f)
-        except Exception as e:
-            print(f"Erro ao carregar configurações: {e}")
-            # Se houver erro na leitura, usa config mínimo
-            self._config_data = {
-                "download_directory": "arquivos_baixados",
-                "window_geometry": {"width": 900, "height": 750}
+        """Carrega as configurações do arquivo JSON - cria se não existir"""
+        # Define configurações padrão
+        default_config = {
+            "download_directory": "arquivos_baixados",
+            "window_geometry": {"width": 900, "height": 750},
+            "automatic_execution": {
+                "enabled": False,
+                "scripts": {
+                    "bb_daf": False,
+                    "fnde": False,
+                    "betha": False
+                },
+                "period": "Diariamente",
+                "weekdays": {
+                    "seg": False,
+                    "ter": False,
+                    "qua": False,
+                    "qui": False,
+                    "sex": False,
+                    "sab": False,
+                    "dom": False
+                },
+                "time": "08:00",
+                "execution_mode": "Individual",
+                "parallel_instances": 2
             }
-    
+        }
+
+        # Tenta carregar configuração existente
+        if os.path.exists(self._config_file_path):
+            try:
+                with open(self._config_file_path, 'r', encoding='utf-8') as f:
+                    self._config_data = json.load(f)
+                print(f"✓ Configurações carregadas de: {self._config_file_path}")
+            except Exception as e:
+                print(f"⚠ Erro ao carregar configurações: {e}")
+                # Usa defaults e salva
+                self._config_data = default_config
+                self._save_config()
+        else:
+            # Arquivo não existe - criar com defaults
+            print(f"✓ Criando novo arquivo de configuração: {self._config_file_path}")
+            self._config_data = default_config
+            self._save_config()
+
     def _save_config(self):
         """Salva as configurações no arquivo JSON - uso interno"""
         try:
+            # Garante que o diretório existe antes de salvar
+            config_dir = os.path.dirname(self._config_file_path)
+            if config_dir and config_dir != ".":
+                os.makedirs(config_dir, exist_ok=True)
+
+            # Salva o arquivo
             with open(self._config_file_path, 'w', encoding='utf-8') as f:
                 json.dump(self._config_data, f, indent=4, ensure_ascii=False)
         except Exception as e:
-            print(f"Erro ao salvar configurações: {e}")
+            print(f"✗ Erro ao salvar configurações: {e}")
 
     def save_config_to_file(self):
         """Método público para salvar configurações - chamado explicitamente pela UI"""
