@@ -15,6 +15,10 @@ hiddenimports = []
 tmp_ret = collect_all('customtkinter')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
+# Adiciona xlwings com todos os seus recursos
+tmp_ret = collect_all('xlwings')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+
 # Adiciona tkinter
 hiddenimports += ['tkinter', 'tkinter.ttk', 'tkinter.messagebox']
 
@@ -35,20 +39,34 @@ hiddenimports += [
     'pandas',
     'openpyxl',
     'xlrd',
-    'xlwings',
     'psutil',
-    'PIL',
-    'Pillow',
+    'PIL',           # Pillow (nome correto do módulo)
     'lxml',
-    'bs4',
-    'beautifulsoup4',
+    'bs4',           # beautifulsoup4 (nome correto do módulo)
     'requests',
     'urllib3',
     'concurrent.futures',
     'threading',
-    'dateutil',
-    'python_dateutil',
+    'dateutil',      # python-dateutil (nome correto do módulo)
 ]
+
+# Adiciona módulos xlwings específicos
+hiddenimports += [
+    'xlwings._xlmac',      # Para macOS
+    'xlwings._xlwindows',  # Para Windows
+    'xlwings.conversion',
+    'xlwings.main',
+    'xlwings.utils',
+]
+
+# Adiciona dependências Windows (condicionalmente)
+if sys.platform == 'win32':
+    hiddenimports += [
+        'win32com',
+        'win32com.client',
+        'win32com.client.makepy',
+        'pythoncom',
+    ]
 
 # Adiciona módulos src.view (GUIs)
 hiddenimports += [
@@ -124,7 +142,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['xlwings.rest'],  # Requer werkzeug, não é usado no projeto
     noarchive=False,
     optimize=0,
 )
