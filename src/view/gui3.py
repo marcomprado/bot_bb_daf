@@ -71,16 +71,24 @@ class GUI3:
                 os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
                 "src", "bots", "betha", "city_betha.json"
             )
-            
+
             if os.path.exists(caminho_json):
                 with open(caminho_json, "r", encoding="utf-8") as arquivo:
                     dados = json.load(arquivo)
-                    self.lista_cidades_betha = dados.get("cidades", [])
+                    cidades_obj = dados.get("cidades", {})
+
+                    # Converte objeto para lista para compatibilidade com código existente
+                    if isinstance(cidades_obj, dict):
+                        self.lista_cidades_betha = list(cidades_obj.values())
+                    else:
+                        # Mantém compatibilidade com formato antigo (array)
+                        self.lista_cidades_betha = cidades_obj if isinstance(cidades_obj, list) else []
+
                 print(f"Carregadas {len(self.lista_cidades_betha)} cidades Betha")
             else:
                 print("Arquivo city_betha.json não encontrado")
                 self.lista_cidades_betha = []
-                
+
         except Exception as e:
             print(f"Erro ao carregar cidades Betha: {e}")
             self.lista_cidades_betha = []

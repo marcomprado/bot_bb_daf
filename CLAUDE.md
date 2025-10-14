@@ -205,8 +205,29 @@ The Betha Cloud automation system has unique characteristics that require specia
 
 #### **City Configuration System**:
 - Each municipality requires different login credentials stored in `src/bots/betha/city_betha.json`
-- Format: `{"cidades": [{"nome": "City Name", "Login": "username", "Senha": "password"}]}`
-- Municipality names are automatically normalized (accents removed) for web element matching
+- **New Format (object/dictionary with normalized keys)**:
+  ```json
+  {
+    "cidades": {
+      "ribeirao_das_neves": {
+        "nome": "Ribeirão das Neves",
+        "Login": "breno.ribeirao",
+        "Senha": "Brc123456789!"
+      },
+      "contagem": {
+        "nome": "Contagem",
+        "Login": "contagem.user",
+        "Senha": "Ctg123456789!"
+      }
+    }
+  }
+  ```
+- **Key Benefits**:
+  - O(1) direct access by normalized city name (e.g., `ribeirao_das_neves`)
+  - Prevents duplicate cities (unique keys guaranteed)
+  - Scalable for dozens/hundreds of municipalities
+  - Backward compatible: code handles both old array and new object formats
+- Municipality names are automatically normalized (accents removed, spaces → underscores, lowercase) for web element matching and JSON key generation
 
 #### **Dynamic Year/PPA Calculation**:
 - PPAs (Plano Plurianual) are calculated automatically based on selected year

@@ -557,7 +557,14 @@ class AutomaticExecutor(BotBase):
 
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
-                cidades = config_data.get('cidades', [])
+                cidades_obj = config_data.get('cidades', {})
+
+                # Converte objeto para lista para compatibilidade
+                if isinstance(cidades_obj, dict):
+                    cidades = list(cidades_obj.values())
+                else:
+                    # Mantém compatibilidade com formato antigo (array)
+                    cidades = cidades_obj if isinstance(cidades_obj, list) else []
 
             if not cidades:
                 print("  ⚠ Nenhuma cidade configurada para Betha")

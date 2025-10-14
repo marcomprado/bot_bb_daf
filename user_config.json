@@ -5,7 +5,7 @@
         "height": 750
     },
     "automatic_execution": {
-        "enabled": true,
+        "enabled": false,
         "scripts": {
             "bb_daf": false,
             "fnde": true,

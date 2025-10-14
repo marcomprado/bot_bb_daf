@@ -1,9 +1,9 @@
 {
-  "cidades": [
-    {
+  "cidades": {
+    "ribeirao_das_neves": {
       "nome": "Ribeirão das Neves",
       "Login": "breno.ribeirao",
       "Senha": "Brc123456789!"
     }
-  ]
+  }
 }

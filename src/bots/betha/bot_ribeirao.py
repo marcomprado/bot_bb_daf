@@ -206,14 +206,24 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         # Obter configuração da cidade
         cidade_config = None
         try:
-            # Buscar configuração do arquivo JSON
+            # Buscar configuração do arquivo JSON com acesso direto O(1)
             json_path = os.path.join(os.path.dirname(__file__), 'city_betha.json')
             with open(json_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
-                for cidade in config_data['cidades']:
-                    if cidade['nome'].lower().replace(' ', '_') == nome_cidade.lower().replace(' ', '_'):
-                        cidade_config = cidade
-                        break
+                cidades_obj = config_data.get('cidades', {})
+
+                # Normaliza o nome da cidade para usar como chave
+                cidade_key = nome_cidade.lower().replace(' ', '_')
+
+                # Busca direta por chave (novo formato dict - O(1))
+                if isinstance(cidades_obj, dict):
+                    cidade_config = cidades_obj.get(cidade_key)
+                else:
+                    # Fallback: formato antigo array - busca linear
+                    for cidade in cidades_obj:
+                        if cidade['nome'].lower().replace(' ', '_') == cidade_key:
+                            cidade_config = cidade
+                            break
         except Exception as e:
             print(f"⚠ Aviso: Não foi possível carregar configuração da cidade: {e}")
 
