@@ -1756,17 +1756,9 @@ def converter_arquivos_finais(file_converter):
 
 
 def gerar_relatorio_final(relatorios_processados, relatorios_falhados, total_baixados, total_convertidos, ano, nome_cidade):
-    """
-    Gera um arquivo de relatório TXT com o resumo do processamento
-
-    Args:
-        relatorios_processados: Lista de relatórios processados com sucesso
-        relatorios_falhados: Lista de relatórios que falharam
-        total_baixados: Total de arquivos baixados
-        total_convertidos: Total de arquivos convertidos
-        ano: Ano do processamento
-        nome_cidade: Nome da cidade
-    """
+    
+    # Gera um arquivo de relatório TXT com o resumo do processamento
+    
     try:
         from datetime import datetime
         import os
