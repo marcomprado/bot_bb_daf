@@ -57,12 +57,23 @@ class GUI3:
         # Ano atual
         ano_atual = datetime.now().year
         self.ano_var.set(str(ano_atual))
-        
+
         # Carrega cidades do JSON
         self._carregar_cidades_betha()
-        
+
         # Define valor padrão do modo de execução
         self.modo_var.set("Individual")
+
+        # Configura valores padrão para Windows
+        if is_windows():
+            # Define ano atual como padrão para Windows
+            self.anos_selecionados = [str(ano_atual)]
+
+            # Define todas as cidades como padrão para Windows
+            if self.lista_cidades_betha:
+                self.cidades_selecionadas = [cidade["nome"] for cidade in self.lista_cidades_betha]
+            else:
+                self.cidades_selecionadas = []
     
     def _carregar_cidades_betha(self):
         """Carrega cidades do arquivo city_betha.json"""
@@ -203,9 +214,19 @@ class GUI3:
             self.dropdown_ano.pack()
         
         # Label de status da seleção
+        if is_windows() and self.anos_selecionados:
+            # Para Windows, mostra o status baseado na seleção real
+            if len(self.anos_selecionados) == 1:
+                status_text = f"Ano selecionado: {self.anos_selecionados[0]}"
+            else:
+                status_text = f"{len(self.anos_selecionados)} ano(s) selecionado(s)"
+        else:
+            # Para Unix ou quando não há seleção
+            status_text = f"Ano atual selecionado ({datetime.now().year})"
+
         self.label_status_anos = ctk.CTkLabel(
             frame_anos,
-            text="Ano atual selecionado (2025)",
+            text=status_text,
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#495057"
         )
@@ -273,9 +294,21 @@ class GUI3:
             self.cidade_var.set("Todas as Cidades")
         
         # Label de status da seleção
+        if is_windows() and self.cidades_selecionadas:
+            # Para Windows, mostra o status baseado na seleção real
+            count = len(self.cidades_selecionadas)
+            total = len(self.lista_cidades_betha)
+            if count == total:
+                status_text = f"Todas as cidades selecionadas ({count} cidades)"
+            else:
+                status_text = f"{count} cidade(s) selecionada(s)"
+        else:
+            # Para Unix ou quando não há seleção
+            status_text = f"Todas as cidades selecionadas ({len(self.lista_cidades_betha)} cidades)"
+
         self.label_status_cidades = ctk.CTkLabel(
             frame_cidades,
-            text=f"Todas as cidades selecionadas ({len(self.lista_cidades_betha)} cidades)",
+            text=status_text,
             font=ctk.CTkFont(size=13, weight="bold"),
             text_color="#495057"
         )
