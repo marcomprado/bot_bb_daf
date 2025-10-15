@@ -54,7 +54,7 @@ class SistemaFVN:
 
         # Define padrão baseado na plataforma
         if platform.system() == "Windows":
-            default_geometry = {"width": 1200, "height": 1600}
+            default_geometry = {"width": 650, "height": 950}
         else:  # macOS e Linux
             default_geometry = {"width": 600, "height": 950}
 
@@ -114,8 +114,17 @@ class SistemaFVN:
         self.janela.update_idletasks()
         largura = self.janela.winfo_width()
         altura = self.janela.winfo_height()
-        pos_x = (self.janela.winfo_screenwidth() // 2) - (largura // 2)
-        pos_y = (self.janela.winfo_screenheight() // 2) - (altura // 2)
+        screen_width = self.janela.winfo_screenwidth()
+        screen_height = self.janela.winfo_screenheight()
+
+        # Calculate center position
+        pos_x = (screen_width // 2) - (largura // 2)
+        pos_y = (screen_height // 2) - (altura // 2)
+
+        # Ensure window stays within screen boundaries
+        pos_x = max(0, min(pos_x, screen_width - largura))
+        pos_y = max(0, min(pos_y, screen_height - altura))
+
         self.janela.geometry(f"{largura}x{altura}+{pos_x}+{pos_y}")
 
     def _salvar_geometria(self):

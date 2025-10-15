@@ -72,7 +72,7 @@ class ConfigManager:
         """Carrega as configurações do arquivo JSON - cria se não existir"""
         # Define configurações padrão baseado na plataforma
         if platform.system() == "Windows":
-            default_geometry = {"width": 1200, "height": 1600}
+            default_geometry = {"width": 650, "height": 950}
         else:  # macOS e Linux
             default_geometry = {"width": 600, "height": 950}
 
@@ -207,7 +207,7 @@ class ConfigManager:
 
         # Define geometria baseado na plataforma
         if platform.system() == "Windows":
-            default_geometry = {"width": 1200, "height": 1600}
+            default_geometry = {"width": 650, "height": 950}
         else:  # macOS e Linux
             default_geometry = {"width": 600, "height": 950}
 
