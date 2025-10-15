@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_betha import BotBetha
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, create_city_selector, create_year_selector
 from src.classes.file.path_manager import obter_caminho_dados
 import time
 
@@ -63,17 +62,6 @@ class GUI3:
 
         # Define valor padrão do modo de execução
         self.modo_var.set("Individual")
-
-        # Configura valores padrão para Windows
-        if is_windows():
-            # Define ano atual como padrão para Windows
-            self.anos_selecionados = [str(ano_atual)]
-
-            # Define todas as cidades como padrão para Windows
-            if self.lista_cidades_betha:
-                self.cidades_selecionadas = [cidade["nome"] for cidade in self.lista_cidades_betha]
-            else:
-                self.cidades_selecionadas = []
     
     def _carregar_cidades_betha(self):
         """Carrega cidades do arquivo city_betha.json"""
@@ -188,41 +176,23 @@ class GUI3:
             text_color="#495057"
         )
         label_ano_campo.pack(pady=(0, 5))
-        
-        if is_windows():
-            # Windows: Botão que abre janela de seleção
-            self.btn_selecionar_anos = ButtonFactory.create_primary_button(
-                frame_ano_campo,
-                text="SELECIONAR ANOS",
-                command=self._abrir_janela_anos,
-                width=300
-            )
-            self.btn_selecionar_anos.pack()
-        else:
-            # Unix: Dropdown com anos
-            anos_disponiveis = ["Todos os Anos"] + [str(ano) for ano in range(2029, 1997, -1)]
-            self.dropdown_ano = ctk.CTkOptionMenu(
-                frame_ano_campo,
-                values=anos_disponiveis,
-                variable=self.ano_var,
-                font=ctk.CTkFont(size=14),
-                dropdown_font=ctk.CTkFont(size=12),
-                width=300,
-                height=40,
-                command=self._on_ano_change
-            )
-            self.dropdown_ano.pack()
-        
+
+        # Dropdown com anos (usado em todas as plataformas)
+        anos_disponiveis = ["Todos os Anos"] + [str(ano) for ano in range(2029, 1997, -1)]
+        self.dropdown_ano = ctk.CTkOptionMenu(
+            frame_ano_campo,
+            values=anos_disponiveis,
+            variable=self.ano_var,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            width=300,
+            height=40,
+            command=self._on_ano_change
+        )
+        self.dropdown_ano.pack()
+
         # Label de status da seleção
-        if is_windows() and self.anos_selecionados:
-            # Para Windows, mostra o status baseado na seleção real
-            if len(self.anos_selecionados) == 1:
-                status_text = f"Ano selecionado: {self.anos_selecionados[0]}"
-            else:
-                status_text = f"{len(self.anos_selecionados)} ano(s) selecionado(s)"
-        else:
-            # Para Unix ou quando não há seleção
-            status_text = f"Ano atual selecionado ({datetime.now().year})"
+        status_text = f"Ano atual selecionado ({datetime.now().year})"
 
         self.label_status_anos = ctk.CTkLabel(
             frame_anos,
@@ -268,43 +238,23 @@ class GUI3:
             text_color="#495057"
         )
         label_cidade_campo.pack(pady=(0, 5))
-        
-        if is_windows():
-            # Windows: Botão que abre janela de seleção
-            self.btn_selecionar_cidades = ButtonFactory.create_primary_button(
-                frame_cidade_campo,
-                text="SELECIONAR CIDADES",
-                command=self._abrir_janela_cidades,
-                width=300
-            )
-            self.btn_selecionar_cidades.pack()
-        else:
-            # Unix: Dropdown com cidades
-            self.dropdown_cidade = ctk.CTkOptionMenu(
-                frame_cidade_campo,
-                values=self._obter_opcoes_cidades(),
-                variable=self.cidade_var,
-                font=ctk.CTkFont(size=14),
-                dropdown_font=ctk.CTkFont(size=12),
-                width=300,
-                height=40,
-                command=self._on_cidade_change
-            )
-            self.dropdown_cidade.pack()
-            self.cidade_var.set("Todas as Cidades")
-        
+
+        # Dropdown com cidades (usado em todas as plataformas)
+        self.dropdown_cidade = ctk.CTkOptionMenu(
+            frame_cidade_campo,
+            values=self._obter_opcoes_cidades(),
+            variable=self.cidade_var,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            width=300,
+            height=40,
+            command=self._on_cidade_change
+        )
+        self.dropdown_cidade.pack()
+        self.cidade_var.set("Todas as Cidades")
+
         # Label de status da seleção
-        if is_windows() and self.cidades_selecionadas:
-            # Para Windows, mostra o status baseado na seleção real
-            count = len(self.cidades_selecionadas)
-            total = len(self.lista_cidades_betha)
-            if count == total:
-                status_text = f"Todas as cidades selecionadas ({count} cidades)"
-            else:
-                status_text = f"{count} cidade(s) selecionada(s)"
-        else:
-            # Para Unix ou quando não há seleção
-            status_text = f"Todas as cidades selecionadas ({len(self.lista_cidades_betha)} cidades)"
+        status_text = f"Todas as cidades selecionadas ({len(self.lista_cidades_betha)} cidades)"
 
         self.label_status_cidades = ctk.CTkLabel(
             frame_cidades,
@@ -412,81 +362,7 @@ class GUI3:
             nomes_cidades = [cidade["nome"] for cidade in self.lista_cidades_betha]
             opcoes.extend(sorted(nomes_cidades))
         return opcoes
-    
-    def _abrir_janela_anos(self):
-        """Abre janela de seleção de anos no Windows"""
-        anos_disponiveis = [str(ano) for ano in range(1998, 2030)]
 
-        # Usa create_year_selector com seleção prévia
-        result = create_year_selector(
-            parent=self.main_frame.winfo_toplevel(),
-            years=anos_disponiveis,
-            selected_years=self.anos_selecionados,  # Passa seleção atual
-            title="Seleção de Anos"
-        )
-
-        # Se result for None, usuário cancelou - mantém seleção anterior
-        if result is not None:
-            # Atualiza seleção apenas se usuário confirmou
-            self.anos_selecionados = result
-
-            # Atualiza label de status
-            count = len(self.anos_selecionados)
-            if count == 0:
-                # Se nenhum ano selecionado, seleciona todos
-                self.anos_selecionados = anos_disponiveis.copy()
-                self.label_status_anos.configure(
-                    text=f"Todos os anos selecionados ({len(anos_disponiveis)} anos)"
-                )
-            elif count == len(anos_disponiveis):
-                self.label_status_anos.configure(
-                    text=f"Todos os anos selecionados ({count} anos)"
-                )
-            else:
-                self.label_status_anos.configure(
-                    text=f"{count} ano(s) selecionado(s)"
-                )
-        # Se cancelou (result é None), não faz nada - mantém seleção anterior
-    
-    def _abrir_janela_cidades(self):
-        """Abre janela de seleção de cidades no Windows"""
-        if not self.lista_cidades_betha:
-            messagebox.showwarning("Aviso", "Nenhuma cidade carregada do arquivo JSON")
-            return
-
-        nomes_cidades = [cidade["nome"] for cidade in self.lista_cidades_betha]
-
-        # Usa create_city_selector com seleção prévia
-        result = create_city_selector(
-            parent=self.main_frame.winfo_toplevel(),
-            items=nomes_cidades,
-            selected_items=self.cidades_selecionadas,  # Passa seleção atual
-            title="Seleção de Cidades"
-        )
-
-        # Se result for None, usuário cancelou - mantém seleção anterior
-        if result is not None:
-            # Atualiza seleção apenas se usuário confirmou
-            self.cidades_selecionadas = result
-
-            # Atualiza label de status
-            count = len(self.cidades_selecionadas)
-            if count == 0:
-                # Se nenhuma cidade selecionada, seleciona todas
-                self.cidades_selecionadas = nomes_cidades.copy()
-                self.label_status_cidades.configure(
-                    text=f"Todas as cidades selecionadas ({len(nomes_cidades)} cidades)"
-                )
-            elif count == len(nomes_cidades):
-                self.label_status_cidades.configure(
-                    text=f"Todas as cidades selecionadas ({count} cidades)"
-                )
-            else:
-                self.label_status_cidades.configure(
-                    text=f"{count} cidade(s) selecionada(s)"
-                )
-        # Se cancelou (result é None), não faz nada - mantém seleção anterior
-    
     def _on_ano_change(self, valor):
         """Callback quando ano é alterado (Unix)"""
         if valor == "Todos os Anos":
@@ -572,17 +448,13 @@ class GUI3:
         """Habilita/desabilita elementos da interface"""
         self.executando = not habilitado
 
-        # Atualiza controles de ano
+        # Atualiza controles de ano (todas as plataformas)
         if hasattr(self, 'dropdown_ano'):
             self.dropdown_ano.configure(state="normal" if habilitado else "disabled")
-        elif hasattr(self, 'btn_selecionar_anos'):
-            self.btn_selecionar_anos.configure(state="normal" if habilitado else "disabled")
 
-        # Atualiza controles de cidade
+        # Atualiza controles de cidade (todas as plataformas)
         if hasattr(self, 'dropdown_cidade'):
             self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
-        elif hasattr(self, 'btn_selecionar_cidades'):
-            self.btn_selecionar_cidades.configure(state="normal" if habilitado else "disabled")
 
         # Atualiza dropdown de modo
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
@@ -644,30 +516,20 @@ class GUI3:
     
     def _validar_selecoes(self):
         """Valida as seleções do usuário"""
-        # Validar anos
-        if is_windows():
-            if not self.anos_selecionados:
-                messagebox.showwarning("Aviso", "Selecione pelo menos um ano")
-                return False
+        # Validar anos (usando dropdown)
+        ano_selecionado = self.ano_var.get()
+        if ano_selecionado == "Todos os Anos":
+            self.anos_selecionados = [str(ano) for ano in range(1998, 2030)]
         else:
-            ano_selecionado = self.ano_var.get()
-            if ano_selecionado == "Todos os Anos":
-                self.anos_selecionados = [str(ano) for ano in range(1998, 2030)]
-            else:
-                self.anos_selecionados = [ano_selecionado]
-        
-        # Validar cidades
-        if is_windows():
-            if not self.cidades_selecionadas:
-                messagebox.showwarning("Aviso", "Selecione pelo menos uma cidade")
-                return False
+            self.anos_selecionados = [ano_selecionado]
+
+        # Validar cidades (usando dropdown)
+        cidade_selecionada = self.cidade_var.get()
+        if cidade_selecionada == "Todas as Cidades":
+            self.cidades_selecionadas = [cidade["nome"] for cidade in self.lista_cidades_betha]
         else:
-            cidade_selecionada = self.cidade_var.get()
-            if cidade_selecionada == "Todas as Cidades":
-                self.cidades_selecionadas = [cidade["nome"] for cidade in self.lista_cidades_betha]
-            else:
-                self.cidades_selecionadas = [cidade_selecionada]
-        
+            self.cidades_selecionadas = [cidade_selecionada]
+
         return True
 
     def _executar_processo_thread(self):

@@ -20,7 +20,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_fnde import BotFNDE
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, create_city_selector
 
 
 class GUI2:
@@ -200,28 +199,18 @@ class GUI2:
         )
         label_municipio_campo.pack(pady=(0, 5))
         
-        if is_windows():
-            # Windows: Botão que abre janela de seleção
-            self.btn_selecionar_municipios = ButtonFactory.create_primary_button(
-                frame_municipio_campo,
-                text="SELECIONAR MUNICÍPIOS",
-                command=self._abrir_janela_municipios,
-                width=300
-            )
-            self.btn_selecionar_municipios.pack()
-        else:
-            # Unix: Dropdown com municípios
-            self.dropdown_municipio = ctk.CTkOptionMenu(
-                frame_municipio_campo,
-                values=self._obter_opcoes_municipios(),
-                variable=self.municipio_var,
-                font=ctk.CTkFont(size=14),
-                dropdown_font=ctk.CTkFont(size=12),
-                width=300,
-                height=40,
-                command=self._on_municipio_change
-            )
-            self.dropdown_municipio.pack()
+        # Dropdown com municípios (usado em todas as plataformas)
+        self.dropdown_municipio = ctk.CTkOptionMenu(
+            frame_municipio_campo,
+            values=self._obter_opcoes_municipios(),
+            variable=self.municipio_var,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            width=300,
+            height=40,
+            command=self._on_municipio_change
+        )
+        self.dropdown_municipio.pack()
         
         # Label de status da seleção
         self.label_status_municipios = ctk.CTkLabel(
@@ -402,12 +391,11 @@ class GUI2:
         
         # Atualiza controles
         self.dropdown_ano.configure(state="normal" if habilitado else "disabled")
-        
-        # Atualiza dropdown de municípios (Unix) ou botão (Windows)
+
+        # Atualiza dropdown de municípios (todas as plataformas)
         if hasattr(self, 'dropdown_municipio'):
             self.dropdown_municipio.configure(state="normal" if habilitado else "disabled")
-        elif hasattr(self, 'btn_selecionar_municipios'):
-            self.btn_selecionar_municipios.configure(state="normal" if habilitado else "disabled")
+
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
         
         # Botão abrir pasta sempre fica habilitado
@@ -580,46 +568,10 @@ class GUI2:
         """Finaliza execução em caso de erro"""
         if self._cancelado:
             return
-            
+
         self._habilitar_interface(True)
         self._mostrar_erro(f"Erro durante execução: {erro}")
-    
-    def _abrir_janela_municipios(self):
-        """Abre janela de seleção de municípios no Windows"""
-        if not self.lista_municipios:
-            return
 
-        # Usa create_city_selector com seleção prévia
-        result = create_city_selector(
-            parent=self.main_frame.winfo_toplevel(),
-            items=self.lista_municipios,
-            selected_items=self.municipios_selecionados,  # Passa seleção atual
-            title="Seleção de Municípios"
-        )
-
-        # Se result for None, usuário cancelou - mantém seleção anterior
-        if result is not None:
-            # Atualiza seleção apenas se usuário confirmou
-            self.municipios_selecionados = result
-
-            # Atualiza label de status
-            count = len(self.municipios_selecionados)
-            if count == 0:
-                # Se nenhum município selecionado, seleciona todos
-                self.municipios_selecionados = self.lista_municipios.copy()
-                self.label_status_municipios.configure(
-                    text=f"Todos os municípios de MG selecionados ({len(self.lista_municipios)} municípios)"
-                )
-            elif count == len(self.lista_municipios):
-                self.label_status_municipios.configure(
-                    text=f"Todos os municípios de MG selecionados ({count} municípios)"
-                )
-            else:
-                self.label_status_municipios.configure(
-                    text=f"{count} município(s) selecionado(s)"
-                )
-        # Se cancelou (result é None), não faz nada - mantém seleção anterior
-    
     def _abrir_pasta_fnde(self):
         """Abre a pasta de arquivos FNDE no explorador"""
         try:

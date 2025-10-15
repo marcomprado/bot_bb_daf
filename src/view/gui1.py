@@ -19,7 +19,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.city_splitter import CitySplitter
 from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, create_city_selector
 
 
 class GUI1:
@@ -261,32 +260,22 @@ class GUI1:
         )
         label_cidade_campo.pack(pady=(0, 5))
         
-        if is_windows():
-            # Windows: Botão que abre janela de seleção
-            self.btn_selecionar_cidades = ButtonFactory.create_primary_button(
-                frame_cidade_campo,
-                text="SELECIONAR CIDADES",
-                command=self._abrir_janela_cidades,
-                width=300
-            )
-            self.btn_selecionar_cidades.pack()
-        else:
-            # Unix: Dropdown com cidades
-            self.dropdown_cidade = ctk.CTkOptionMenu(
-                frame_cidade_campo,
-                values=self._obter_opcoes_cidades(),
-                variable=self.cidade_selecionada,
-                font=ctk.CTkFont(size=14),
-                dropdown_font=ctk.CTkFont(size=12),
-                width=300,
-                height=40,
-                command=self._on_cidade_change
-            )
-            self.dropdown_cidade.pack()
-            
-            # Define valor padrão
-            if self.lista_cidades:
-                self.cidade_selecionada.set("Todas as Cidades")
+        # Dropdown com cidades (usado em todas as plataformas)
+        self.dropdown_cidade = ctk.CTkOptionMenu(
+            frame_cidade_campo,
+            values=self._obter_opcoes_cidades(),
+            variable=self.cidade_selecionada,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            width=300,
+            height=40,
+            command=self._on_cidade_change
+        )
+        self.dropdown_cidade.pack()
+
+        # Define valor padrão
+        if self.lista_cidades:
+            self.cidade_selecionada.set("Todas as Cidades")
         
         # Label de status da seleção
         self.label_status_selecao = ctk.CTkLabel(
@@ -612,12 +601,10 @@ class GUI1:
         """Habilita/desabilita elementos da interface"""
         # Atualiza estado
         self.executando = not habilitado
-        
-        # Atualiza dropdown de cidades (Unix) ou botão (Windows)
+
+        # Atualiza dropdown de cidades (todas as plataformas)
         if hasattr(self, 'dropdown_cidade'):
             self.dropdown_cidade.configure(state="normal" if habilitado else "disabled")
-        elif hasattr(self, 'btn_selecionar_cidades'):
-            self.btn_selecionar_cidades.configure(state="normal" if habilitado else "disabled")
         
         # Atualiza controles de execução paralela
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
@@ -735,39 +722,3 @@ Total: {stats.get('total', 0)} cidades
     def _mostrar_popup_processo_terminado(self):
         """Mostra popup padrão quando processo é terminado"""
         messagebox.showinfo("Processo Finalizado", "Processo foi terminado")
-    
-    def _abrir_janela_cidades(self):
-        """Abre janela de seleção de cidades no Windows"""
-        if not self.lista_cidades:
-            return
-
-        # Usa create_city_selector com seleção prévia
-        result = create_city_selector(
-            parent=self.main_frame.winfo_toplevel(),
-            items=self.lista_cidades,
-            selected_items=self.cidades_selecionadas,  # Passa seleção atual
-            title="Seleção de Cidades"
-        )
-
-        # Se result for None, usuário cancelou - mantém seleção anterior
-        if result is not None:
-            # Atualiza seleção apenas se usuário confirmou
-            self.cidades_selecionadas = result
-
-            # Atualiza label de status
-            count = len(self.cidades_selecionadas)
-            if count == 0:
-                # Se nenhuma cidade selecionada, seleciona todas
-                self.cidades_selecionadas = self.lista_cidades.copy()
-                self.label_status_selecao.configure(
-                    text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
-                )
-            elif count == len(self.lista_cidades):
-                self.label_status_selecao.configure(
-                    text=f"Todas as cidades de MG selecionadas ({count} cidades)"
-                )
-            else:
-                self.label_status_selecao.configure(
-                    text=f"{count} cidade(s) selecionada(s)"
-                )
-        # Se cancelou (result é None), não faz nada - mantém seleção anterior
