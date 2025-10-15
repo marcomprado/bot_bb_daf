@@ -38,18 +38,38 @@ class ChromeDriverSimples:
             
             # Configurar diretório de download se especificado
             if self.download_dir:
+                # Garantir que o caminho seja absoluto - Chrome requer isso
+                abs_download_dir = os.path.abspath(self.download_dir)
+                print(f"  ✓ Diretório de download (absoluto): {abs_download_dir}")
+
                 prefs = {
-                    "download.default_directory": self.download_dir,
+                    "download.default_directory": abs_download_dir,
                     "download.prompt_for_download": False,
                     "download.directory_upgrade": True,
                     "safebrowsing.enabled": True,
-                    "plugins.always_open_pdf_externally": True
+                    "plugins.always_open_pdf_externally": True,
+                    # Chrome 87+ requer este formato atualizado para downloads automáticos
+                    "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
+                    # Preferência adicional para macOS 14+ e Windows
+                    "savefile.default_directory": abs_download_dir
                 }
                 opcoes.add_experimental_option("prefs", prefs)
             
             # Tenta conectar direto ao Chrome (usa ChromeDriver do sistema)
             self.navegador = webdriver.Chrome(options=opcoes)
-            
+
+            # Habilitar downloads via CDP - necessário para Chrome 87+
+            # Chrome moderno requer permissão explícita via DevTools Protocol
+            if self.download_dir:
+                try:
+                    self.navegador.execute_cdp_cmd("Browser.setDownloadBehavior", {
+                        "behavior": "allow",
+                        "downloadPath": abs_download_dir
+                    })
+                    print("  ✓ Downloads habilitados via CDP (Browser.setDownloadBehavior)")
+                except Exception as e:
+                    print(f"  ⚠ Aviso: Não foi possível configurar CDP download behavior: {e}")
+
             # Remove indicadores de automação
             self.navegador.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
