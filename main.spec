@@ -164,7 +164,7 @@ if sys.platform == 'darwin':
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=True,  # True para mostrar console e debug
+        console=False,  # False para ocultar console
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
@@ -209,7 +209,7 @@ else:
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=True,  # True para mostrar console e debug
+        console=False,  # False para ocultar console
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
