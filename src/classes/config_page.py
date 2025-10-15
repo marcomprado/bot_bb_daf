@@ -70,10 +70,15 @@ class ConfigManager:
     
     def _load_config(self):
         """Carrega as configurações do arquivo JSON - cria se não existir"""
-        # Define configurações padrão
+        # Define configurações padrão baseado na plataforma
+        if platform.system() == "Windows":
+            default_geometry = {"width": 1200, "height": 1600}
+        else:  # macOS e Linux
+            default_geometry = {"width": 600, "height": 950}
+
         default_config = {
             "download_directory": "arquivos_baixados",
-            "window_geometry": {"width": 600, "height": 950},
+            "window_geometry": default_geometry,
             "automatic_execution": {
                 "enabled": False,
                 "scripts": {
@@ -200,12 +205,15 @@ class ConfigManager:
         # Preserva configurações de execução automática
         automatic_execution = self._config_data.get('automatic_execution', None)
 
+        # Define geometria baseado na plataforma
+        if platform.system() == "Windows":
+            default_geometry = {"width": 1200, "height": 1600}
+        else:  # macOS e Linux
+            default_geometry = {"width": 600, "height": 950}
+
         # Reseta apenas campos básicos
         self._config_data["download_directory"] = "arquivos_baixados"
-        self._config_data["window_geometry"] = {
-            "width": 600,
-            "height": 950
-        }
+        self._config_data["window_geometry"] = default_geometry
 
         # Mantém execução automática se existia
         if automatic_execution:

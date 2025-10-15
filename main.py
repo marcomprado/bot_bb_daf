@@ -7,6 +7,7 @@ Coordena as interfaces gráficas e gerencia a execução do sistema
 import sys
 import os
 import threading
+import platform
 import customtkinter as ctk
 from typing import Dict, Optional
 
@@ -50,7 +51,14 @@ class SistemaFVN:
 
         # Carrega configurações de tamanho da janela
         self.config_manager = ConfigManager()
-        window_config = self.config_manager.get_config("window_geometry", {"width": 600, "height": 950})
+
+        # Define padrão baseado na plataforma
+        if platform.system() == "Windows":
+            default_geometry = {"width": 1200, "height": 1600}
+        else:  # macOS e Linux
+            default_geometry = {"width": 600, "height": 950}
+
+        window_config = self.config_manager.get_config("window_geometry", default_geometry)
 
         # Janela principal
         self.janela = ctk.CTk()
