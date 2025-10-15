@@ -20,7 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_fnde import BotFNDE
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, CitySelectionWindow
+from src.view.modules.city_selector import is_windows, create_city_selector
 
 
 class GUI2:
@@ -40,6 +40,7 @@ class GUI2:
         self.municipio_var = ctk.StringVar()
         self.modo_var = ctk.StringVar()
         self.lista_municipios = []
+        self.municipios_selecionados = []  # Para preservar seleção no Windows
         
         # Bot FNDE
         self.bot_fnde = None
@@ -587,20 +588,29 @@ class GUI2:
         """Abre janela de seleção de municípios no Windows"""
         if not self.lista_municipios:
             return
-        
-        # Cria e mostra janela
-        selector = CitySelectionWindow(
-            self.main_frame.winfo_toplevel(),
-            self.lista_municipios,
-            "Seleção de Municípios"
+
+        # Usa create_city_selector com seleção prévia
+        result = create_city_selector(
+            parent=self.main_frame.winfo_toplevel(),
+            items=self.lista_municipios,
+            selected_items=self.municipios_selecionados,  # Passa seleção atual
+            title="Seleção de Municípios"
         )
-        municipios_selecionados = selector.show()
-        
-        # Atualiza seleção
-        if municipios_selecionados:
-            self.municipios_selecionados = municipios_selecionados
-            count = len(municipios_selecionados)
-            if count == len(self.lista_municipios):
+
+        # Se result for None, usuário cancelou - mantém seleção anterior
+        if result is not None:
+            # Atualiza seleção apenas se usuário confirmou
+            self.municipios_selecionados = result
+
+            # Atualiza label de status
+            count = len(self.municipios_selecionados)
+            if count == 0:
+                # Se nenhum município selecionado, seleciona todos
+                self.municipios_selecionados = self.lista_municipios.copy()
+                self.label_status_municipios.configure(
+                    text=f"Todos os municípios de MG selecionados ({len(self.lista_municipios)} municípios)"
+                )
+            elif count == len(self.lista_municipios):
                 self.label_status_municipios.configure(
                     text=f"Todos os municípios de MG selecionados ({count} municípios)"
                 )
@@ -608,12 +618,7 @@ class GUI2:
                 self.label_status_municipios.configure(
                     text=f"{count} município(s) selecionado(s)"
                 )
-        else:
-            # Se nenhum município selecionado, seleciona todos
-            self.municipios_selecionados = self.lista_municipios.copy()
-            self.label_status_municipios.configure(
-                text=f"Todos os municípios de MG selecionados ({len(self.lista_municipios)} municípios)"
-            )
+        # Se cancelou (result é None), não faz nada - mantém seleção anterior
     
     def _abrir_pasta_fnde(self):
         """Abre a pasta de arquivos FNDE no explorador"""

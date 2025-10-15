@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.city_splitter import CitySplitter
 from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, CitySelectionWindow
+from src.view.modules.city_selector import is_windows, create_city_selector
 
 
 class GUI1:
@@ -740,20 +740,29 @@ Total: {stats.get('total', 0)} cidades
         """Abre janela de seleção de cidades no Windows"""
         if not self.lista_cidades:
             return
-        
-        # Cria e mostra janela
-        selector = CitySelectionWindow(
-            self.main_frame.winfo_toplevel(),
-            self.lista_cidades,
-            "Seleção de Cidades"
+
+        # Usa create_city_selector com seleção prévia
+        result = create_city_selector(
+            parent=self.main_frame.winfo_toplevel(),
+            items=self.lista_cidades,
+            selected_items=self.cidades_selecionadas,  # Passa seleção atual
+            title="Seleção de Cidades"
         )
-        cidades_selecionadas = selector.show()
-        
-        # Atualiza seleção
-        if cidades_selecionadas:
-            self.cidades_selecionadas = cidades_selecionadas
-            count = len(cidades_selecionadas)
-            if count == len(self.lista_cidades):
+
+        # Se result for None, usuário cancelou - mantém seleção anterior
+        if result is not None:
+            # Atualiza seleção apenas se usuário confirmou
+            self.cidades_selecionadas = result
+
+            # Atualiza label de status
+            count = len(self.cidades_selecionadas)
+            if count == 0:
+                # Se nenhuma cidade selecionada, seleciona todas
+                self.cidades_selecionadas = self.lista_cidades.copy()
+                self.label_status_selecao.configure(
+                    text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
+                )
+            elif count == len(self.lista_cidades):
                 self.label_status_selecao.configure(
                     text=f"Todas as cidades de MG selecionadas ({count} cidades)"
                 )
@@ -761,9 +770,4 @@ Total: {stats.get('total', 0)} cidades
                 self.label_status_selecao.configure(
                     text=f"{count} cidade(s) selecionada(s)"
                 )
-        else:
-            # Se nenhuma cidade selecionada, seleciona todas
-            self.cidades_selecionadas = self.lista_cidades.copy()
-            self.label_status_selecao.configure(
-                text=f"Todas as cidades de MG selecionadas ({len(self.lista_cidades)} cidades)"
-            )
+        # Se cancelou (result é None), não faz nada - mantém seleção anterior

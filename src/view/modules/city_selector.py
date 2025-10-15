@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Módulo de seleção de cidades com janela popup para Windows
+Usa versão otimizada automaticamente para listas grandes
 """
 
 import platform
@@ -11,6 +12,14 @@ from tkinter import ttk, Toplevel, StringVar, BooleanVar
 def is_windows():
     """Verifica se o sistema é Windows"""
     return platform.system() == "Windows"
+
+
+# Importação condicional da versão otimizada
+try:
+    from src.view.modules.optimized_selector import OptimizedCitySelector, OptimizedYearSelector
+    OPTIMIZED_AVAILABLE = True
+except ImportError:
+    OPTIMIZED_AVAILABLE = False
 
 
 class CitySelectionWindow:
@@ -171,3 +180,58 @@ class CitySelectionWindow:
         """Mostra janela e aguarda resultado"""
         self.window.wait_window()
         return self.result
+
+
+def create_city_selector(parent, items, selected_items=None, title="Seleção"):
+    """
+    Cria seletor de cidades apropriado baseado no sistema e tamanho da lista
+
+    Args:
+        parent: Janela pai
+        items: Lista de itens disponíveis
+        selected_items: Lista de itens pré-selecionados
+        title: Título da janela
+
+    Returns:
+        Lista de itens selecionados ou None se cancelado
+    """
+    # Usa versão otimizada para Windows com listas grandes
+    if is_windows() and OPTIMIZED_AVAILABLE and len(items) > 100:
+        selector = OptimizedCitySelector(parent, items, selected_items, title)
+        return selector.show()
+    else:
+        # Usa versão antiga para listas pequenas ou se otimizada não disponível
+        selector = CitySelectionWindow(parent, items, title)
+        result = selector.show()
+
+        # Se usuário cancelou (lista vazia) e havia seleção prévia, retorna None
+        # para indicar cancelamento ao invés de lista vazia
+        if not result and selected_items:
+            return None
+        return result
+
+
+def create_year_selector(parent, years, selected_years=None, title="Seleção de Anos"):
+    """
+    Cria seletor de anos apropriado para Windows
+
+    Args:
+        parent: Janela pai
+        years: Lista de anos disponíveis
+        selected_years: Lista de anos pré-selecionados
+        title: Título da janela
+
+    Returns:
+        Lista de anos selecionados ou None se cancelado
+    """
+    if is_windows() and OPTIMIZED_AVAILABLE:
+        selector = OptimizedYearSelector(parent, years, selected_years, title)
+        return selector.show()
+    else:
+        # Fallback para versão de cidades adaptada para anos
+        selector = CitySelectionWindow(parent, years, title)
+        result = selector.show()
+
+        if not result and selected_years:
+            return None
+        return result

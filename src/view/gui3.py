@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_betha import BotBetha
 from src.view.modules.buttons import ButtonFactory
-from src.view.modules.city_selector import is_windows, CitySelectionWindow
+from src.view.modules.city_selector import is_windows, create_city_selector, create_year_selector
 from src.classes.file.path_manager import obter_caminho_dados
 import time
 
@@ -383,20 +383,29 @@ class GUI3:
     def _abrir_janela_anos(self):
         """Abre janela de seleção de anos no Windows"""
         anos_disponiveis = [str(ano) for ano in range(1998, 2030)]
-        
-        # Cria e mostra janela
-        selector = CitySelectionWindow(
-            self.main_frame.winfo_toplevel(),
-            anos_disponiveis,
-            "Seleção de Anos"
+
+        # Usa create_year_selector com seleção prévia
+        result = create_year_selector(
+            parent=self.main_frame.winfo_toplevel(),
+            years=anos_disponiveis,
+            selected_years=self.anos_selecionados,  # Passa seleção atual
+            title="Seleção de Anos"
         )
-        anos_selecionados = selector.show()
-        
-        # Atualiza seleção
-        if anos_selecionados:
-            self.anos_selecionados = anos_selecionados
-            count = len(anos_selecionados)
-            if count == len(anos_disponiveis):
+
+        # Se result for None, usuário cancelou - mantém seleção anterior
+        if result is not None:
+            # Atualiza seleção apenas se usuário confirmou
+            self.anos_selecionados = result
+
+            # Atualiza label de status
+            count = len(self.anos_selecionados)
+            if count == 0:
+                # Se nenhum ano selecionado, seleciona todos
+                self.anos_selecionados = anos_disponiveis.copy()
+                self.label_status_anos.configure(
+                    text=f"Todos os anos selecionados ({len(anos_disponiveis)} anos)"
+                )
+            elif count == len(anos_disponiveis):
                 self.label_status_anos.configure(
                     text=f"Todos os anos selecionados ({count} anos)"
                 )
@@ -404,34 +413,38 @@ class GUI3:
                 self.label_status_anos.configure(
                     text=f"{count} ano(s) selecionado(s)"
                 )
-        else:
-            # Se nenhum ano selecionado, seleciona todos
-            self.anos_selecionados = anos_disponiveis.copy()
-            self.label_status_anos.configure(
-                text=f"Todos os anos selecionados ({len(anos_disponiveis)} anos)"
-            )
+        # Se cancelou (result é None), não faz nada - mantém seleção anterior
     
     def _abrir_janela_cidades(self):
         """Abre janela de seleção de cidades no Windows"""
         if not self.lista_cidades_betha:
             messagebox.showwarning("Aviso", "Nenhuma cidade carregada do arquivo JSON")
             return
-        
+
         nomes_cidades = [cidade["nome"] for cidade in self.lista_cidades_betha]
-        
-        # Cria e mostra janela
-        selector = CitySelectionWindow(
-            self.main_frame.winfo_toplevel(),
-            nomes_cidades,
-            "Seleção de Cidades"
+
+        # Usa create_city_selector com seleção prévia
+        result = create_city_selector(
+            parent=self.main_frame.winfo_toplevel(),
+            items=nomes_cidades,
+            selected_items=self.cidades_selecionadas,  # Passa seleção atual
+            title="Seleção de Cidades"
         )
-        cidades_selecionadas = selector.show()
-        
-        # Atualiza seleção
-        if cidades_selecionadas:
-            self.cidades_selecionadas = cidades_selecionadas
-            count = len(cidades_selecionadas)
-            if count == len(nomes_cidades):
+
+        # Se result for None, usuário cancelou - mantém seleção anterior
+        if result is not None:
+            # Atualiza seleção apenas se usuário confirmou
+            self.cidades_selecionadas = result
+
+            # Atualiza label de status
+            count = len(self.cidades_selecionadas)
+            if count == 0:
+                # Se nenhuma cidade selecionada, seleciona todas
+                self.cidades_selecionadas = nomes_cidades.copy()
+                self.label_status_cidades.configure(
+                    text=f"Todas as cidades selecionadas ({len(nomes_cidades)} cidades)"
+                )
+            elif count == len(nomes_cidades):
                 self.label_status_cidades.configure(
                     text=f"Todas as cidades selecionadas ({count} cidades)"
                 )
@@ -439,12 +452,7 @@ class GUI3:
                 self.label_status_cidades.configure(
                     text=f"{count} cidade(s) selecionada(s)"
                 )
-        else:
-            # Se nenhuma cidade selecionada, seleciona todas
-            self.cidades_selecionadas = nomes_cidades.copy()
-            self.label_status_cidades.configure(
-                text=f"Todas as cidades selecionadas ({len(nomes_cidades)} cidades)"
-            )
+        # Se cancelou (result é None), não faz nada - mantém seleção anterior
     
     def _on_ano_change(self, valor):
         """Callback quando ano é alterado (Unix)"""
