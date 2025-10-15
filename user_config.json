@@ -1,8 +1,8 @@
 {
     "download_directory": "/Users/marcomartinelli/Desktop/teste",
     "window_geometry": {
-        "width": 900,
-        "height": 750
+        "width": 600,
+        "height": 760
     },
     "automatic_execution": {
         "enabled": false,

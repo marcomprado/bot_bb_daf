@@ -19,6 +19,9 @@ from src.view.view_config import ConfigGUI
 # Importa funções de gerenciamento de caminhos
 from src.classes.file.path_manager import obter_caminho_dados, copiar_arquivo_cidades_se_necessario
 
+# Importa gerenciador de configurações
+from src.classes.config_page import ConfigManager
+
 # Importa o bot principal e processador paralelo
 from src.bots.bot_bbdaf import BotBBDAF
 from src.classes.methods.parallel_processor import ProcessadorParalelo
@@ -44,13 +47,17 @@ class SistemaFVN:
         
         # Copia arquivo cidades.txt se necessário (para executável)
         copiar_arquivo_cidades_se_necessario()
-        
+
+        # Carrega configurações de tamanho da janela
+        self.config_manager = ConfigManager()
+        window_config = self.config_manager.get_config("window_geometry", {"width": 600, "height": 950})
+
         # Janela principal
         self.janela = ctk.CTk()
         self.janela.title("Sistema FVN - Automação Web")
-        self.janela.geometry("600x900")
+        self.janela.geometry(f"{window_config['width']}x{window_config['height']}")
         self.janela.resizable(True, True)
-        self.janela.minsize(700, 600)
+        self.janela.minsize(600, 600)
         self.janela.configure(fg_color="#f8f9fa")
         
         # Estado do sistema
@@ -62,10 +69,13 @@ class SistemaFVN:
         
         # Configura ícone
         self._configurar_icone()
-        
+
         # Centraliza janela
         self._centralizar_janela()
-        
+
+        # Configura protocolo de fechamento
+        self.janela.protocol("WM_DELETE_WINDOW", self._ao_fechar)
+
         # Cria interface
         self._criar_interface()
 
@@ -99,7 +109,33 @@ class SistemaFVN:
         pos_x = (self.janela.winfo_screenwidth() // 2) - (largura // 2)
         pos_y = (self.janela.winfo_screenheight() // 2) - (altura // 2)
         self.janela.geometry(f"{largura}x{altura}+{pos_x}+{pos_y}")
-    
+
+    def _salvar_geometria(self):
+        """Salva a geometria atual da janela nas configurações"""
+        try:
+            # Obtém tamanho atual da janela
+            width = self.janela.winfo_width()
+            height = self.janela.winfo_height()
+
+            # Salva nas configurações
+            self.config_manager.set_config("window_geometry", {"width": width, "height": height})
+            self.config_manager.save_config_to_file()
+            print(f"✓ Geometria salva: {width}x{height}")
+        except Exception as e:
+            print(f"⚠ Erro ao salvar geometria: {e}")
+
+    def _ao_fechar(self):
+        """Handler para quando a janela é fechada"""
+        # Salva geometria atual
+        self._salvar_geometria()
+
+        # Cancela qualquer execução em andamento
+        if self.executando:
+            self._cancelar_execucao()
+
+        # Fecha a janela
+        self.janela.destroy()
+
     def _criar_interface(self):
         """Cria a interface principal com sistema de abas"""
         # Container principal

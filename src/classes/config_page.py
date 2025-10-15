@@ -73,7 +73,7 @@ class ConfigManager:
         # Define configurações padrão
         default_config = {
             "download_directory": "arquivos_baixados",
-            "window_geometry": {"width": 900, "height": 750},
+            "window_geometry": {"width": 600, "height": 950},
             "automatic_execution": {
                 "enabled": False,
                 "scripts": {
@@ -203,8 +203,8 @@ class ConfigManager:
         # Reseta apenas campos básicos
         self._config_data["download_directory"] = "arquivos_baixados"
         self._config_data["window_geometry"] = {
-            "width": 900,
-            "height": 750
+            "width": 600,
+            "height": 950
         }
 
         # Mantém execução automática se existia
