@@ -15,6 +15,7 @@ from typing import Dict, Optional
 from src.view.gui1 import GUI1
 from src.view.gui2 import GUI2
 from src.view.gui3 import GUI3
+from src.view.gui4 import GUI4
 from src.view.view_config import ConfigGUI
 
 # Importa funções de gerenciamento de caminhos
@@ -180,13 +181,16 @@ class SistemaFVN:
             on_executar=self._executar_bbdaf,
             on_cancelar=self._cancelar_execucao
         )
-        
+
         # Cria GUI2 (FNDE)
         self.gui2 = GUI2(self.container_conteudo)
-        
+
         # Cria GUI3 (Betha)
         self.gui3 = GUI3(self.container_conteudo)
-        
+
+        # Cria GUI4 (Consulta FNS)
+        self.gui4 = GUI4(self.container_conteudo)
+
         # Cria ConfigGUI (Configurações)
         self.config_gui = ConfigGUI(self.container_conteudo)
         
@@ -238,7 +242,16 @@ class SistemaFVN:
             width=140
         )
         self.aba_betha.pack(side="left", padx=5)
-        
+
+        # Aba Consulta FNS usando ButtonFactory
+        self.aba_consfns = ButtonFactory.create_inactive_tab(
+            frame_abas,
+            text="Consulta FNS",
+            command=lambda: self._mostrar_aba("consfns"),
+            width=140
+        )
+        self.aba_consfns.pack(side="left", padx=5)
+
         # Removido - botão de configurações agora é ícone à direita
         
         # Botão de ícone para configurações - posicionado à direita
@@ -273,21 +286,25 @@ class SistemaFVN:
             ButtonFactory.set_tab_active(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
             ButtonFactory.set_tab_inactive(self.aba_betha)
+            ButtonFactory.set_tab_inactive(self.aba_consfns)
             # Mostra GUI1
             self.gui1.mostrar()
             self.gui2.ocultar()
             self.gui3.ocultar()
+            self.gui4.ocultar()
             self.config_gui.ocultar()
-        
+
         elif aba == "fnde":
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_active(self.aba_fnde)
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_betha)
+            ButtonFactory.set_tab_inactive(self.aba_consfns)
             # Mostra GUI2
             self.gui2.mostrar()
             self.gui1.ocultar()
             self.gui3.ocultar()
+            self.gui4.ocultar()
             self.config_gui.ocultar()
         
         elif aba == "betha":
@@ -295,22 +312,39 @@ class SistemaFVN:
             ButtonFactory.set_tab_active(self.aba_betha)
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
+            ButtonFactory.set_tab_inactive(self.aba_consfns)
             # Mostra GUI3
             self.gui3.mostrar()
             self.gui1.ocultar()
             self.gui2.ocultar()
+            self.gui4.ocultar()
             self.config_gui.ocultar()
-        
+
+        elif aba == "consfns":
+            # Define abas usando ButtonFactory
+            ButtonFactory.set_tab_active(self.aba_consfns)
+            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
+            ButtonFactory.set_tab_inactive(self.aba_fnde)
+            ButtonFactory.set_tab_inactive(self.aba_betha)
+            # Mostra GUI4
+            self.gui4.mostrar()
+            self.gui1.ocultar()
+            self.gui2.ocultar()
+            self.gui3.ocultar()
+            self.config_gui.ocultar()
+
         elif aba == "config":
             # Define abas usando ButtonFactory
             ButtonFactory.set_tab_inactive(self.aba_bbdaf)
             ButtonFactory.set_tab_inactive(self.aba_fnde)
             ButtonFactory.set_tab_inactive(self.aba_betha)
+            ButtonFactory.set_tab_inactive(self.aba_consfns)
             # Mostra ConfigGUI
             self.config_gui.mostrar()
             self.gui1.ocultar()
             self.gui2.ocultar()
             self.gui3.ocultar()
+            self.gui4.ocultar()
     
     def _executar_bbdaf(self, parametros: Dict):
         """
