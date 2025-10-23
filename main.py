@@ -72,7 +72,7 @@ class SistemaFVN:
         
         # Estado do sistema
         self.aba_atual = "bbdaf"
-        self.sistema_var = ctk.StringVar(value="Sistema BB DAF")
+        self.sistema_var = ctk.StringVar()
         self.executando = False
         self.bot_atual = None
         self.thread_execucao = None

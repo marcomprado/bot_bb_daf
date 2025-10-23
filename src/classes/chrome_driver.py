@@ -20,16 +20,24 @@ class ChromeDriverSimples:
         self.navegador = None
         self.download_dir = download_dir
     
-    def conectar(self):
+    def conectar(self, chrome_options=None):
         """
         Conecta direto ao Chrome sem webdriver-manager
-        
+
+        Args:
+            chrome_options: Opções personalizadas do Chrome (opcional)
+
         Returns:
             webdriver.Chrome: Instância do navegador Chrome ou None se falhou
         """
         try:
+            # Usa opções personalizadas se fornecidas, senão cria padrão
+            if chrome_options:
+                opcoes = chrome_options
+            else:
+                opcoes = webdriver.ChromeOptions()
+
             # Configurações básicas do Chrome
-            opcoes = webdriver.ChromeOptions()
             opcoes.add_argument("--no-sandbox")
             opcoes.add_argument("--disable-dev-shm-usage")
             opcoes.add_argument("--disable-blink-features=AutomationControlled")

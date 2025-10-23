@@ -65,26 +65,53 @@ DATAS_CONFIG = {
 FNDE_CONFIG = {
     # URL base do sistema FNDE
     'url_base': 'https://www.fnde.gov.br/pls/simad/internet_fnde.LIBERACOES_01_PC',
-    
+
     # Parâmetros padrão
     'uf_padrao': 'MG',
     'entidade_padrao': '02',  # PREFEITURA
     'programa_padrao': '',    # Vazio para todos os programas
-    
+
     # Timeout para elementos FNDE (em segundos)
     'timeout_selenium': 15,
-    
+
     # Pausas específicas para FNDE (em segundos)
     'pausa_entre_municipios': 0.5,
     'pausa_apos_selecao': 0.3,
     'pausa_apos_busca': 1.0,
-    
+
     # Diretórios específicos
     'diretorio_saida': 'arquivos_baixados/fnde',
     'prefixo_arquivo': 'fnde',
-    
+
     # Anos disponíveis no sistema FNDE
     'anos_disponiveis': list(range(2025, 1999, -1)),  # 2025 até 2000
+}
+
+# Configurações do sistema Consulta FNS
+CONSFNS_CONFIG = {
+    # URL base do sistema Consulta FNS
+    'url_base': 'https://consultafns.saude.gov.br/#/conta-bancaria',
+
+    # Parâmetros padrão
+    'uf_padrao': 'MINAS GERAIS',
+    'uf_value': '12',  # Valor do option para Minas Gerais
+
+    # Timeout para elementos (em segundos)
+    'timeout_selenium': 10,
+    'timeout_carregamento_minimo': 1,   # Tempo mínimo de aguardo
+    'timeout_carregamento_maximo': 120,  # Tempo máximo de aguardo (2 minutos)
+
+    # Pausas específicas para ConsFNS (em segundos) - OTIMIZADO PARA VELOCIDADE
+    'pausa_entre_municipios': 0.2,
+    'pausa_apos_selecao_estado': 0.0,  # Removido - WebDriverWait já espera dropdown carregar
+    'pausa_apos_selecao_municipio': 0.0,  # Removido - verificação de esfera já espera
+    'pausa_apos_selecao_esfera': 1,  # Reduzido de 0.3s para 0.1s
+    'pausa_apos_consulta': 0.0,  # Removido - WebDriverWait já espera botão ficar disponível
+    'pausa_antes_download': 0.3,  # Reduzido de 1.0s para 0.3s
+
+    # Diretórios específicos
+    'diretorio_saida': 'consfns',  # Será usado com obter_caminho_dados()
+    'prefixo_arquivo': 'CONSFNS',
 }
 
 # Seletores para elementos FNDE
@@ -94,15 +121,30 @@ SELETORES_FNDE = {
     'select_municipio': 'select[name="p_municipio"]',
     'select_entidade': 'select[name="p_tp_entidade"]',
     'botao_buscar': 'input[name="buscar"]',
-    
+
     # Elementos de resultado
     'tabela_resultados': 'table',
     'linhas_tabela': 'table tr',
     'celulas_tabela': 'table td',
-    
+
     # Indicadores de carregamento
     'corpo_pagina': 'body',
     'conteudo_principal': 'table, .tabela, .resultado',
+}
+
+# Seletores para elementos Consulta FNS
+SELETORES_CONSFNS = {
+    # Formulário principal
+    'select_estado': 'select[name="estado"]',
+    'select_municipio': 'select[name="municipio"]',
+    'select_esfera': 'select[name="esfera"]',  # Campo condicional (aparece para algumas cidades)
+    'botao_consultar': 'button[ng-click="contaBancariaCtrl.pesquisar()"]',
+    'botao_gerar_planilha': 'button[ng-click="contaBancariaCtrl.gerarPlanilha()"]',
+
+    # Indicadores de carregamento e resultados
+    'corpo_pagina': 'body',
+    'conteudo_resultados': '.ng-scope, table, .resultado',
+    'loading_indicator': '.loading, .carregando, .spinner',
 }
 
 # Lista completa de municípios de MG (853 municípios)
@@ -170,10 +212,18 @@ MENSAGENS = {
     'erro': 'error',
     'aviso': 'alert',
     'info': 'info',
-    
+
     # Mensagens específicas FNDE
     'inicio_fnde': ' SISTEMA DE AUTOMAÇÃO WEB - FNDE',
     'municipio_processado': ' Município processado com sucesso',
     'municipio_erro': ' Erro ao processar município',
     'todos_municipios': ' Processando todos os municípios de MG',
+
+    # Mensagens específicas Consulta FNS
+    'inicio_consfns': ' SISTEMA DE AUTOMAÇÃO WEB - CONSULTA FNS',
+    'consfns_processado': ' Município processado com sucesso - ConsFNS',
+    'consfns_erro': ' Erro ao processar município - ConsFNS',
+    'consfns_todos_municipios': ' Processando todos os municípios de MG - ConsFNS',
+    'consfns_aguardando': ' Aguardando carregamento da consulta...',
+    'consfns_download': ' Gerando planilha para download...',
 } 

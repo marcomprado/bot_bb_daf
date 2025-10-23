@@ -503,6 +503,167 @@ class ProcessadorParalelo:
             'detalhes': resultados
         }
 
+    def executar_paralelo_consfns(self, bot_template, num_instancias: int = 2) -> Dict:
+        """
+        Executa processamento paralelo do ConsFNS
+
+        Args:
+            bot_template: Instância template do BotConsFNS
+            num_instancias: Número de instâncias paralelas (máximo 5)
+
+        Returns:
+            Dict: Resultados consolidados
+        """
+        try:
+            # Limita a 5 instâncias
+            if num_instancias > 5:
+                num_instancias = 5
+                print(f"Número de instâncias limitado a 5")
+
+            # Importa dinamicamente para evitar dependência circular
+            from src.bots.bot_cons_fns import BotConsFNS
+
+            # Obtém lista de municípios e divide em lotes
+            municipios = bot_template.obter_lista_municipios()
+            lotes = self._dividir_municipios(municipios, num_instancias)
+
+            print(f"Dividindo {len(municipios)} municípios em {len(lotes)} lotes paralelos")
+            for i, lote in enumerate(lotes, 1):
+                print(f"Lote {i}: {len(lote)} municípios")
+
+            # Executa em threads paralelas
+            resultados = []
+            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
+            try:
+                futures = []
+
+                for i, lote in enumerate(lotes, 1):
+                    # Cria nova instância do bot para cada thread
+                    bot = BotConsFNS()
+                    self.bots_ativos.append(bot)  # Registra bot ativo
+
+                    future = self.executor.submit(
+                        self._executar_bot_consfns_thread,
+                        bot,
+                        lote,
+                        i
+                    )
+                    futures.append((future, i, len(lote)))
+
+                # Coleta resultados
+                for future, instancia, num_municipios in futures:
+                    if self._cancelado:
+                        self.executor.shutdown(wait=False, cancel_futures=True)
+                        return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
+
+                    resultado = future.result()
+                    resultado['instancia'] = instancia
+                    resultado['municipios_lote'] = num_municipios
+                    resultados.append(resultado)
+            finally:
+                if self.executor:
+                    self.executor.shutdown(wait=True)
+                    self.executor = None
+                self.bots_ativos.clear()  # Limpa lista de bots
+
+            # Consolida estatísticas
+            return self._consolidar_resultados_consfns(resultados)
+
+        except Exception as e:
+            return {'sucesso': False, 'erro': str(e)}
+
+    def _executar_bot_consfns_thread(self, bot, lote_municipios: List[str], instancia: int) -> Dict:
+        """
+        Executa um lote de municípios em uma instância do bot ConsFNS
+
+        Args:
+            bot: Instância do BotConsFNS
+            lote_municipios: Lista de municípios para processar
+            instancia: Número da instância
+
+        Returns:
+            Dict: Resultado do processamento do lote
+        """
+        try:
+            print(f"Instância {instancia}: Iniciando processamento de {len(lote_municipios)} municípios...")
+
+            # Verifica se foi cancelado antes de começar
+            if self._cancelado:
+                print(f"Instância {instancia}: Cancelada antes de iniciar")
+                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
+
+            # Configura navegador
+            if not bot.configurar_navegador():
+                return {'sucesso': False, 'erro': 'Falha ao configurar navegador'}
+
+            # Verifica cancelamento após configurar navegador
+            if self._cancelado:
+                print(f"Instância {instancia}: Cancelada após configurar navegador")
+                bot.limpar_recursos()
+                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
+
+            # Processa lote
+            resultado = bot.processar_lote_municipios(lote_municipios)
+
+            return resultado
+
+        except Exception as e:
+            return {'sucesso': False, 'erro': str(e)}
+        finally:
+            # Garante limpeza de recursos
+            bot.limpar_recursos()
+
+    def _consolidar_resultados_consfns(self, resultados: List[Dict]) -> Dict:
+        """
+        Consolida resultados de múltiplas instâncias ConsFNS
+
+        Args:
+            resultados: Lista de resultados das instâncias
+
+        Returns:
+            Dict: Resultados consolidados
+        """
+        total_municipios = 0
+        total_sucessos = 0
+        total_erros = 0
+        instancias_sucesso = 0
+        instancias_erro = 0
+        municipios_processados = []
+        municipios_erro = []
+
+        for resultado in resultados:
+            if resultado.get('sucesso'):
+                instancias_sucesso += 1
+                # Extrai estatísticas do resultado
+                stats = resultado.get('estatisticas', {})
+                total_municipios += stats.get('total', 0)
+                total_sucessos += stats.get('sucessos', 0)
+                total_erros += stats.get('erros', 0)
+                municipios_processados.extend(stats.get('municipios_processados', []))
+                municipios_erro.extend(stats.get('municipios_erro', []))
+            else:
+                instancias_erro += 1
+
+        taxa_sucesso = (total_sucessos / total_municipios * 100) if total_municipios > 0 else 0
+
+        return {
+            'sucesso': True,
+            'instancias': {
+                'total': len(resultados),
+                'sucesso': instancias_sucesso,
+                'erro': instancias_erro
+            },
+            'estatisticas': {
+                'total': total_municipios,
+                'sucessos': total_sucessos,
+                'erros': total_erros,
+                'taxa_sucesso': taxa_sucesso,
+                'municipios_processados': municipios_processados,
+                'municipios_erro': municipios_erro
+            },
+            'detalhes': resultados
+        }
+
     def cancelar(self):
         """Cancela a execução paralela em andamento"""
         print("Cancelando execução paralela - forçando fechamento de todos os bots...")

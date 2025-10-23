@@ -71,8 +71,7 @@ class GUI2:
             corner_radius=0,
             fg_color="#f8f9fa"
         )
-        self.main_frame.pack(fill="both", expand=True, padx=0, pady=0)
-        
+
         # Cabeçalho
         self._criar_cabecalho(self.main_frame)
         

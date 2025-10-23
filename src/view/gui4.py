@@ -36,11 +36,13 @@ class GUI4:
         self.thread_execucao = None
         self._cancelado = False
 
-        # Bot FNS (será implementado posteriormente)
+        # Bot ConsFNS
         self.bot_cons_fns = None
+        self.processador_paralelo = None
 
         # Variáveis de configuração
         self.municipio_var = ctk.StringVar()
+        self.modo_var = ctk.StringVar()
         self.lista_municipios = []
 
         # Frame principal
@@ -61,12 +63,15 @@ class GUI4:
         if self.lista_municipios:
             self.municipio_var.set("Todos os Municípios")
 
+        # Define valor padrão do modo de execução
+        self.modo_var.set("Individual")
+
     def _carregar_municipios(self):
         """Carrega lista de municípios de MG"""
         try:
             # Inicializa bot temporário para obter lista
-            from src.bots.bot_fnde import BotFNDE
-            bot_temp = BotFNDE()
+            from src.bots.bot_cons_fns import BotConsFNS
+            bot_temp = BotConsFNS()
             self.lista_municipios = bot_temp.obter_lista_municipios()
             print(f"Carregados {len(self.lista_municipios)} municípios")
         except Exception as e:
@@ -108,6 +113,7 @@ class GUI4:
 
         # Seções principais
         self._criar_secao_municipios(self.main_frame)
+        self._criar_secao_execucao_paralela(self.main_frame)
         self._criar_botoes_acao(self.main_frame)
 
     def _criar_cabecalho(self, parent):
@@ -199,6 +205,77 @@ class GUI4:
         )
         self.label_status_municipios.pack(pady=(0, 15))
 
+    def _criar_secao_execucao_paralela(self, parent):
+        """Cria seção de execução paralela para ConsFNS"""
+        # Frame da execução paralela
+        frame_paralela = ctk.CTkFrame(
+            parent,
+            corner_radius=20,
+            fg_color="#f8f9fa",
+            border_width=1,
+            border_color="#dee2e6"
+        )
+        frame_paralela.pack(fill="x", padx=20, pady=(0, 20))
+
+        # Título da seção
+        label_titulo = ctk.CTkLabel(
+            frame_paralela,
+            text="Modo de Execução",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color="#495057"
+        )
+        label_titulo.pack(pady=(15, 10))
+
+        # Container para o dropdown
+        container_modo = ctk.CTkFrame(frame_paralela, fg_color="transparent")
+        container_modo.pack(fill="x", padx=15, pady=(0, 15))
+
+        # Campo de modo centralizado
+        frame_modo = ctk.CTkFrame(container_modo, fg_color="transparent")
+        frame_modo.pack(expand=True)
+
+        label_modo = ctk.CTkLabel(
+            frame_modo,
+            text="Selecione o Modo:",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#495057"
+        )
+        label_modo.pack(pady=(0, 5))
+
+        # Dropdown com opções de execução
+        self.dropdown_modo = ctk.CTkOptionMenu(
+            frame_modo,
+            values=["Individual", "Paralelo (2 instâncias)", "Paralelo (3 instâncias)", "Paralelo (4 instâncias)", "Paralelo (5 instâncias)"],
+            variable=self.modo_var,
+            font=ctk.CTkFont(size=14),
+            dropdown_font=ctk.CTkFont(size=12),
+            command=self._on_modo_change,
+            width=200,
+            height=40
+        )
+        self.dropdown_modo.pack()
+
+        # Label de info sobre execução paralela
+        self.label_info_paralela = ctk.CTkLabel(
+            frame_paralela,
+            text="Modo Paralelo acelera o processamento em até 5x",
+            font=ctk.CTkFont(size=12),
+            text_color="#6c757d"
+        )
+        self.label_info_paralela.pack(pady=(5, 15))
+
+    def _on_modo_change(self, valor):
+        """Callback quando modo de execução é alterado"""
+        if "Paralelo" in valor:
+            instancias = valor.split("(")[1].split(" ")[0]
+            self.label_info_paralela.configure(
+                text=f"Modo Paralelo: {instancias} navegadores simultâneos"
+            )
+        else:
+            self.label_info_paralela.configure(
+                text="Modo Individual: Processa sequencialmente"
+            )
+
     def _criar_botoes_acao(self, parent):
         """Cria botões de ação principais"""
         # Container para os botões
@@ -253,25 +330,92 @@ class GUI4:
         # Desabilita interface e muda botão para cancelar
         self._habilitar_interface(False)
 
-        # Simula execução em thread separada (será conectado ao bot depois)
+        # Execução real em thread separada
         def executar_thread():
             try:
-                import time
-                # Por enquanto apenas simula execução
-                for i in range(5):
-                    if self._cancelado:
-                        break
-                    time.sleep(1)
+                from src.bots.bot_cons_fns import BotConsFNS
 
-                if not self._cancelado:
-                    # Finaliza com sucesso
-                    self.parent_container.after(0, self._finalizar_execucao_sucesso)
+                # Cria instância do bot
+                self.bot_cons_fns = BotConsFNS()
+
+                # Configura navegador
+                if not self.bot_cons_fns.configurar_navegador():
+                    raise Exception("Falha ao configurar navegador Chrome")
+
+                # Obtém município selecionado e modo de execução
+                municipio_selecionado = self.municipio_var.get()
+                modo_selecionado = self.modo_var.get()
+
+                # Verifica se é execução paralela ou individual
+                if "Paralelo" in modo_selecionado:
+                    # Execução paralela
+                    num_instancias = int(modo_selecionado.split("(")[1].split(" ")[0])
+
+                    # Importa processador paralelo
+                    from src.classes.methods.parallel_processor import ProcessadorParalelo
+                    self.processador_paralelo = ProcessadorParalelo()
+
+                    print(f"Iniciando execução paralela com {num_instancias} instâncias")
+                    resultado = self.bot_cons_fns.executar_paralelo(num_instancias)
+
+                    # Armazena referência do processador paralelo para cancelamento
+                    if 'processador' in resultado:
+                        self.processador_paralelo = resultado['processador']
+
+                    if not self._cancelado:
+                        if resultado.get('sucesso'):
+                            self.parent_container.after(0, self._finalizar_execucao_paralela, resultado)
+                        else:
+                            self.parent_container.after(0, self._finalizar_execucao_erro, resultado.get('erro'))
+                else:
+                    # Execução individual (código original)
+                    # Verifica se é para processar todos os municípios
+                    if municipio_selecionado == "Todos os Municípios":
+                        # Processa todos os municípios sequencialmente
+                        resultado = self.bot_cons_fns.processar_todos_municipios()
+
+                        if not self._cancelado:
+                            # Finaliza com sucesso
+                            mensagem_sucesso = (
+                                f"Consulta FNS concluída!\n\n"
+                                f"Total: {resultado['total']} municípios\n"
+                                f"Sucessos: {resultado['sucessos']}\n"
+                                f"Erros: {resultado['erros']}\n"
+                                f"Taxa de sucesso: {resultado['taxa_sucesso']:.1f}%\n\n"
+                                f"📄 Relatório detalhado gerado!\n"
+                                f"Arquivos salvos em: consfns/"
+                            )
+                            self.parent_container.after(0, self._finalizar_execucao_sucesso, mensagem_sucesso)
+                    else:
+                        # Processa município específico
+                        # Remove formatação Title case se houver
+                        municipio = municipio_selecionado.upper()
+
+                        resultado = self.bot_cons_fns.processar_municipio(municipio)
+
+                        if not self._cancelado:
+                            if resultado['sucesso']:
+                                mensagem_sucesso = (
+                                    f"Consulta FNS concluída!\n\n"
+                                    f"Município: {resultado['municipio']}\n"
+                                    f"Arquivo: {resultado['arquivo']}\n\n"
+                                    f"Arquivos salvos em: consfns/"
+                                )
+                                self.parent_container.after(0, self._finalizar_execucao_sucesso, mensagem_sucesso)
+                            else:
+                                erro_msg = resultado['erro'] or "Erro desconhecido"
+                                self.parent_container.after(0, self._finalizar_execucao_erro, erro_msg)
 
             except Exception as e:
                 if not self._cancelado:
                     self.parent_container.after(0, self._finalizar_execucao_erro, str(e))
 
             finally:
+                # Limpa recursos do bot
+                if self.bot_cons_fns:
+                    self.bot_cons_fns.fechar_navegador()
+                    self.bot_cons_fns = None
+
                 self.executando = False
 
         # Inicializa flag de cancelamento
@@ -286,10 +430,13 @@ class GUI4:
         try:
             self._cancelado = True
 
-            # Se tiver um bot implementado, cancelar aqui
+            # Cancela o bot se estiver executando
             if self.bot_cons_fns:
-                # self.bot_cons_fns.cancelar()
-                pass
+                self.bot_cons_fns.cancelar(forcado=True)
+
+            # Se estiver executando em paralelo, cancela o processador
+            if self.processador_paralelo:
+                self.processador_paralelo.cancelar()
 
             self._habilitar_interface(True)
             self._mostrar_info("Consulta FNS cancelada com sucesso")
@@ -298,13 +445,17 @@ class GUI4:
             self._mostrar_erro(f"Erro ao cancelar: {str(e)}")
             self._habilitar_interface(True)
 
-    def _finalizar_execucao_sucesso(self):
+    def _finalizar_execucao_sucesso(self, mensagem=None):
         """Finaliza execução com sucesso"""
         if self._cancelado:
             return
 
         self._habilitar_interface(True)
-        self._mostrar_info("Consulta FNS finalizada!\n\nOs arquivos foram salvos na pasta consfns/")
+
+        if mensagem:
+            self._mostrar_info(mensagem)
+        else:
+            self._mostrar_info("Consulta FNS finalizada!\n\nOs arquivos foram salvos na pasta consfns/")
 
     def _finalizar_execucao_erro(self, erro):
         """Finaliza execução com erro"""
@@ -314,6 +465,27 @@ class GUI4:
         self._habilitar_interface(True)
         self._mostrar_erro(f"Erro durante execução: {erro}")
 
+    def _finalizar_execucao_paralela(self, resultado):
+        """Finaliza execução paralela"""
+        if self._cancelado:
+            return
+
+        self._habilitar_interface(True)
+
+        stats = resultado['estatisticas']
+        instancias = resultado.get('instancias', {'total': 0, 'sucesso': 0})
+
+        mensagem = f"🚀 Processamento PARALELO concluído!\n\n"
+        mensagem += f"Instâncias: {instancias.get('sucesso', 0)}/{instancias.get('total', 0)} executadas\n"
+        mensagem += f"Total: {stats['total']} municípios\n"
+        mensagem += f"Sucessos: {stats['sucessos']}\n"
+        mensagem += f"Erros: {stats['erros']}\n"
+        mensagem += f"Taxa de sucesso: {stats['taxa_sucesso']:.1f}%\n\n"
+        mensagem += f"📄 Relatório detalhado gerado!\n"
+        mensagem += f"⚡ Processamento acelerado com múltiplas instâncias!"
+
+        self._mostrar_info(mensagem)
+
     def _habilitar_interface(self, habilitado=True):
         """Habilita/desabilita elementos da interface"""
         self.executando = not habilitado
@@ -321,6 +493,10 @@ class GUI4:
         # Atualiza dropdown de municípios
         if hasattr(self, 'dropdown_municipio'):
             self.dropdown_municipio.configure(state="normal" if habilitado else "disabled")
+
+        # Atualiza dropdown de modo de execução
+        if hasattr(self, 'dropdown_modo'):
+            self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
 
         # Botão abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")
