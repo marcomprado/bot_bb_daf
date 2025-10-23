@@ -8,6 +8,7 @@ import sys
 import os
 import threading
 import platform
+import tkinter as tk
 import customtkinter as ctk
 from typing import Dict, Optional
 
@@ -71,6 +72,7 @@ class SistemaFVN:
         
         # Estado do sistema
         self.aba_atual = "bbdaf"
+        self.sistema_var = ctk.StringVar(value="Sistema BB DAF")
         self.executando = False
         self.bot_atual = None
         self.thread_execucao = None
@@ -193,12 +195,23 @@ class SistemaFVN:
 
         # Cria ConfigGUI (Configurações)
         self.config_gui = ConfigGUI(self.container_conteudo)
-        
+
+        # Mapeamento centralizado de abas para navegação eficiente
+        self.mapa_abas = {
+            "bbdaf": {"nome": "Sistema BB DAF", "gui": self.gui1},
+            "fnde": {"nome": "Sistema FNDE", "gui": self.gui2},
+            "betha": {"nome": "Sistema Betha", "gui": self.gui3},
+            "consfns": {"nome": "Consulta FNS", "gui": self.gui4},
+            "config": {"nome": None, "gui": self.config_gui}
+        }
+        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.config_gui]
+        self.gui_atual = None  # Rastreia GUI atualmente visível
+
         # Mostra aba inicial
         self._mostrar_aba("bbdaf")
     
     def _criar_sistema_abas(self, parent):
-        """Cria o sistema de abas estilo navegador"""
+        """Cria o sistema de navegação com dropdown de sistemas"""
         # Container das abas
         container_abas = ctk.CTkFrame(
             parent,
@@ -208,143 +221,86 @@ class SistemaFVN:
         )
         container_abas.pack(fill="x")
         container_abas.pack_propagate(False)
-        
-        # Frame interno para as abas
-        frame_abas = ctk.CTkFrame(
+
+        # Dropdown de sistemas (esquerda)
+        def on_sistema_change(valor):
+            """Callback quando sistema é alterado no dropdown"""
+            # Mapeia nome do sistema para identificador da aba
+            mapa_sistemas = {
+                "Sistema BB DAF": "bbdaf",
+                "Sistema FNDE": "fnde",
+                "Sistema Betha": "betha",
+                "Consulta FNS": "consfns"
+            }
+            aba = mapa_sistemas.get(valor)
+            if aba:
+                self._mostrar_aba(aba)
+
+        self.dropdown_sistemas = ctk.CTkOptionMenu(
+            container_abas,
+            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta FNS"],
+            variable=self.sistema_var,
+            command=on_sistema_change,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            dropdown_font=ctk.CTkFont(size=13),
+            width=200,
+            height=36,
+            fg_color="#0066cc",
+            button_color="#0052a3",
+            button_hover_color="#004080"
+        )
+        self.dropdown_sistemas.pack(side="left", padx=10, pady=7)
+
+        # Frame fixo para botões de ícone (direita)
+        frame_botoes_fixos = ctk.CTkFrame(
             container_abas,
             fg_color="transparent"
         )
-        frame_abas.pack(side="left", fill="y", padx=10, pady=5)
-        
-        # Aba BB DAF usando ButtonFactory
-        self.aba_bbdaf = ButtonFactory.create_active_tab(
-            frame_abas,
-            text="Sistema BB DAF",
-            command=lambda: self._mostrar_aba("bbdaf"),
-            width=140
-        )
-        self.aba_bbdaf.pack(side="left", padx=(0, 5))
-        
-        # Aba FNDE usando ButtonFactory
-        self.aba_fnde = ButtonFactory.create_inactive_tab(
-            frame_abas,
-            text="Sistema FNDE",
-            command=lambda: self._mostrar_aba("fnde"),
-            width=140
-        )
-        self.aba_fnde.pack(side="left", padx=5)
-        
-        # Aba Betha usando ButtonFactory
-        self.aba_betha = ButtonFactory.create_inactive_tab(
-            frame_abas,
-            text="Sistema Betha",
-            command=lambda: self._mostrar_aba("betha"),
-            width=140
-        )
-        self.aba_betha.pack(side="left", padx=5)
+        frame_botoes_fixos.pack(side="right", padx=(0, 10), pady=7)
 
-        # Aba Consulta FNS usando ButtonFactory
-        self.aba_consfns = ButtonFactory.create_inactive_tab(
-            frame_abas,
-            text="Consulta FNS",
-            command=lambda: self._mostrar_aba("consfns"),
-            width=140
-        )
-        self.aba_consfns.pack(side="left", padx=5)
-
-        # Removido - botão de configurações agora é ícone à direita
-        
-        # Botão de ícone para configurações - posicionado à direita
+        # Botão de ícone para configurações (fixo)
         self.botao_config = ButtonFactory.create_icon_config_button(
-            container_abas,
+            frame_botoes_fixos,
             command=lambda: self._mostrar_aba("config")
         )
-        self.botao_config.pack(side="right", padx=(10, 10), pady=7)
-        
-        # Botão de ícone para abrir pasta - posicionado à direita
+        self.botao_config.pack(side="left", padx=(5, 5))
+
+        # Botão de ícone para abrir pasta (fixo)
         self.botao_pasta = ButtonFactory.create_icon_folder_button(
-            container_abas,
+            frame_botoes_fixos,
             command=self._abrir_pasta_arquivos
         )
-        self.botao_pasta.pack(side="right", padx=(0, 10), pady=7)
-        
+        self.botao_pasta.pack(side="left", padx=(5, 0))
+
         # Adiciona efeito hover aos botões de ícone
         ButtonFactory.add_icon_hover_effect(self.botao_pasta)
         ButtonFactory.add_icon_hover_effect(self.botao_config)
     
     def _mostrar_aba(self, aba: str):
         """
-        Alterna entre as abas
-        
+        Alterna entre as abas de forma eficiente
+
         Args:
-            aba: Nome da aba ('bbdaf', 'fnde', 'betha' ou 'config')
+            aba: Nome da aba ('bbdaf', 'fnde', 'betha', 'consfns' ou 'config')
         """
+        # Valida se a aba existe
+        if aba not in self.mapa_abas:
+            return
+
         self.aba_atual = aba
-        
-        if aba == "bbdaf":
-            # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_active(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_betha)
-            ButtonFactory.set_tab_inactive(self.aba_consfns)
-            # Mostra GUI1
-            self.gui1.mostrar()
-            self.gui2.ocultar()
-            self.gui3.ocultar()
-            self.gui4.ocultar()
-            self.config_gui.ocultar()
+        config = self.mapa_abas[aba]
 
-        elif aba == "fnde":
-            # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_active(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_betha)
-            ButtonFactory.set_tab_inactive(self.aba_consfns)
-            # Mostra GUI2
-            self.gui2.mostrar()
-            self.gui1.ocultar()
-            self.gui3.ocultar()
-            self.gui4.ocultar()
-            self.config_gui.ocultar()
-        
-        elif aba == "betha":
-            # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_active(self.aba_betha)
-            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_consfns)
-            # Mostra GUI3
-            self.gui3.mostrar()
-            self.gui1.ocultar()
-            self.gui2.ocultar()
-            self.gui4.ocultar()
-            self.config_gui.ocultar()
+        # Atualiza dropdown se não for config (config mantém sistema selecionado)
+        if config["nome"]:
+            self.sistema_var.set(config["nome"])
 
-        elif aba == "consfns":
-            # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_active(self.aba_consfns)
-            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_betha)
-            # Mostra GUI4
-            self.gui4.mostrar()
-            self.gui1.ocultar()
-            self.gui2.ocultar()
-            self.gui3.ocultar()
-            self.config_gui.ocultar()
+        # Oculta apenas a GUI atualmente visível (otimização)
+        if self.gui_atual and self.gui_atual != config["gui"]:
+            self.gui_atual.ocultar()
 
-        elif aba == "config":
-            # Define abas usando ButtonFactory
-            ButtonFactory.set_tab_inactive(self.aba_bbdaf)
-            ButtonFactory.set_tab_inactive(self.aba_fnde)
-            ButtonFactory.set_tab_inactive(self.aba_betha)
-            ButtonFactory.set_tab_inactive(self.aba_consfns)
-            # Mostra ConfigGUI
-            self.config_gui.mostrar()
-            self.gui1.ocultar()
-            self.gui2.ocultar()
-            self.gui3.ocultar()
-            self.gui4.ocultar()
+        # Mostra a nova GUI
+        config["gui"].mostrar()
+        self.gui_atual = config["gui"]
     
     def _executar_bbdaf(self, parametros: Dict):
         """
