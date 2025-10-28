@@ -72,7 +72,7 @@ FNDE_CONFIG = {
     'programa_padrao': '',    # Vazio para todos os programas
 
     # Timeout para elementos FNDE (em segundos)
-    'timeout_selenium': 15,
+    'timeout_selenium': 1,
 
     # Pausas específicas para FNDE (em segundos)
     'pausa_entre_municipios': 0.5,
@@ -97,9 +97,9 @@ CONSFNS_CONFIG = {
     'uf_value': '12',  # Valor do option para Minas Gerais
 
     # Timeout para elementos (em segundos)
-    'timeout_selenium': 10,
+    'timeout_selenium': 1,
     'timeout_carregamento_minimo': 1,   # Tempo mínimo de aguardo
-    'timeout_carregamento_maximo': 120,  # Tempo máximo de aguardo (2 minutos)
+    'timeout_carregamento_maximo': 30,  # Tempo máximo de aguardo (2 minutos)
 
     # Pausas específicas para ConsFNS (em segundos) - OTIMIZADO PARA VELOCIDADE
     'pausa_entre_municipios': 0.2,

@@ -118,7 +118,7 @@ class BotConsFNS(BotBase):
             chrome_options.add_experimental_option("prefs", prefs)
 
             # Usa a classe simples para conectar direto ao ChromeDriver
-            driver_simples = ChromeDriverSimples()
+            driver_simples = ChromeDriverSimples(download_dir=self.diretorio_download)
             self.navegador = driver_simples.conectar(chrome_options=chrome_options)
 
             if self.navegador:
