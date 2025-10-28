@@ -584,7 +584,7 @@ class BotConsFNS(BotBase):
 
             # Nome do arquivo de relatório
             nome_arquivo = f"RELATORIO_CONSFNS_{self.data_hoje}.txt"
-            caminho_relatorio = os.path.join(self.diretorio_saida, nome_arquivo)
+            caminho_relatorio = os.path.join(self.diretorio_consfns, nome_arquivo)
 
             # Data e hora atual para o relatório
             data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
