@@ -46,6 +46,7 @@ class ConfigGUI:
         self.script_bb_var = tk.BooleanVar(value=False)
         self.script_fnde_var = tk.BooleanVar(value=False)
         self.script_betha_var = tk.BooleanVar(value=False)
+        self.script_consfns_var = tk.BooleanVar(value=False)
         self.periodo_var = tk.StringVar(value="")  # Vazio - será preenchido do JSON
         self.horario_var = tk.StringVar(value="")  # Vazio - será preenchido do JSON
         self.hora_var = tk.StringVar(value="")     # Vazio - será preenchido do JSON
@@ -335,7 +336,16 @@ class ConfigGUI:
             command=self._on_config_change,
             font=ctk.CTkFont(size=13)
         )
-        self.check_betha.pack(side="left")
+        self.check_betha.pack(side="left", padx=(0, 20))
+
+        self.check_consfns = ctk.CTkCheckBox(
+            checks_frame,
+            text="Consulta FNS",
+            variable=self.script_consfns_var,
+            command=self._on_config_change,
+            font=ctk.CTkFont(size=13)
+        )
+        self.check_consfns.pack(side="left")
 
     def _criar_selecao_periodo(self, parent):
         """Cria dropdown para seleção de período"""
@@ -835,6 +845,7 @@ class ConfigGUI:
             self.script_bb_var.set(scripts.get('bb_daf', False))
             self.script_fnde_var.set(scripts.get('fnde', False))
             self.script_betha_var.set(scripts.get('betha', False))
+            self.script_consfns_var.set(scripts.get('cons_fns', False))
 
             # Carrega período e horário EXATAMENTE como está no JSON
             self.periodo_var.set(saved_config.get('period', ''))
@@ -930,7 +941,8 @@ class ConfigGUI:
             'scripts': {
                 'bb_daf': self.script_bb_var.get(),
                 'fnde': self.script_fnde_var.get(),
-                'betha': self.script_betha_var.get()
+                'betha': self.script_betha_var.get(),
+                'cons_fns': self.script_consfns_var.get()
             },
             'period': self.periodo_var.get(),
             'weekdays': {

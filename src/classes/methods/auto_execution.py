@@ -27,6 +27,7 @@ from src.classes.methods.cancel_method import BotBase
 from src.bots.bot_bbdaf import BotBBDAF
 from src.bots.bot_fnde import BotFNDE
 from src.bots.bot_betha import BotBetha
+from src.bots.bot_cons_fns import BotConsFNS
 
 # Importa utilitários
 from src.classes.data_extractor import DataExtractor
@@ -387,6 +388,11 @@ class AutomaticExecutor(BotBase):
                 print("\n🏢 Executando Betha...")
                 self._execute_betha(mode)
 
+            # Executa Consulta FNS se habilitado
+            if scripts.get('cons_fns', False):
+                print("\n🏥 Executando Consulta FNS...")
+                self._execute_consfns(mode)
+
             print("\n" + "="*60)
             print("✓ Execução automática concluída com sucesso")
             print("="*60)
@@ -609,6 +615,81 @@ class AutomaticExecutor(BotBase):
 
         except Exception as e:
             print(f"  ✗ Erro ao executar Betha: {e}")
+
+    def _execute_consfns(self, mode: str):
+        """
+        Executa o bot Consulta FNS para todos os municípios
+
+        Args:
+            mode: Modo de execução (Individual ou Paralela)
+        """
+        try:
+            # Carrega TODAS as cidades (cidades.txt) para execução automática
+            file_manager_auto = FileManager("cidades.txt")
+            municipios = file_manager_auto.carregar_cidades()
+
+            if not municipios:
+                print("  ⚠ Nenhuma cidade configurada para Consulta FNS")
+                return
+
+            print(f"  • Municípios: {len(municipios)} cidades")
+            print(f"  • Modo: {mode}")
+
+            if mode == 'Paralela':
+                # Execução paralela
+                num_instancias = self.exec_config.get('parallel_instances', 2)
+
+                bot = BotConsFNS()
+                self.current_bots.append(bot)
+
+                resultado = bot.executar_paralelo(num_instancias)
+
+                self.current_bots.remove(bot)
+
+                if resultado and resultado.get('sucesso'):
+                    print("  ✓ Consulta FNS executado com sucesso (paralelo)")
+                else:
+                    erro = resultado.get('erro', 'Erro desconhecido') if resultado else 'Erro na execução'
+                    print(f"  ✗ Falha na execução Consulta FNS: {erro}")
+            else:
+                # Execução individual
+                bot = BotConsFNS()
+                self.current_bots.append(bot)
+
+                if not bot.configurar_navegador():
+                    print("  ✗ Erro ao configurar navegador para Consulta FNS")
+                    self.current_bots.remove(bot)
+                    return
+
+                # Processa cada município
+                sucessos = 0
+                falhas = 0
+
+                for municipio in municipios:
+                    if self.esta_cancelado():
+                        print("  ⚠ Execução cancelada pelo usuário")
+                        break
+
+                    try:
+                        resultado = bot.processar_municipio(municipio)
+
+                        if resultado['sucesso']:
+                            sucessos += 1
+                        else:
+                            falhas += 1
+                            print(f"  ✗ Falha em {municipio}: {resultado.get('erro', 'Erro desconhecido')}")
+
+                    except Exception as e:
+                        falhas += 1
+                        print(f"  ✗ Erro ao processar {municipio}: {e}")
+
+                print(f"  ✓ Consulta FNS executado: {sucessos} sucessos, {falhas} falhas")
+
+                bot.fechar_navegador()
+                self.current_bots.remove(bot)
+
+        except Exception as e:
+            print(f"  ✗ Erro ao executar Consulta FNS: {e}")
 
     def cancelar(self, forcado=False):
         """
