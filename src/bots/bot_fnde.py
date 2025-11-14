@@ -10,6 +10,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.methods.cancel_method import BotBase
+from src.classes.report_generator import ReportGenerator
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -62,8 +63,9 @@ class BotFNDE(BotBase):
         self.diretorio_base = os.path.dirname(self.diretorio_fnde)
         self.data_hoje = datetime.now().strftime("%Y-%m-%d")
         self.diretorio_saida = os.path.join(self.diretorio_fnde, self.data_hoje)
-        
+
         self._criar_diretorios()
+        self.report_gen = ReportGenerator(self.diretorio_fnde, "RELATORIO_FNDE")
     
     def _criar_diretorios(self):
         """Cria estrutura de diretórios necessária"""
@@ -98,15 +100,21 @@ class BotFNDE(BotBase):
     def configurar_navegador(self) -> bool:
         """
         Configura o navegador Chrome usando conexão direta simples
-        
+
         Returns:
             bool: True se configuração bem-sucedida
         """
         try:
+            # Configura Chrome em modo headless (execução em background)
+            opcoes = webdriver.ChromeOptions()
+            opcoes.add_argument("--headless=new")
+            opcoes.add_argument("--disable-gpu")
+            opcoes.add_argument("--window-size=1920,1080")
+
             # Usa a classe simples para conectar direto ao ChromeDriver
             driver_simples = ChromeDriverSimples()
-            self.navegador = driver_simples.conectar()
-            
+            self.navegador = driver_simples.conectar(chrome_options=opcoes)
+
             if self.navegador:
                 self.wait = WebDriverWait(self.navegador, self.timeout)
                 print("✓ Navegador Chrome configurado com sucesso")
@@ -114,7 +122,7 @@ class BotFNDE(BotBase):
             else:
                 print("✗ Falha ao conectar com ChromeDriver")
                 return False
-            
+
         except Exception as e:
             print(f"✗ Erro ao configurar navegador: {e}")
             return False
@@ -442,7 +450,22 @@ class BotFNDE(BotBase):
             resultado['sucesso'] = True
             resultado['arquivo'] = f"{ano}_{municipio.replace(' ', '_')}.xlsx"
             print(f"✓ Processamento concluído para {municipio}")
-            
+
+            # Generate report for single city processing
+            estatisticas = ReportGenerator.criar_estatisticas(1)
+            ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
+            ReportGenerator.calcular_taxa_sucesso(estatisticas)
+
+            try:
+                arquivo_relatorio = self.report_gen.gerar_relatorio(
+                    estatisticas,
+                    "RELATÓRIO DE PROCESSAMENTO - FNDE"
+                )
+                if arquivo_relatorio:
+                    print(f"📄 Relatório gerado: {arquivo_relatorio}")
+            except Exception as e:
+                print(f"Aviso: Erro ao gerar relatório - {e}")
+
         except Exception as e:
             resultado['erro'] = f"Erro inesperado: {str(e)}"
             print(f"✗ Erro ao processar {municipio}: {e}")
@@ -463,14 +486,8 @@ class BotFNDE(BotBase):
         """
         print(f"\n=== INICIANDO PROCESSAMENTO DE TODOS OS MUNICÍPIOS - ANO {ano} ===")
         print(f"Total de municípios: {len(self.municipios_mg)}")
-        
-        estatisticas = {
-            'total': len(self.municipios_mg),
-            'sucessos': 0,
-            'erros': 0,
-            'municipios_processados': [],
-            'municipios_erro': []
-        }
+
+        estatisticas = ReportGenerator.criar_estatisticas(len(self.municipios_mg))
         
         try:
             for i, municipio in enumerate(self.municipios_mg, 1):
@@ -480,18 +497,10 @@ class BotFNDE(BotBase):
                     break
                 
                 print(f"\nProgresso: {i}/{len(self.municipios_mg)} municípios")
-                
+
                 resultado = self.processar_municipio(ano, municipio)
-                
-                if resultado['sucesso']:
-                    estatisticas['sucessos'] += 1
-                    estatisticas['municipios_processados'].append(municipio)
-                else:
-                    estatisticas['erros'] += 1
-                    estatisticas['municipios_erro'].append({
-                        'municipio': municipio,
-                        'erro': resultado['erro']
-                    })
+
+                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
                 
                 # Pequena pausa entre municípios (otimizada)
                 if not self._cancelado:
@@ -501,16 +510,21 @@ class BotFNDE(BotBase):
             print(f"Erro durante processamento em lote: {e}")
         finally:
             self.limpar_recursos()
-        
-        # Calcula taxa de sucesso
-        estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
-        
-        print(f"\n=== PROCESSAMENTO CONCLUÍDO ===")
-        print(f"Total: {estatisticas['total']}")
-        print(f"Sucessos: {estatisticas['sucessos']}")
-        print(f"Erros: {estatisticas['erros']}")
-        print(f"Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
-        
+
+        ReportGenerator.calcular_taxa_sucesso(estatisticas)
+
+        try:
+            arquivo_relatorio = self.report_gen.gerar_relatorio(
+                estatisticas,
+                "RELATÓRIO DE PROCESSAMENTO - FNDE"
+            )
+            if arquivo_relatorio:
+                print(f"📄 Relatório gerado: {arquivo_relatorio}")
+        except Exception as e:
+            print(f"Aviso: Erro ao gerar relatório - {e}")
+
+        ReportGenerator.imprimir_estatisticas(estatisticas)
+
         return estatisticas
     
     def processar_lote_municipios(self, ano: str, municipios: List[str]) -> Dict[str, any]:
@@ -525,14 +539,8 @@ class BotFNDE(BotBase):
             Dict: Estatísticas do processamento do lote
         """
         print(f"\n=== PROCESSANDO LOTE DE {len(municipios)} MUNICÍPIOS - ANO {ano} ===")
-        
-        estatisticas = {
-            'total': len(municipios),
-            'sucessos': 0,
-            'erros': 0,
-            'municipios_processados': [],
-            'municipios_erro': []
-        }
+
+        estatisticas = ReportGenerator.criar_estatisticas(len(municipios))
         
         try:
             for i, municipio in enumerate(municipios, 1):
@@ -542,18 +550,10 @@ class BotFNDE(BotBase):
                     break
                 
                 print(f"\nProgresso do lote: {i}/{len(municipios)} - {municipio}")
-                
+
                 resultado = self.processar_municipio(ano, municipio)
-                
-                if resultado['sucesso']:
-                    estatisticas['sucessos'] += 1
-                    estatisticas['municipios_processados'].append(municipio)
-                else:
-                    estatisticas['erros'] += 1
-                    estatisticas['municipios_erro'].append({
-                        'municipio': municipio,
-                        'erro': resultado['erro']
-                    })
+
+                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
                 
                 # Pequena pausa entre municípios (otimizada)
                 if not self._cancelado:
@@ -562,16 +562,10 @@ class BotFNDE(BotBase):
         except Exception as e:
             print(f"Erro durante processamento do lote: {e}")
             return {'sucesso': False, 'erro': str(e)}
-        
-        # Calcula taxa de sucesso
-        estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
-        
-        print(f"\n=== LOTE CONCLUÍDO ===")
-        print(f"Total: {estatisticas['total']}")
-        print(f"Sucessos: {estatisticas['sucessos']}")
-        print(f"Erros: {estatisticas['erros']}")
-        print(f"Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
-        
+
+        ReportGenerator.calcular_taxa_sucesso(estatisticas)
+        ReportGenerator.imprimir_estatisticas(estatisticas, "LOTE CONCLUÍDO")
+
         return {'sucesso': True, 'estatisticas': estatisticas}
     
     def executar_paralelo(self, ano: str, num_instancias: int = 2) -> Dict[str, any]:

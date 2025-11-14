@@ -65,22 +65,28 @@ class BotBBDAF(BotBase):
     def configurar_navegador(self):
         """
         Configura e inicializa o navegador Chrome usando conexão direta simples
-        
+
         Returns:
             bool: True se a configuração foi bem-sucedida, False caso contrário
         """
         try:
+            # Configura Chrome em modo headless (execução em background)
+            opcoes = webdriver.ChromeOptions()
+            opcoes.add_argument("--headless=new")
+            opcoes.add_argument("--disable-gpu")
+            opcoes.add_argument("--window-size=1920,1080")
+
             # Usa a classe simples para conectar direto ao ChromeDriver
             driver_simples = ChromeDriverSimples()
-            self.navegador = driver_simples.conectar()
-            
+            self.navegador = driver_simples.conectar(chrome_options=opcoes)
+
             if self.navegador:
                 # Configura o WebDriverWait para aguardar elementos aparecerem
                 self.wait = WebDriverWait(self.navegador, self.timeout)
                 return True
             else:
                 return False
-            
+
         except Exception:
             return False
     

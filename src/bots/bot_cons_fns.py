@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.methods.cancel_method import BotBase
 from src.classes.config import CONSFNS_CONFIG, SELETORES_CONSFNS, MENSAGENS
+from src.classes.report_generator import ReportGenerator
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -52,6 +53,7 @@ class BotConsFNS(BotBase):
         self.diretorio_saida = os.path.join(self.diretorio_consfns, self.data_hoje)
         self.diretorio_download = os.path.join(self.diretorio_consfns, "temp_downloads")
         self._criar_diretorios()
+        self.report_gen = ReportGenerator(self.diretorio_consfns, "RELATORIO_CONSFNS")
 
     def _criar_diretorios(self):
         """Cria estrutura de diretórios necessária"""
@@ -86,48 +88,17 @@ class BotConsFNS(BotBase):
             return True
         return False
 
-    def _criar_estatisticas(self, total: int) -> Dict:
-        """Cria estrutura de estatísticas para processamento"""
-        return {
-            'total': total,
-            'sucessos': 0,
-            'erros': 0,
-            'municipios_processados': [],
-            'municipios_erro': []
-        }
-
-    def _atualizar_estatisticas(self, estatisticas: Dict, resultado: Dict):
-        """Atualiza estatísticas com resultado do processamento de um município"""
-        if resultado['sucesso']:
-            estatisticas['sucessos'] += 1
-            estatisticas['municipios_processados'].append(resultado['municipio'])
-        else:
-            estatisticas['erros'] += 1
-            estatisticas['municipios_erro'].append({
-                'municipio': resultado['municipio'],
-                'erro': resultado['erro']
-            })
-
-    def _calcular_taxa_sucesso(self, estatisticas: Dict):
-        """Calcula e adiciona taxa de sucesso às estatísticas"""
-        if estatisticas['total'] > 0:
-            estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
-        else:
-            estatisticas['taxa_sucesso'] = 0
-
-    def _imprimir_estatisticas(self, estatisticas: Dict, titulo: str = "PROCESSAMENTO CONCLUÍDO"):
-        """Imprime resumo das estatísticas de processamento"""
-        print(f"\n=== {titulo} ===")
-        print(f"Total: {estatisticas['total']}")
-        print(f"Sucessos: {estatisticas['sucessos']}")
-        print(f"Erros: {estatisticas['erros']}")
-        print(f"Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
-
     def configurar_navegador(self) -> bool:
         """Configura o navegador Chrome com diretório de download personalizado"""
         try:
+            # Configura Chrome em modo headless (execução em background)
+            opcoes = webdriver.ChromeOptions()
+            opcoes.add_argument("--headless=new")
+            opcoes.add_argument("--disable-gpu")
+            opcoes.add_argument("--window-size=1920,1080")
+
             driver_simples = ChromeDriverSimples(download_dir=self.diretorio_download)
-            self.navegador = driver_simples.conectar()
+            self.navegador = driver_simples.conectar(chrome_options=opcoes)
             if self.navegador:
                 self.wait = WebDriverWait(self.navegador, self.timeout)
                 print("✓ Navegador Chrome configurado com sucesso")
@@ -346,6 +317,22 @@ class BotConsFNS(BotBase):
             resultado['sucesso'] = True
             resultado['arquivo'] = arquivo_salvo
             print(f"✓ Processamento concluído para {municipio}")
+
+            # Generate report for single city processing
+            estatisticas = ReportGenerator.criar_estatisticas(1)
+            ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
+            ReportGenerator.calcular_taxa_sucesso(estatisticas)
+
+            try:
+                arquivo_relatorio = self.report_gen.gerar_relatorio(
+                    estatisticas,
+                    "RELATÓRIO DE PROCESSAMENTO - CONSULTA FNS"
+                )
+                if arquivo_relatorio:
+                    print(f"📄 Relatório gerado: {arquivo_relatorio}")
+            except Exception as erro_relatorio:
+                print(f"Aviso: Erro ao gerar relatório - {erro_relatorio}")
+
         except Exception as e:
             resultado['erro'] = f"Erro inesperado: {str(e)}"
             print(f"✗ Erro ao processar {municipio}: {e}")
@@ -360,7 +347,7 @@ class BotConsFNS(BotBase):
         print(f"\n{MENSAGENS['inicio_consfns']}")
         print(f"{MENSAGENS['consfns_todos_municipios']}")
         print(f"Total de municípios: {len(self.municipios_mg)}")
-        estatisticas = self._criar_estatisticas(len(self.municipios_mg))
+        estatisticas = ReportGenerator.criar_estatisticas(len(self.municipios_mg))
         try:
             for i, municipio in enumerate(self.municipios_mg, 1):
                 if self._cancelado:
@@ -368,70 +355,23 @@ class BotConsFNS(BotBase):
                     break
                 print(f"\nProgresso: {i}/{len(self.municipios_mg)} municípios")
                 resultado = self.processar_municipio(municipio)
-                self._atualizar_estatisticas(estatisticas, resultado)
+                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
         except Exception as e:
             print(f"Erro durante processamento em lote: {e}")
-        self._calcular_taxa_sucesso(estatisticas)
+        ReportGenerator.calcular_taxa_sucesso(estatisticas)
         try:
-            arquivo_relatorio = self._gerar_relatorio(estatisticas)
+            arquivo_relatorio = self.report_gen.gerar_relatorio(estatisticas, "RELATÓRIO DE PROCESSAMENTO - CONSULTA FNS")
             if arquivo_relatorio:
                 print(f"📄 Relatório gerado: {arquivo_relatorio}")
         except Exception as e:
             print(f"Aviso: Erro ao gerar relatório - {e}")
-        self._imprimir_estatisticas(estatisticas)
+        ReportGenerator.imprimir_estatisticas(estatisticas)
         return estatisticas
-
-    def _gerar_relatorio(self, estatisticas: Dict) -> str:
-        """Gera relatório TXT com estatísticas do processamento"""
-        try:
-            from datetime import datetime
-            nome_arquivo = f"RELATORIO_CONSFNS_{self.data_hoje}.txt"
-            caminho_relatorio = os.path.join(self.diretorio_consfns, nome_arquivo)
-            data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-            linhas = []
-            linhas.append("=" * 60)
-            linhas.append("RELATÓRIO DE PROCESSAMENTO - CONSULTA FNS")
-            linhas.append("=" * 60)
-            linhas.append("")
-            linhas.append(f"Data: {data_hora_atual}")
-            linhas.append("")
-            linhas.append("ESTATÍSTICAS GERAIS:")
-            linhas.append(f"- Total de municípios: {estatisticas['total']}")
-            linhas.append(f"- Sucessos: {estatisticas['sucessos']}")
-            linhas.append(f"- Erros: {estatisticas['erros']}")
-            linhas.append(f"- Taxa de sucesso: {estatisticas['taxa_sucesso']:.1f}%")
-            linhas.append("")
-            if estatisticas['erros'] > 0 and estatisticas.get('municipios_erro'):
-                linhas.append("=" * 60)
-                linhas.append(f"MUNICÍPIOS COM ERRO ({len(estatisticas['municipios_erro'])}):")
-                linhas.append("=" * 60)
-                linhas.append("")
-                for i, erro_info in enumerate(estatisticas['municipios_erro'], 1):
-                    municipio = erro_info.get('municipio', 'Desconhecido')
-                    erro = erro_info.get('erro', 'Erro não especificado')
-                    linhas.append(f"{i}. {municipio}")
-                    linhas.append(f"   Erro: {erro}")
-                    linhas.append("")
-            else:
-                linhas.append("=" * 60)
-                linhas.append("NENHUM ERRO REGISTRADO - EXECUÇÃO 100% SUCESSO!")
-                linhas.append("=" * 60)
-                linhas.append("")
-            linhas.append("=" * 60)
-            linhas.append("FIM DO RELATÓRIO")
-            linhas.append("=" * 60)
-            with open(caminho_relatorio, 'w', encoding='utf-8') as arquivo:
-                arquivo.write('\n'.join(linhas))
-            print(f"📄 Relatório gerado: {caminho_relatorio}")
-            return caminho_relatorio
-        except Exception as e:
-            print(f"Aviso: Erro ao gerar relatório - {e}")
-            return None
 
     def processar_lote_municipios(self, municipios: List[str]) -> Dict[str, any]:
         """Processa um lote específico de municípios (para uso paralelo)"""
         print(f"\n=== PROCESSANDO LOTE DE {len(municipios)} MUNICÍPIOS - CONSFNS ===")
-        estatisticas = self._criar_estatisticas(len(municipios))
+        estatisticas = ReportGenerator.criar_estatisticas(len(municipios))
         try:
             for i, municipio in enumerate(municipios, 1):
                 if self._cancelado:
@@ -439,14 +379,14 @@ class BotConsFNS(BotBase):
                     break
                 print(f"\nProgresso do lote: {i}/{len(municipios)} - {municipio}")
                 resultado = self.processar_municipio(municipio)
-                self._atualizar_estatisticas(estatisticas, resultado)
+                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
                 if not self._cancelado:
                     time.sleep(CONSFNS_CONFIG['pausa_entre_municipios'])
         except Exception as e:
             print(f"Erro durante processamento do lote: {e}")
             return {'sucesso': False, 'erro': str(e)}
-        self._calcular_taxa_sucesso(estatisticas)
-        self._imprimir_estatisticas(estatisticas, "LOTE CONCLUÍDO")
+        ReportGenerator.calcular_taxa_sucesso(estatisticas)
+        ReportGenerator.imprimir_estatisticas(estatisticas, "LOTE CONCLUÍDO")
         return {'sucesso': True, 'estatisticas': estatisticas}
 
     def executar_paralelo(self, num_instancias: int = 2) -> Dict[str, any]:
@@ -460,10 +400,9 @@ class BotConsFNS(BotBase):
             resultado['processador'] = self.processador_paralelo
             if resultado['sucesso']:
                 stats = resultado['estatisticas']
-                stats['titulo_customizado'] = "PROCESSAMENTO PARALELO CONCLUÍDO"
-                self._imprimir_estatisticas(stats, "PROCESSAMENTO PARALELO CONCLUÍDO")
+                ReportGenerator.imprimir_estatisticas(stats, "PROCESSAMENTO PARALELO CONCLUÍDO")
                 try:
-                    arquivo_relatorio = self._gerar_relatorio(stats)
+                    arquivo_relatorio = self.report_gen.gerar_relatorio(stats, "RELATÓRIO DE PROCESSAMENTO - CONSULTA FNS")
                     if arquivo_relatorio:
                         print(f"📄 Relatório gerado: {arquivo_relatorio}")
                 except Exception as e:
