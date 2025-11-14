@@ -26,6 +26,8 @@ from src.classes.file.file_manager import FileManager
 from src.classes.city_splitter import CitySplitter
 from src.classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
 from src.classes.methods.cancel_method import BotBase
+from src.classes.report_generator import ReportGenerator
+from src.classes.file.path_manager import obter_caminho_dados
 
 
 class BotBBDAF(BotBase):
@@ -52,6 +54,8 @@ class BotBBDAF(BotBase):
         self.url = url or SISTEMA_CONFIG['url_sistema']
         self.timeout = timeout or SISTEMA_CONFIG['timeout_selenium']
         self.data_extractor = None  # Extrator de dados (opcional)
+        self.diretorio_base = obter_caminho_dados("bbdaf")
+        self.report_gen = ReportGenerator(self.diretorio_base, "RELATORIO_BBDAF")
     
     def configurar_extrator_dados(self, data_extractor):
         """
@@ -309,99 +313,128 @@ class BotBBDAF(BotBase):
         except Exception:
             return False
     
-    def processar_cidade(self, cidade, data_inicial, data_final):
+    def processar_cidade(self, cidade, data_inicial, data_final, gerar_relatorio=True):
         """
         Processa uma cidade completa: nome → continuar → selecionar MG → datas → continuar
-        
+
         Args:
             cidade (str): Nome da cidade
             data_inicial (str): Data inicial no formato DD/MM/AAAA
             data_final (str): Data final no formato DD/MM/AAAA
-        
+            gerar_relatorio (bool): Se True, gera relatório individual (padrão: True)
+
         Returns:
-            bool: True se o processamento foi bem-sucedido, False caso contrário
+            Dict: Resultado do processamento com sucesso, erro e arquivo
         """
+        resultado = {
+            'municipio': cidade,
+            'sucesso': False,
+            'erro': None,
+            'arquivo': None
+        }
+
         try:
             # PASSO 1: Preenche o campo "Nome do Beneficiário" com o nome da cidade
             if not self.preencher_nome_cidade(cidade):
-                return False
-            
+                resultado['erro'] = "Falha ao preencher nome da cidade"
+                return resultado
+
             # PASSO 2: Clica no primeiro botão "Continuar" para ir para a página de seleção
             if not self.clicar_botao_continuar():
-                return False
-            
+                resultado['erro'] = "Falha ao clicar no primeiro botão continuar"
+                return resultado
+
             # PASSO 3: Seleciona especificamente a cidade do estado MG
             if not self.selecionar_cidade_mg(cidade):
-                return False
-            
+                resultado['erro'] = "Falha ao selecionar cidade em MG"
+                return resultado
+
             # PASSO 4: Preenche os campos de data inicial e final
             if not self.preencher_datas(data_inicial, data_final):
-                return False
-            
+                resultado['erro'] = "Falha ao preencher datas"
+                return resultado
+
             # PASSO 5: Clica no segundo botão "Continuar" para ir para a página de resultados
             if not self.clicar_segundo_botao_continuar():
-                return False
-            
+                resultado['erro'] = "Falha ao clicar no segundo botão continuar"
+                return resultado
+
             # PASSO 6: Extrai dados da página de resultados (se extrator estiver configurado)
             if hasattr(self, 'data_extractor') and self.data_extractor:
                 resultado_extracao = self.data_extractor.processar_pagina_resultados(self.navegador, cidade)
                 if resultado_extracao.get('sucesso'):
                     print(f"{cidade.title()}: {resultado_extracao.get('registros_encontrados', 0)} registros")
-            
-            return True
-            
-        except Exception:
-            return False
+                    resultado['arquivo'] = resultado_extracao.get('arquivo')
+
+            resultado['sucesso'] = True
+            print(f"✓ Processamento concluído para {cidade}")
+
+            # Generate report for single city processing (only if requested)
+            if gerar_relatorio:
+                estatisticas = ReportGenerator.criar_estatisticas(1)
+                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
+                ReportGenerator.calcular_taxa_sucesso(estatisticas)
+
+                try:
+                    arquivo_relatorio = self.report_gen.gerar_relatorio(
+                        estatisticas,
+                        "RELATÓRIO DE PROCESSAMENTO - BB DAF"
+                    )
+                    if arquivo_relatorio:
+                        print(f"📄 Relatório gerado: {arquivo_relatorio}")
+                except Exception as erro_relatorio:
+                    print(f"Aviso: Erro ao gerar relatório - {erro_relatorio}")
+
+        except Exception as e:
+            resultado['erro'] = f"Erro inesperado: {str(e)}"
+            print(f"✗ Erro ao processar {cidade}: {e}")
+
+        return resultado
     
     def processar_lista_cidades(self, cidades, data_inicial, data_final):
         """
         Processa uma lista completa de cidades automaticamente
-        
+
         Args:
             cidades (list): Lista de nomes de cidades
             data_inicial (str): Data inicial no formato DD/MM/AAAA
             data_final (str): Data final no formato DD/MM/AAAA
-        
+
         Returns:
             dict: Estatísticas do processamento (sucessos, erros, total)
         """
-        total_cidades = len(cidades)
-        sucessos = 0
-        erros = 0
-        
+        estatisticas = ReportGenerator.criar_estatisticas(len(cidades))
+
         for i, cidade in enumerate(cidades, 1):
-            print(f"Processando {i}/{total_cidades}: {cidade.title()}")
-            
-            # Processa a cidade atual
-            sucesso = self.processar_cidade(cidade, data_inicial, data_final)
-            
-            if sucesso:
-                sucessos += 1
-            else:
-                erros += 1
-                print(f"Falha: {cidade.title()}")
-            
+            print(f"Processando {i}/{len(cidades)}: {cidade.title()}")
+
+            # Processa a cidade atual (sem gerar relatório individual)
+            resultado = self.processar_cidade(cidade, data_inicial, data_final, gerar_relatorio=False)
+            ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
+
             # Volta para a página inicial para a próxima cidade (exceto na última)
-            if i < total_cidades:
+            if i < len(cidades):
                 if not self.voltar_pagina_inicial():
                     print("Erro crítico: Impossível continuar")
                     break
-                
+
                 # Pausa entre as cidades
                 time.sleep(SISTEMA_CONFIG['pausa_entre_cidades'])
-        
 
-        
-        # Retorna estatísticas do processamento
-        estatisticas = {
-            'total': total_cidades,
-            'sucessos': sucessos,
-            'erros': erros,
-            'taxa_sucesso': (sucessos / total_cidades) * 100 if total_cidades > 0 else 0
-        }
-        
-        print(f"\nConcluído: {sucessos}/{total_cidades} sucessos ({estatisticas['taxa_sucesso']:.1f}%)")
-        
+        ReportGenerator.calcular_taxa_sucesso(estatisticas)
+
+        try:
+            arquivo_relatorio = self.report_gen.gerar_relatorio(
+                estatisticas,
+                "RELATÓRIO DE PROCESSAMENTO - BB DAF"
+            )
+            if arquivo_relatorio:
+                print(f"📄 Relatório gerado: {arquivo_relatorio}")
+        except Exception as e:
+            print(f"Aviso: Erro ao gerar relatório - {e}")
+
+        ReportGenerator.imprimir_estatisticas(estatisticas)
+
         return estatisticas
     
     def aguardar_usuario(self):
