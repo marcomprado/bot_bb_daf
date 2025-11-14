@@ -48,18 +48,28 @@ class ChromeDriverSimples:
             if self.download_dir:
                 # Garantir que o caminho seja absoluto - Chrome requer isso
                 abs_download_dir = os.path.abspath(self.download_dir)
-                print(f"  ✓ Diretório de download (absoluto): {abs_download_dir}")
+
+                # Criar diretório se não existir (GARANTIA DE EXISTÊNCIA)
+                if not os.path.exists(abs_download_dir):
+                    os.makedirs(abs_download_dir, exist_ok=True)
+                    print(f"  ✓ Diretório de download criado: {abs_download_dir}")
+                else:
+                    print(f"  ✓ Diretório de download (absoluto): {abs_download_dir}")
 
                 prefs = {
                     "download.default_directory": abs_download_dir,
                     "download.prompt_for_download": False,
                     "download.directory_upgrade": True,
-                    "safebrowsing.enabled": True,
+                    "safebrowsing.enabled": False,  # Desabilita verificação de segurança
+                    "safebrowsing.disable_download_protection": True,  # Desabilita proteção de download
                     "plugins.always_open_pdf_externally": True,
                     # Chrome 87+ requer este formato atualizado para downloads automáticos
                     "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
                     # Preferência adicional para macOS 14+ e Windows
-                    "savefile.default_directory": abs_download_dir
+                    "savefile.default_directory": abs_download_dir,
+                    # Desabilita popups e permite downloads automáticos
+                    "profile.default_content_settings.popups": 0,  # Desabilita popup de download
+                    "profile.default_content_setting_values.automatic_downloads": 1  # Permite downloads automáticos
                 }
                 opcoes.add_experimental_option("prefs", prefs)
             

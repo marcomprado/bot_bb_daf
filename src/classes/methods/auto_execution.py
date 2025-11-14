@@ -656,10 +656,7 @@ class AutomaticExecutor(BotBase):
                 bot = BotConsFNS()
                 self.current_bots.append(bot)
 
-                if not bot.configurar_navegador():
-                    print("  ✗ Erro ao configurar navegador para Consulta FNS")
-                    self.current_bots.remove(bot)
-                    return
+                # Nota: Não configura navegador aqui - cada município abre/fecha seu próprio Chrome
 
                 # Processa cada município
                 sucessos = 0

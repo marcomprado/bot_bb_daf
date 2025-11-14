@@ -338,9 +338,8 @@ class GUI4:
                 # Cria instância do bot
                 self.bot_cons_fns = BotConsFNS()
 
-                # Configura navegador
-                if not self.bot_cons_fns.configurar_navegador():
-                    raise Exception("Falha ao configurar navegador Chrome")
+                # Nota: Não configura navegador aqui - cada município abre/fecha seu próprio Chrome
+                # para evitar problemas de estado e memória acumulada
 
                 # Obtém município selecionado e modo de execução
                 municipio_selecionado = self.municipio_var.get()
