@@ -25,9 +25,6 @@ class GUI4:
     def __init__(self, parent_container):
         """
         Inicializa a GUI4
-
-        Args:
-            parent_container: Container pai onde a GUI será criada
         """
         self.parent_container = parent_container
 
