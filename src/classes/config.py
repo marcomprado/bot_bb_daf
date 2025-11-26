@@ -147,6 +147,46 @@ SELETORES_CONSFNS = {
     'loading_indicator': '.loading, .carregando, .spinner',
 }
 
+# Configuracoes do Portal Saude MG
+PORTAL_SAUDE_CONFIG = {
+    # URL base do portal
+    'url_base': 'https://portal-antigo.saude.mg.gov.br/deliberacoes/documents',
+    'params_base': 'by_format=pdf&category_id=4795&ordering=newest&q=reso',
+
+    # Timeouts (em segundos)
+    'timeout_selenium': 10,
+    'timeout_carregamento_maximo': 60,
+    'timeout_scroll': 120,  # 2 minutos max para scroll infinito
+
+    # Pausas (em segundos)
+    'pausa_entre_scrolls': 0.8,
+    'pausa_antes_download': 0.5,
+    'pausa_entre_downloads': 0.5,
+
+    # Limites de scroll
+    'max_scrolls': 50,
+    'scrolls_sem_conteudo_max': 3,
+
+    # Diretorios
+    'diretorio_saida': 'arquivos_baixados/portal_saude_mg',
+
+    # Download
+    'max_tentativas_download': 3,
+    'tamanho_minimo_pdf': 1024,  # 1KB minimo para PDF valido
+}
+
+# Seletores para Portal Saude MG
+SELETORES_PORTAL_SAUDE = {
+    # Filtros
+    'select_ano': 'select[name="by_year"]',
+    'select_mes': 'select[name="by_month"]',
+    'input_busca': 'input[name="q"]',
+
+    # Resultados
+    'link_documento': 'h2.title > a',
+    'item_resultado': '.result-item, .document-item, .item',
+}
+
 # Lista completa de municípios de MG (853 municípios)
 # Esta lista é carregada dinamicamente do arquivo cidades.txt
 # mas pode ser usada como fallback

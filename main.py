@@ -17,6 +17,7 @@ from src.view.gui1 import GUI1
 from src.view.gui2 import GUI2
 from src.view.gui3 import GUI3
 from src.view.gui4 import GUI4
+from src.view.gui5 import GUI5
 from src.view.view_config import ConfigGUI
 
 # Importa funções de gerenciamento de caminhos
@@ -193,6 +194,9 @@ class SistemaFVN:
         # Cria GUI4 (Consulta FNS)
         self.gui4 = GUI4(self.container_conteudo)
 
+        # Cria GUI5 (Resoluçoes PDF)
+        self.gui5 = GUI5(self.container_conteudo)
+
         # Cria ConfigGUI (Configurações)
         self.config_gui = ConfigGUI(self.container_conteudo)
 
@@ -202,9 +206,10 @@ class SistemaFVN:
             "fnde": {"nome": "Sistema FNDE", "gui": self.gui2},
             "betha": {"nome": "Sistema Betha", "gui": self.gui3},
             "consfns": {"nome": "Consulta FNS", "gui": self.gui4},
+            "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
             "config": {"nome": None, "gui": self.config_gui}
         }
-        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.config_gui]
+        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.gui5, self.config_gui]
         self.gui_atual = None  # Rastreia GUI atualmente visível
 
         # Mostra aba inicial
@@ -230,7 +235,8 @@ class SistemaFVN:
                 "Sistema BB DAF": "bbdaf",
                 "Sistema FNDE": "fnde",
                 "Sistema Betha": "betha",
-                "Consulta FNS": "consfns"
+                "Consulta FNS": "consfns",
+                "Resoluçoes PDF": "resolucoes"
             }
             aba = mapa_sistemas.get(valor)
             if aba:
@@ -238,7 +244,7 @@ class SistemaFVN:
 
         self.dropdown_sistemas = ctk.CTkOptionMenu(
             container_abas,
-            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta FNS"],
+            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta FNS", "Resoluçoes PDF"],
             variable=self.sistema_var,
             command=on_sistema_change,
             font=ctk.CTkFont(size=14, weight="bold"),
