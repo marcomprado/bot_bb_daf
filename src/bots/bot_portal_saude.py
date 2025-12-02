@@ -151,6 +151,37 @@ class BotPortalSaude(BotBase):
         else:
             return os.path.join(ano_dir, "todos_meses")
 
+    def _determinar_diretorio_excel_consolidado(self, periodos: List[tuple]) -> str:
+        """
+        Determina o diretorio apropriado para salvar o Excel consolidado
+        baseado no escopo de periodos processados.
+
+        Args:
+            periodos: Lista de tuplas (ano, mes) processadas
+
+        Returns:
+            Caminho do diretorio onde o Excel deve ser salvo
+        """
+        if not periodos:
+            return self.diretorio_base
+
+        # Extrai anos unicos
+        anos_unicos = list(set(ano for ano, mes in periodos))
+
+        if len(periodos) == 1:
+            # Periodo unico: Excel na pasta do mes
+            ano, mes = periodos[0]
+            return self._obter_diretorio_saida(ano, mes)
+
+        elif len(anos_unicos) == 1:
+            # Multiplos periodos, ano unico: Excel na pasta do ano
+            ano = anos_unicos[0]
+            return os.path.join(self.diretorio_base, ano)
+
+        else:
+            # Multiplos anos: Excel na raiz do portal
+            return self.diretorio_base
+
     def _verificar_cancelamento(self, resultado: Dict = None) -> bool:
         """Verifica se execucao foi cancelada e fecha navegador"""
         if self._cancelado:
@@ -165,7 +196,7 @@ class BotPortalSaude(BotBase):
         """Configura o navegador Chrome em modo headless"""
         try:
             opcoes = webdriver.ChromeOptions()
-            # opcoes.add_argument("--headless=new")  # Desabilitado para testes
+            opcoes.add_argument("--headless=new")  # Modo headless habilitado
             opcoes.add_argument("--disable-gpu")
             opcoes.add_argument("--window-size=1920,1080")
             opcoes.add_argument("--no-sandbox")
@@ -747,44 +778,55 @@ class BotPortalSaude(BotBase):
                 print(f"  Diretorio base: {resultado_final['diretorio_saida']}")
                 print(f"{'='*60}\n")
 
-                # Process PDFs with AI if downloads succeeded
-                if resultado_final['total_baixados'] > 0 and resultado_final['arquivos_baixados']:
-                    print(f"{'='*60}")
-                    print(f"PROCESSAMENTO DE PDFs COM IA")
-                    print(f"{'='*60}\n")
+            # Process PDFs with AI if downloads succeeded (moved outside success check)
+            if resultado_final['total_baixados'] > 0 and resultado_final['arquivos_baixados']:
+                print(f"{'='*60}")
+                print(f"PROCESSAMENTO DE PDFs COM IA")
+                print(f"{'='*60}\n")
 
-                    try:
-                        from src.classes.methods.pdf_to_table import PDFToTableConverter
+                try:
+                    from src.classes.methods.pdf_to_table import PDFToTableConverter
 
-                        # Create converter instance
-                        converter = PDFToTableConverter()
+                    # Determine appropriate output directory for consolidated Excel
+                    output_dir = self._determinar_diretorio_excel_consolidado(periodos)
+                    print(f"Diretorio para Excel consolidado: {output_dir}")
 
-                        # Process the specific files from this run
-                        excel_result = converter.process_file_list(
-                            pdf_files=resultado_final['arquivos_baixados'],
-                            output_dir=resultado_final['diretorio_saida']
-                        )
+                    # Create converter instance
+                    converter = PDFToTableConverter()
 
-                        if excel_result['success']:
-                            # Add Excel info to result
-                            resultado_final['excel_consolidado'] = excel_result['excel_path']
-                            resultado_final['pdfs_processados'] = excel_result['total_processed']
-                            resultado_final['pdfs_com_sucesso'] = excel_result['successful']
-                            resultado_final['pdfs_com_falha'] = excel_result['failed']
+                    # Process all accumulated PDFs
+                    excel_result = converter.process_file_list(
+                        pdf_files=resultado_final['arquivos_baixados'],
+                        output_dir=output_dir
+                    )
 
-                            print(f"\n[SUCESSO] Excel consolidado gerado:")
-                            print(f"  Arquivo: {excel_result['excel_path']}")
-                            print(f"  PDFs processados: {excel_result['total_processed']}")
-                            print(f"  Sucessos: {excel_result['successful']}")
-                            print(f"  Falhas: {excel_result['failed']}")
-                        else:
-                            print(f"\n[AVISO] Falha ao gerar Excel: {excel_result.get('error')}")
+                    if excel_result['success']:
+                        # Add Excel info to result
+                        resultado_final['excel_consolidado'] = excel_result['excel_path']
+                        resultado_final['pdfs_processados'] = excel_result['total_processed']
+                        resultado_final['pdfs_com_sucesso'] = excel_result['successful']
+                        resultado_final['pdfs_com_falha'] = excel_result['failed']
+                        resultado_final['pdfs_deletados'] = excel_result.get('pdfs_deleted', 0)
+                        resultado_final['pastas_deletadas'] = excel_result.get('total_folders_deleted', 0)
 
-                    except Exception as e:
-                        # Don't fail the entire bot run if Excel generation fails
-                        print(f"\n[AVISO] Erro ao processar PDFs com IA: {e}")
-                        import traceback
-                        traceback.print_exc()
+                        print(f"\n{'='*60}")
+                        print(f"PROCESSAMENTO DE PDFs COM IA - CONCLUIDO")
+                        print(f"{'='*60}")
+                        print(f"  Excel consolidado: {excel_result['excel_path']}")
+                        print(f"  PDFs processados: {excel_result['total_processed']}")
+                        print(f"  Sucessos: {excel_result['successful']}")
+                        print(f"  Falhas: {excel_result['failed']}")
+                        print(f"  PDFs deletados: {excel_result.get('pdfs_deleted', 0)}")
+                        print(f"  Pastas deletadas: {excel_result.get('total_folders_deleted', 0)}")
+                        print(f"{'='*60}\n")
+                    else:
+                        print(f"\n[AVISO] Falha ao gerar Excel: {excel_result.get('error')}")
+
+                except Exception as e:
+                    # Don't fail the entire bot run if Excel generation fails
+                    print(f"\n[AVISO] Erro ao processar PDFs com IA: {e}")
+                    import traceback
+                    traceback.print_exc()
 
         except Exception as e:
             resultado_final['erro'] = f"Erro inesperado: {str(e)}"

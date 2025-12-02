@@ -19,6 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.bots.bot_betha import BotBetha
 from src.view.modules.buttons import ButtonFactory
+from src.view.modules.loading_indicator import LoadingIndicator
 from src.classes.file.path_manager import obter_caminho_dados
 import time
 
@@ -47,6 +48,9 @@ class GUI3:
         self.executor = None
         self.futures = []
         self.bots_ativos = []  # Lista de instâncias BotBetha ativas
+
+        # Loading indicator
+        self.loading_indicator = None
 
         self._configurar_valores_padrao()
         self._criar_interface()
@@ -334,7 +338,10 @@ class GUI3:
             border_color="#0066cc"
         )
         frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
-        
+
+        # Loading indicator
+        self.loading_indicator = LoadingIndicator(frame_acoes)
+
         # Container interno para centralizar botões
         container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
         container_botoes.pack(pady=15)
@@ -458,6 +465,13 @@ class GUI3:
 
         # Atualiza dropdown de modo
         self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
+
+        # Controla loading indicator
+        if self.loading_indicator:
+            if habilitado:
+                self.loading_indicator.hide()
+            else:
+                self.loading_indicator.show("Processando...")
 
         # Botão abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")

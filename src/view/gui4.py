@@ -17,6 +17,7 @@ from typing import Dict, Callable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.view.modules.buttons import ButtonFactory
+from src.view.modules.loading_indicator import LoadingIndicator
 
 
 class GUI4:
@@ -44,6 +45,9 @@ class GUI4:
 
         # Frame principal
         self.main_frame = None
+
+        # Loading indicator
+        self.loading_indicator = None
 
         # Configurar valores padrão
         self._configurar_valores_padrao()
@@ -285,6 +289,9 @@ class GUI4:
         )
         frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
 
+        # Loading indicator
+        self.loading_indicator = LoadingIndicator(frame_acoes)
+
         # Container interno para centralizar botões
         container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
         container_botoes.pack(pady=15)
@@ -493,6 +500,13 @@ class GUI4:
         # Atualiza dropdown de modo de execução
         if hasattr(self, 'dropdown_modo'):
             self.dropdown_modo.configure(state="normal" if habilitado else "disabled")
+
+        # Controla loading indicator
+        if self.loading_indicator:
+            if habilitado:
+                self.loading_indicator.hide()
+            else:
+                self.loading_indicator.show("Processando...")
 
         # Botão abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")

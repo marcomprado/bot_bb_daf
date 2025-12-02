@@ -280,6 +280,40 @@ class BotConsFNS(BotBase):
             print(f"Aviso: Erro ao renomear arquivo - {e}")
             return arquivo_original
 
+    def _cleanup_temp_downloads(self) -> Dict[str, bool]:
+        """
+        Remove pasta temp_downloads se estiver vazia após processamento
+
+        Returns:
+            Dict com status da limpeza:
+            - 'pasta_deletada': True se pasta foi removida
+            - 'sucesso': True se operação foi bem-sucedida
+        """
+        try:
+            # Verifica se diretório existe
+            if not os.path.exists(self.diretorio_download):
+                return {'pasta_deletada': False, 'sucesso': True}
+
+            # Lista arquivos restantes (ignora subpastas)
+            remaining_files = [
+                f for f in os.listdir(self.diretorio_download)
+                if os.path.isfile(os.path.join(self.diretorio_download, f))
+            ]
+
+            # Se vazio, remove a pasta
+            if len(remaining_files) == 0:
+                os.rmdir(self.diretorio_download)
+                print("🗑️  Pasta temp_downloads removida (vazia)")
+                return {'pasta_deletada': True, 'sucesso': True}
+            else:
+                # Mantém pasta com arquivos (possíveis downloads incompletos)
+                print(f"⚠️  Pasta temp_downloads mantida ({len(remaining_files)} arquivo(s) restante(s))")
+                return {'pasta_deletada': False, 'sucesso': True}
+
+        except Exception as e:
+            print(f"⚠️  Erro ao limpar pasta temporária: {e}")
+            return {'pasta_deletada': False, 'sucesso': False}
+
     def processar_municipio(self, municipio: str) -> Dict[str, any]:
         """Processa um município específico com sessão Chrome dedicada"""
         resultado = {'municipio': municipio, 'sucesso': False, 'erro': None, 'arquivo': None}
@@ -340,6 +374,11 @@ class BotConsFNS(BotBase):
             self._em_execucao = False
             print("Fechando Chrome...")
             self.limpar_recursos()
+
+            # Limpar pasta temporária após processamento
+            cleanup_result = self._cleanup_temp_downloads()
+            resultado['temp_cleanup'] = cleanup_result
+
         return resultado
 
     def processar_todos_municipios(self) -> Dict[str, any]:

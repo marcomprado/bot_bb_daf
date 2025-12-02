@@ -36,13 +36,13 @@ AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
 
 # Model Selection - Change this to switch models
 # Free Options (OpenRouter):
-AI_MODEL = 'x-ai/grok-4.1-fast:free'  # Fast, free, good quality
+AI_MODEL = 'nvidia/nemotron-nano-9b-v2:free'  # Fast, free, good quality
 
 # AI Parameters
 AI_TEMPERATURE = 0.1      # Low for consistent extraction (0.0-1.0)
 AI_MAX_TOKENS = 4000      # Maximum tokens in response (sufficient for structured data extraction)
 MAX_RETRIES = 2           # Retry attempts for API calls
-MAX_PDF_TEXT_LENGTH = 20000  # Limit PDF text to prevent token overflow (~5000 tokens)
+MAX_PDF_TEXT_LENGTH = 20000  # Limit PDF text to prevent token overflow
 
 # ============================================================================
 # RESOLUTION EXTRACTION SCHEMA
@@ -396,22 +396,24 @@ class PDFToTableConverter:
         """
         Remove PDF files that were successfully processed.
         Keeps failed PDFs for manual review.
-        If folder becomes empty (only Excel), moves Excel to parent and deletes folder.
+        Checks each unique directory containing PDFs and deletes empty month folders.
 
         Args:
             results: List of processing results with 'success' and 'pdf_path'
-            output_dir: Directory containing PDFs and Excel
+            output_dir: Directory where Excel was saved
             excel_path: Path to generated Excel file
 
         Returns:
-            Dict with deleted PDFs count and folder cleanup status
+            Dict with deleted PDFs count and folders deleted
         """
         import os
-        import shutil
 
         deleted_pdfs = 0
+        folders_deleted = []
 
-        # Delete successful PDFs
+        # Step 1: Delete successful PDFs and track their directories
+        pdf_directories = set()
+
         for result in results:
             if result.get('success', False):
                 pdf_path = result.get('pdf_path')
@@ -419,48 +421,38 @@ class PDFToTableConverter:
                 if pdf_path:
                     try:
                         if os.path.exists(pdf_path):
+                            pdf_dir = os.path.dirname(pdf_path)
+                            pdf_directories.add(pdf_dir)
+
                             os.remove(pdf_path)
                             deleted_pdfs += 1
                     except Exception as e:
                         pdf_filename = os.path.basename(pdf_path)
                         print(f"    ⚠ Não foi possível apagar {pdf_filename}: {e}")
 
-        # Check if folder is empty (only Excel remains)
-        try:
-            remaining_files = []
-            for item in os.listdir(output_dir):
-                item_path = os.path.join(output_dir, item)
-                # Skip the Excel file itself
-                if item_path != excel_path and os.path.isfile(item_path):
-                    remaining_files.append(item)
+        # Step 2: Check each directory and delete if empty (month folders)
+        for pdf_dir in pdf_directories:
+            try:
+                # Only consider directories that are NOT the Excel output directory
+                if pdf_dir == output_dir:
+                    continue
 
-            if len(remaining_files) == 0:
-                # Folder is empty (only Excel) - move Excel and delete folder
-                parent_dir = os.path.dirname(output_dir)
-                excel_filename = os.path.basename(excel_path)
-                new_excel_path = os.path.join(parent_dir, excel_filename)
+                remaining_files = [f for f in os.listdir(pdf_dir)
+                                 if os.path.isfile(os.path.join(pdf_dir, f))]
 
-                # Move Excel to parent directory
-                shutil.move(excel_path, new_excel_path)
+                if len(remaining_files) == 0:
+                    # Folder is empty - delete it
+                    os.rmdir(pdf_dir)
+                    folders_deleted.append(pdf_dir)
+                    print(f"  📁 Pasta vazia removida: {os.path.basename(pdf_dir)}")
 
-                # Delete empty folder
-                os.rmdir(output_dir)
-
-                print(f"  📁 Pasta vazia removida (Excel movido para: {parent_dir})")
-
-                return {
-                    'pdfs_deleted': deleted_pdfs,
-                    'folder_deleted': True,
-                    'new_excel_path': new_excel_path
-                }
-
-        except Exception as e:
-            print(f"    ⚠ Erro ao limpar pasta: {e}")
+            except Exception as e:
+                print(f"    ⚠ Erro ao limpar pasta {pdf_dir}: {e}")
 
         return {
             'pdfs_deleted': deleted_pdfs,
-            'folder_deleted': False,
-            'new_excel_path': excel_path
+            'folders_deleted': folders_deleted,
+            'total_folders_deleted': len(folders_deleted)
         }
 
     # ========================================================================
@@ -634,9 +626,6 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
 
     def _get_resolution_extraction_prompt(self) -> str:
         """
-        Get the specialized prompt for Brazilian government resolution extraction.
-
-        Returns:
             System prompt for AI extraction
         """
         return """Você é um assistente especializado em análise de documentos legais. Sua tarefa é extrair informações específicas de um PDF e retornar os dados em formato estruturado para composição de uma tabela.

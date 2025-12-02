@@ -18,6 +18,7 @@ from typing import List
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.view.modules.buttons import ButtonFactory
+from src.view.modules.loading_indicator import LoadingIndicator
 
 
 class GUI5:
@@ -44,6 +45,9 @@ class GUI5:
         # Frame principal
         self.main_frame = None
 
+        # Loading indicator
+        self.loading_indicator = None
+
         # Configurar valores padrao
         self._configurar_valores_padrao()
 
@@ -56,8 +60,15 @@ class GUI5:
         ano_atual = datetime.now().year
         self.ano_var.set(str(ano_atual))
 
-        # Define valor padrao do mes
-        self.mes_var.set("Todos os Meses")
+        # Define valor padrao do mes (mes atual)
+        mes_atual = datetime.now().month
+        meses_nomes = [
+            "Janeiro", "Fevereiro", "Março", "Abril",
+            "Maio", "Junho", "Julho", "Agosto",
+            "Setembro", "Outubro", "Novembro", "Dezembro"
+        ]
+        mes_nome = meses_nomes[mes_atual - 1]  # Ajusta indice (1-12 -> 0-11)
+        self.mes_var.set(mes_nome)
 
     def _obter_opcoes_anos(self) -> List[str]:
         """Retorna lista de opcoes para o dropdown de anos"""
@@ -244,7 +255,7 @@ class GUI5:
         # Label de status do mes
         self.label_status_mes = ctk.CTkLabel(
             frame_mes,
-            text="Todos os meses selecionados",
+            text=f"Mes selecionado: {self.mes_var.get()}",
             font=ctk.CTkFont(size=12),
             text_color="#6c757d"
         )
@@ -261,6 +272,9 @@ class GUI5:
             border_color="#0066cc"
         )
         frame_acoes.pack(fill="x", padx=20, pady=(10, 30))
+
+        # Loading indicator
+        self.loading_indicator = LoadingIndicator(frame_acoes)
 
         # Container interno para centralizar botoes
         container_botoes = ctk.CTkFrame(frame_acoes, fg_color="transparent")
@@ -427,6 +441,13 @@ class GUI5:
         # Atualiza dropdown de mes
         if hasattr(self, 'dropdown_mes'):
             self.dropdown_mes.configure(state="normal" if habilitado else "disabled")
+
+        # Controla loading indicator
+        if self.loading_indicator:
+            if habilitado:
+                self.loading_indicator.hide()
+            else:
+                self.loading_indicator.show("Processando...")
 
         # Botao abrir pasta sempre fica habilitado
         self.botao_abrir_pasta.configure(state="normal")
