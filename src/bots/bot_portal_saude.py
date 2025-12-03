@@ -283,64 +283,80 @@ class BotPortalSaude(BotBase):
 
     def _carregar_todos_resultados(self) -> int:
         """
-        Executa scroll infinito para carregar todos os resultados
+        Executa scroll infinito para carregar todos os resultados usando recursao
         """
         print("Iniciando scroll infinito para carregar resultados...")
-
-        scroll_count = 0
-        max_scrolls = PORTAL_SAUDE_CONFIG['max_scrolls']
-        scrolls_sem_conteudo = 0
-        scrolls_sem_conteudo_max = PORTAL_SAUDE_CONFIG['scrolls_sem_conteudo_max']
-        tempo_inicio = time.time()
-        timeout_scroll = PORTAL_SAUDE_CONFIG['timeout_scroll']
 
         contagem_inicial = self._contar_resultados()
         print(f"Resultados iniciais: {contagem_inicial}")
 
-        while scroll_count < max_scrolls:
-            # Verifica cancelamento
-            if self._verificar_cancelamento():
-                print("Scroll cancelado pelo usuario")
-                break
-
-            # Verifica timeout
-            if time.time() - tempo_inicio > timeout_scroll:
-                print("Timeout de scroll atingido")
-                break
-
-            # Verifica se chegou ao fim da pagina
-            if self._esta_no_fim_pagina():
-                print("Fim da pagina atingido")
-                break
-
-            contagem_atual = self._contar_resultados()
-
-            # Executa scroll
-            self.navegador.execute_script("window.scrollBy(0, 500);")
-            time.sleep(PORTAL_SAUDE_CONFIG['pausa_entre_scrolls'])
-
-            nova_contagem = self._contar_resultados()
-
-            # Verifica se houve novo conteudo
-            if nova_contagem > contagem_atual:
-                print(f"  Scroll #{scroll_count + 1}: +{nova_contagem - contagem_atual} itens (total: {nova_contagem})")
-                scrolls_sem_conteudo = 0
-            else:
-                scrolls_sem_conteudo += 1
-                if scrolls_sem_conteudo >= scrolls_sem_conteudo_max:
-                    print(f"Nenhum conteudo novo por {scrolls_sem_conteudo_max} scrolls - finalizando")
-                    break
-
-            scroll_count += 1
-
-            # Log periodico
-            if scroll_count % 10 == 0:
-                tempo_decorrido = time.time() - tempo_inicio
-                print(f"  Progresso: {scroll_count} scrolls, {nova_contagem} itens, {tempo_decorrido:.1f}s")
+        # Inicia recursao
+        total_scrolls = self._scroll_recursivo(
+            contagem_anterior=contagem_inicial,
+            scrolls_sem_conteudo=0,
+            scroll_count=0
+        )
 
         contagem_final = self._contar_resultados()
-        print(f"Scroll concluido: {contagem_final} itens em {scroll_count} scrolls")
+        print(f"Scroll concluido: {contagem_final} itens em {total_scrolls} scrolls")
         return contagem_final
+
+    def _scroll_recursivo(
+        self,
+        contagem_anterior: int,
+        scrolls_sem_conteudo: int,
+        scroll_count: int
+    ) -> int:
+        """
+        Funcao recursiva para scroll infinito
+
+        Args:
+            contagem_anterior: Numero de resultados na iteracao anterior
+            scrolls_sem_conteudo: Contador de scrolls consecutivos sem novos resultados
+            scroll_count: Contador total de scrolls executados
+
+        Returns:
+            Numero total de scrolls executados
+        """
+        # Condicao de parada: 3 scrolls sem conteudo novo
+        if scrolls_sem_conteudo >= 3:
+            print(f"Nenhum conteudo novo por 3 scrolls consecutivos - finalizando")
+            return scroll_count
+
+        # Verifica cancelamento
+        if self._verificar_cancelamento():
+            print("Scroll cancelado pelo usuario")
+            return scroll_count
+
+        # Executa scroll ate o fim da pagina
+        self.navegador.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1)  # Pausa fixa de 1 segundo
+
+        # Conta resultados apos scroll
+        nova_contagem = self._contar_resultados()
+        scroll_count += 1
+
+        # Verifica se houve novo conteudo
+        if nova_contagem > contagem_anterior:
+            novos_itens = nova_contagem - contagem_anterior
+            print(f"  Scroll #{scroll_count}: +{novos_itens} itens (total: {nova_contagem})")
+
+            # Recursao: continua scrollando (reseta contador de scrolls vazios)
+            return self._scroll_recursivo(
+                contagem_anterior=nova_contagem,
+                scrolls_sem_conteudo=0,
+                scroll_count=scroll_count
+            )
+        else:
+            # Nenhum conteudo novo: incrementa contador e tenta novamente
+            print(f"  Scroll #{scroll_count}: sem novos itens ({scrolls_sem_conteudo + 1}/3)")
+
+            # Recursao: continua mas incrementa contador de scrolls vazios
+            return self._scroll_recursivo(
+                contagem_anterior=nova_contagem,
+                scrolls_sem_conteudo=scrolls_sem_conteudo + 1,
+                scroll_count=scroll_count
+            )
 
     def _contar_resultados(self) -> int:
         """Conta numero atual de resultados na pagina"""

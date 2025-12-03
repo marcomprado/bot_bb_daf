@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GUI4 - Interface gráfica para Consulta FNS
+GUI4 - Interface gráfica para Saldo FNS
 """
 
 import customtkinter as ctk
@@ -21,7 +21,7 @@ from src.view.modules.loading_indicator import LoadingIndicator
 
 
 class GUI4:
-    """Interface gráfica para Consulta FNS - Fundo Nacional de Saúde"""
+    """Interface gráfica para Saldo FNS - Fundo Nacional de Saúde"""
 
     def __init__(self, parent_container):
         """
@@ -132,7 +132,7 @@ class GUI4:
         # Título principal
         label_titulo = ctk.CTkLabel(
             frame_cabecalho,
-            text="Consulta FNS - Fundo Nacional de Saúde",
+            text="Saldo FNS - Fundo Nacional de Saúde",
             font=ctk.CTkFont(size=28, weight="bold"),
             text_color="#212529"
         )
@@ -302,7 +302,7 @@ class GUI4:
             command=self._executar_consulta,
             width=280
         )
-        self.botao_executar.configure(text="EXECUTAR CONSULTA FNS")
+        self.botao_executar.configure(text="EXECUTAR PROCESSO")
         self.botao_executar.pack(side="left", padx=10)
 
         # Botão Abrir Pasta usando ButtonFactory
@@ -318,7 +318,7 @@ class GUI4:
         ButtonFactory.add_hover_effect(self.botao_abrir_pasta, 160)
 
     def _executar_consulta(self):
-        """Executa a consulta FNS ou cancela execução"""
+        """Executa ou cancela execução"""
         if self.executando:
             self._cancelar_execucao()
             return
@@ -330,7 +330,7 @@ class GUI4:
             self._habilitar_interface(True)
 
     def _iniciar_execucao(self):
-        """Inicia o processo de consulta FNS"""
+        """Inicia o processo"""
         # Desabilita interface e muda botão para cancelar
         self._habilitar_interface(False)
 
@@ -380,7 +380,7 @@ class GUI4:
                         if not self._cancelado:
                             # Finaliza com sucesso
                             mensagem_sucesso = (
-                                f"Consulta FNS concluída!\n\n"
+                                f"SALDO FNS concluído!\n\n"
                                 f"Total: {resultado['total']} municípios\n"
                                 f"Sucessos: {resultado['sucessos']}\n"
                                 f"Erros: {resultado['erros']}\n"
@@ -399,7 +399,7 @@ class GUI4:
                         if not self._cancelado:
                             if resultado['sucesso']:
                                 mensagem_sucesso = (
-                                    f"Consulta FNS concluída!\n\n"
+                                    f"Saldo FNS concluída!\n\n"
                                     f"Município: {resultado['municipio']}\n"
                                     f"Arquivo: {resultado['arquivo']}\n\n"
                                     f"Arquivos salvos em: consfns/"
@@ -442,7 +442,7 @@ class GUI4:
                 self.processador_paralelo.cancelar()
 
             self._habilitar_interface(True)
-            self._mostrar_info("Consulta FNS cancelada com sucesso")
+            self._mostrar_info("Saldo FNS cancelada com sucesso")
 
         except Exception as e:
             self._mostrar_erro(f"Erro ao cancelar: {str(e)}")
@@ -458,7 +458,7 @@ class GUI4:
         if mensagem:
             self._mostrar_info(mensagem)
         else:
-            self._mostrar_info("Consulta FNS finalizada!\n\nOs arquivos foram salvos na pasta consfns/")
+            self._mostrar_info("Saldo FNS finalizada!\n\nOs arquivos foram salvos na pasta consfns/")
 
     def _finalizar_execucao_erro(self, erro):
         """Finaliza execução com erro"""
@@ -516,14 +516,14 @@ class GUI4:
             # Modo normal - botão azul "EXECUTAR"
             ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=False)
             self.botao_executar.configure(
-                text="EXECUTAR CONSULTA FNS",
+                text="EXECUTAR Saldo FNS",
                 state="normal"
             )
         else:
             # Modo execução - botão vermelho "CANCELAR"
             ButtonFactory.toggle_execute_cancel(self.botao_executar, is_executing=True)
             self.botao_executar.configure(
-                text="CANCELAR CONSULTA FNS",
+                text="CANCELAR Saldo FNS",
                 state="normal"
             )
 

@@ -191,7 +191,7 @@ class SistemaFVN:
         # Cria GUI3 (Betha)
         self.gui3 = GUI3(self.container_conteudo)
 
-        # Cria GUI4 (Consulta FNS)
+        # Cria GUI4 (Saldo FNS)
         self.gui4 = GUI4(self.container_conteudo)
 
         # Cria GUI5 (Resoluçoes PDF)
@@ -205,7 +205,7 @@ class SistemaFVN:
             "bbdaf": {"nome": "Sistema BB DAF", "gui": self.gui1},
             "fnde": {"nome": "Sistema FNDE", "gui": self.gui2},
             "betha": {"nome": "Sistema Betha", "gui": self.gui3},
-            "consfns": {"nome": "Consulta FNS", "gui": self.gui4},
+            "consfns": {"nome": "Saldo FNS", "gui": self.gui4},
             "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
             "config": {"nome": None, "gui": self.config_gui}
         }
@@ -235,7 +235,7 @@ class SistemaFVN:
                 "Sistema BB DAF": "bbdaf",
                 "Sistema FNDE": "fnde",
                 "Sistema Betha": "betha",
-                "Consulta FNS": "consfns",
+                "Saldo FNS": "consfns",
                 "Resoluçoes PDF": "resolucoes"
             }
             aba = mapa_sistemas.get(valor)
@@ -244,7 +244,7 @@ class SistemaFVN:
 
         self.dropdown_sistemas = ctk.CTkOptionMenu(
             container_abas,
-            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta FNS", "Resoluçoes PDF"],
+            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Saldo FNS", "Resoluçoes PDF"],
             variable=self.sistema_var,
             command=on_sistema_change,
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -285,9 +285,6 @@ class SistemaFVN:
     def _mostrar_aba(self, aba: str):
         """
         Alterna entre as abas de forma eficiente
-
-        Args:
-            aba: Nome da aba ('bbdaf', 'fnde', 'betha', 'consfns' ou 'config')
         """
         # Valida se a aba existe
         if aba not in self.mapa_abas:
