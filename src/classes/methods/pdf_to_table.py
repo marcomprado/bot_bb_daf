@@ -35,12 +35,17 @@ AI_PROVIDER = 'openrouter'  # Options: 'openai', 'openrouter', 'custom'
 AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
 
 # Model Selection - Change this to switch models
-# Free Options (OpenRouter):
-AI_MODEL = 'nvidia/nemotron-nano-9b-v2:free'  # Fast, free, good quality
+AI_MODEL = 'nvidia/nemotron-nano-9b-v2:free'  # Default model
+'''
+    Models for OpenRouter:
+        arcee-ai/trinity-mini
+        arcee-ai/trinity-mini:free       # Exceeded max tokens frequently
+        nvidia/nemotron-nano-9b-v2:free 
 
+'''
 # AI Parameters
 AI_TEMPERATURE = 0.1      # Low for consistent extraction (0.0-1.0)
-AI_MAX_TOKENS = 4000      # Maximum tokens in response (sufficient for structured data extraction)
+AI_MAX_TOKENS = 8000      # Maximum tokens in response (sufficient for structured data extraction)
 MAX_RETRIES = 2           # Retry attempts for API calls
 MAX_PDF_TEXT_LENGTH = 20000  # Limit PDF text to prevent token overflow
 

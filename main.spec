@@ -48,6 +48,9 @@ hiddenimports += [
     'concurrent.futures',
     'threading',
     'dateutil',      # python-dateutil (nome correto do módulo)
+    'dotenv',        # python-dotenv (para .env config)
+    'pymupdf4llm',   # PDF text extraction com IA
+    'openai',        # OpenRouter API integration
 ]
 
 # Adiciona módulos xlwings específicos
@@ -75,10 +78,13 @@ hiddenimports += [
     'src.view.gui1',
     'src.view.gui2',
     'src.view.gui3',
+    'src.view.gui4',
+    'src.view.gui5',
     'src.view.view_config',
     'src.view.modules',
     'src.view.modules.buttons',
     'src.view.modules.city_selector',
+    'src.view.modules.loading_indicator',
 ]
 
 # Adiciona módulos src.bots
@@ -87,6 +93,8 @@ hiddenimports += [
     'src.bots.bot_bbdaf',
     'src.bots.bot_fnde',
     'src.bots.bot_betha',
+    'src.bots.bot_cons_fns',
+    'src.bots.bot_portal_saude',
     'src.bots.betha',
     'src.bots.betha.bot_ribeirao',
 ]
@@ -101,6 +109,7 @@ hiddenimports += [
     'src.classes.config_page',
     'src.classes.data_extractor',
     'src.classes.date_calculator',
+    'src.classes.report_generator',
     'src.classes.run_instance',
     # Submódulo file
     'src.classes.file',
@@ -112,6 +121,7 @@ hiddenimports += [
     'src.classes.methods.auto_execution',
     'src.classes.methods.cancel_method',
     'src.classes.methods.parallel_processor',
+    'src.classes.methods.pdf_to_table',
 ]
 
 # Adiciona arquivos de dados
@@ -121,6 +131,8 @@ datas += [
     # Assets estão em src/assets
     ('src/assets/app_icon.ico', 'src/assets'),  # Ícone principal
     ('src/assets/*.png', 'src/assets'),  # Imagens PNG
+    ('src/assets/*.svg', 'src/assets'),  # Imagens SVG
+    ('src/config/.env', 'src/config'),  # Configuração API keys para pdf_to_table
     # Adiciona toda a estrutura src
     ('src/view/*.py', 'src/view'),
     ('src/view/modules/*.py', 'src/view/modules'),
