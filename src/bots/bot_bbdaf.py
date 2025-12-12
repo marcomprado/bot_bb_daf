@@ -54,8 +54,13 @@ class BotBBDAF(BotBase):
         self.url = url or SISTEMA_CONFIG['url_sistema']
         self.timeout = timeout or SISTEMA_CONFIG['timeout_selenium']
         self.data_extractor = None  # Extrator de dados (opcional)
-        self.diretorio_base = obter_caminho_dados("bbdaf")
-        self.report_gen = ReportGenerator(self.diretorio_base, "RELATORIO_BBDAF")
+        try:
+            self.diretorio_base = obter_caminho_dados("bbdaf")
+            self.report_gen = ReportGenerator(self.diretorio_base, "RELATORIO_BBDAF")
+        except ValueError as e:
+            self.diretorio_base = None
+            self.report_gen = None
+            print(f"⚠ {e}")
     
     def configurar_extrator_dados(self, data_extractor):
         """

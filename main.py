@@ -112,7 +112,20 @@ class SistemaFVN:
                     break
         except Exception as e:
             print(f"Aviso: Não foi possível carregar ícone - {e}")
-    
+
+        # Verifica se diretório de download foi configurado
+        self._verificar_diretorio_download()
+
+    def _verificar_diretorio_download(self):
+        """Verifica se o diretório de download foi configurado"""
+        if not self.config_manager.is_download_directory_configured():
+            messagebox.showwarning(
+                "Configuração Necessária",
+                "Configure o diretório de downloads antes de usar o sistema.\n\n"
+                "A página de configurações será aberta."
+            )
+            self._abrir_configuracoes()
+
     def _centralizar_janela(self):
         """Centraliza janela na tela"""
         self.janela.update_idletasks()
@@ -410,34 +423,38 @@ class SistemaFVN:
             print(f"Erro ao salvar cidades: {e}")
     
     def _abrir_pasta_arquivos(self):
-        """Abre a pasta arquivos_baixados no explorador do sistema"""
+        """Abre a pasta de downloads no explorador do sistema"""
         import platform
         import subprocess
-        
+
         try:
-            # Caminho da pasta de arquivos
-            pasta_arquivos = obter_caminho_dados("arquivos_baixados")
-            
-            # Cria a pasta se não existir
-            if not os.path.exists(pasta_arquivos):
-                os.makedirs(pasta_arquivos)
-            
-            # Abre no explorador do sistema
+            download_dir = self.config_manager.get_download_directory()
+
+            if download_dir is None:
+                messagebox.showerror(
+                    "Erro",
+                    "Diretório de download não configurado.\n"
+                    "Configure nas Configurações."
+                )
+                return
+
+            # Cria o diretório se não existir
+            if not os.path.exists(download_dir):
+                os.makedirs(download_dir)
+
+            # Abre no explorador
             sistema = platform.system()
             if sistema == "Windows":
-                os.startfile(pasta_arquivos)
-            elif sistema == "Darwin":  # macOS
-                subprocess.run(["open", pasta_arquivos])
-            elif sistema == "Linux":
-                subprocess.run(["xdg-open", pasta_arquivos])
-            else:
-                print(f"Sistema operacional '{sistema}' não suportado")
-                return
-            
-            print(f"Pasta de arquivos aberta: {pasta_arquivos}")
-            
+                os.startfile(download_dir)
+            elif sistema == "Darwin":
+                subprocess.run(["open", download_dir])
+            else:  # Linux
+                subprocess.run(["xdg-open", download_dir])
+
+            print(f"Pasta aberta: {download_dir}")
+
         except Exception as e:
-            print(f"Erro ao abrir pasta de arquivos: {str(e)}")
+            messagebox.showerror("Erro", f"Erro ao abrir pasta: {str(e)}")
     
     def _iniciar_execucao_automatica(self):
         """Inicia o sistema de execução automática se estiver configurado"""

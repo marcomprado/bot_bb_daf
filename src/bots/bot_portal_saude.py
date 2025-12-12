@@ -69,8 +69,12 @@ class BotPortalSaude(BotBase):
         self.wait = None
 
         # Diretorios
-        self.diretorio_base = obter_caminho_dados(PORTAL_SAUDE_CONFIG['diretorio_saida'])
-        self._criar_diretorios()
+        try:
+            self.diretorio_base = obter_caminho_dados(PORTAL_SAUDE_CONFIG['diretorio_saida'])
+            self._criar_diretorios()
+        except ValueError as e:
+            self.diretorio_base = None
+            print(f"⚠ {e}")
 
     def _criar_diretorios(self):
         """Cria estrutura de diretorios necessaria"""
