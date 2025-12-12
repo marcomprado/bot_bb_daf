@@ -104,6 +104,7 @@ hiddenimports += [
     'src.classes',
     'src.classes.__init__',
     'src.classes.chrome_driver',
+    'src.classes.city_manager',
     'src.classes.city_splitter',
     'src.classes.config',
     'src.classes.config_page',

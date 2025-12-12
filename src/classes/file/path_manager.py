@@ -57,7 +57,7 @@ def obter_caminho_dados(nome_arquivo):
     """
     Obtém o caminho correto para arquivos de dados
 
-    Arquivos de sistema (cidades.txt, listed_cities.txt) ficam no diretório de configuração.
+    Arquivos de sistema (cidades.txt) ficam no diretório de configuração.
     Arquivos de download ficam no diretório escolhido pelo usuário.
 
     Args:
@@ -70,7 +70,7 @@ def obter_caminho_dados(nome_arquivo):
         ValueError: Se diretório de download não foi configurado
     """
     # Arquivos de sistema ficam no diretório de configuração
-    arquivos_sistema = ['cidades.txt', 'listed_cities.txt']
+    arquivos_sistema = ['cidades.txt']
 
     if any(nome_arquivo.endswith(arquivo) for arquivo in arquivos_sistema):
         return os.path.join(obter_diretorio_config(), nome_arquivo)

@@ -26,6 +26,7 @@ import io
 from datetime import datetime
 from typing import List, Dict, Optional
 from src.classes.file.path_manager import obter_caminho_dados
+from src.classes.city_manager import CityManager
 
 
 class BotFNDE(BotBase):
@@ -50,7 +51,8 @@ class BotFNDE(BotBase):
         super().__init__()  # Inicializa BotBase
         self.base_url = "https://www.fnde.gov.br/pls/simad/internet_fnde.LIBERACOES_01_PC"
         self.timeout = timeout
-        self.municipios_mg = self._carregar_municipios_mg()
+        self.city_manager = CityManager()
+        self.municipios_mg = self.city_manager.obter_municipios_mg()
         
         # Flags de controle para evitar vazamento de memória
         self._cancelado = False
@@ -75,27 +77,6 @@ class BotFNDE(BotBase):
                     os.makedirs(diretorio)
         except Exception as e:
             print(f"Aviso: Erro ao criar diretórios - {e}")
-    
-    def _carregar_municipios_mg(self) -> List[str]:
-        """
-        Carrega lista de municípios de MG do arquivo cidades.txt
-        
-        Returns:
-            List[str]: Lista com nomes dos municípios
-        """
-        try:
-            caminho_cidades = obter_caminho_dados("cidades.txt")
-            if os.path.exists(caminho_cidades):
-                with open(caminho_cidades, "r", encoding="utf-8") as arquivo:
-                    cidades = [linha.strip() for linha in arquivo if linha.strip()]
-                print(f"Carregados {len(cidades)} municípios de MG")
-                return cidades
-            else:
-                print("Arquivo cidades.txt não encontrado. Usando lista padrão.")
-                return ["BELO HORIZONTE", "UBERLANDIA", "CONTAGEM"]
-        except Exception as e:
-            print(f"Erro ao carregar municípios: {e}")
-            return ["BELO HORIZONTE"]
     
     def configurar_navegador(self) -> bool:
         """
@@ -658,11 +639,11 @@ class BotFNDE(BotBase):
     def obter_lista_municipios(self) -> List[str]:
         """
         Retorna lista de municípios carregados
-        
+
         Returns:
             List[str]: Lista de municípios de MG
         """
-        return self.municipios_mg.copy()
+        return self.city_manager.obter_municipios_mg()
 
 
 # Função de teste/exemplo

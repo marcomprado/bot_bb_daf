@@ -18,6 +18,7 @@ if not hasattr(sys, '_MEIPASS'):
 
 # Importa configurações e gerenciadores
 from src.classes.config_page import ConfigManager
+from src.classes.city_manager import CityManager
 from src.classes.date_calculator import DateCalculator
 from src.classes.file.file_manager import FileManager
 from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso
@@ -419,9 +420,9 @@ class AutomaticExecutor(BotBase):
             data_final = datetime.now()
             data_inicial = data_final - timedelta(days=30)
 
-            # Carrega TODAS as cidades (cidades.txt) para execução automática
-            file_manager_auto = FileManager("cidades.txt")  # 852 cidades completas
-            cidades = file_manager_auto.carregar_cidades()
+            # Carrega TODAS as cidades para execução automática
+            city_manager = CityManager()
+            cidades = city_manager.obter_municipios_mg()
 
             if not cidades:
                 print("  ⚠ Nenhuma cidade configurada para BB DAF")
@@ -475,9 +476,9 @@ class AutomaticExecutor(BotBase):
             # Parâmetros
             ano = datetime.now().year
 
-            # Carrega TODAS as cidades (cidades.txt) para execução automática
-            file_manager_auto = FileManager("cidades.txt")  # 852 cidades completas
-            municipios = file_manager_auto.carregar_cidades()
+            # Carrega TODAS as cidades para execução automática
+            city_manager = CityManager()
+            municipios = city_manager.obter_municipios_mg()
 
             if not municipios:
                 print("  ⚠ Nenhuma cidade configurada para FNDE")
@@ -624,9 +625,9 @@ class AutomaticExecutor(BotBase):
             mode: Modo de execução (Individual ou Paralela)
         """
         try:
-            # Carrega TODAS as cidades (cidades.txt) para execução automática
-            file_manager_auto = FileManager("cidades.txt")
-            municipios = file_manager_auto.carregar_cidades()
+            # Carrega TODAS as cidades para execução automática
+            city_manager = CityManager()
+            municipios = city_manager.obter_municipios_mg()
 
             if not municipios:
                 print("  ⚠ Nenhuma cidade configurada para Consulta FNS")

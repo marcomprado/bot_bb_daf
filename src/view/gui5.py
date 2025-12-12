@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GUI5 - Interface grafica para novo modulo
+GUI5 - Interface grafica Resolucoes
 """
 
 import customtkinter as ctk

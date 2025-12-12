@@ -16,6 +16,7 @@ from typing import Dict, Callable
 # Adiciona o diretório raiz do projeto ao path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from src.classes.city_manager import CityManager
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.loading_indicator import LoadingIndicator
 
@@ -57,8 +58,9 @@ class GUI4:
 
     def _configurar_valores_padrao(self):
         """Configura valores padrão"""
-        # Carrega lista de municípios
-        self._carregar_municipios()
+        # Carrega lista de municípios usando CityManager
+        self.city_manager = CityManager()
+        self.lista_municipios = self.city_manager.obter_municipios_mg()
 
         # Define valor padrão do município
         if self.lista_municipios:
@@ -67,18 +69,6 @@ class GUI4:
         # Define valor padrão do modo de execução
         self.modo_var.set("Individual")
 
-    def _carregar_municipios(self):
-        """Carrega lista de municípios de MG"""
-        try:
-            # Inicializa bot temporário para obter lista
-            from src.bots.bot_cons_fns import BotConsFNS
-            bot_temp = BotConsFNS()
-            self.lista_municipios = bot_temp.obter_lista_municipios()
-            print(f"Carregados {len(self.lista_municipios)} municípios")
-        except Exception as e:
-            print(f"Erro ao carregar municípios: {e}")
-            # Fallback para lista básica
-            self.lista_municipios = ["BELO HORIZONTE", "UBERLANDIA", "CONTAGEM"]
 
     def _obter_opcoes_municipios(self):
         """Retorna lista de opções para o dropdown de municípios"""

@@ -19,6 +19,7 @@ from typing import List
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.bots.bot_fnde import BotFNDE
+from src.classes.city_manager import CityManager
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.loading_indicator import LoadingIndicator
 
@@ -56,14 +57,15 @@ class GUI2:
         """Configura valores padrão para FNDE"""
         ano_atual = datetime.now().year
         self.ano_var.set(str(ano_atual))
-        
-        # Carrega lista de municípios
-        self._carregar_municipios()
-        
+
+        # Carrega lista de municípios usando CityManager
+        self.city_manager = CityManager()
+        self.lista_municipios = self.city_manager.obter_municipios_mg()
+
         # Define valor padrão do município
         if self.lista_municipios:
             self.municipio_var.set("Todos os Municípios")
-        
+
         # Define valor padrão do modo de execução
         self.modo_var.set("Individual")
     
@@ -334,18 +336,6 @@ class GUI2:
         ButtonFactory.add_hover_effect(self.botao_executar, 280)
         ButtonFactory.add_hover_effect(self.botao_abrir_pasta, 160)
     
-    
-    def _carregar_municipios(self):
-        """Carrega lista de municípios de MG"""
-        try:
-            # Inicializa bot temporário para obter lista
-            bot_temp = BotFNDE()
-            self.lista_municipios = bot_temp.obter_lista_municipios()
-            print(f"Carregados {len(self.lista_municipios)} municípios")
-        except Exception as e:
-            print(f"Erro ao carregar municípios: {e}")
-            # Fallback para lista básica
-            self.lista_municipios = ["BELO HORIZONTE", "UBERLANDIA", "CONTAGEM"]
     
     def _obter_opcoes_municipios(self):
         """Retorna lista de opções para o dropdown de municípios"""

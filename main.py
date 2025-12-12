@@ -329,10 +329,7 @@ class SistemaFVN:
             return
         
         self.executando = True
-        
-        # Salva cidades selecionadas
-        self._salvar_cidades_selecionadas(parametros['cidades'])
-        
+
         # Executa em thread separada
         self.thread_execucao = threading.Thread(
             target=self._executar_bot_thread,
@@ -406,21 +403,6 @@ class SistemaFVN:
             self.gui3.cancelar_execucao()
         
         self.executando = False
-    
-    def _salvar_cidades_selecionadas(self, cidades: list):
-        """
-        Salva cidades selecionadas no arquivo
-        
-        Args:
-            cidades: Lista de cidades selecionadas
-        """
-        try:
-            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
-            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
-                for cidade in cidades:
-                    arquivo.write(f"{cidade}\n")
-        except Exception as e:
-            print(f"Erro ao salvar cidades: {e}")
     
     def _abrir_pasta_arquivos(self):
         """Abre a pasta de downloads no explorador do sistema"""

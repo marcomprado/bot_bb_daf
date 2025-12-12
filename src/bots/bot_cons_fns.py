@@ -22,6 +22,7 @@ import glob
 from datetime import datetime
 from typing import List, Dict, Optional
 from src.classes.file.path_manager import obter_caminho_dados
+from src.classes.city_manager import CityManager
 
 
 class BotConsFNS(BotBase):
@@ -43,7 +44,8 @@ class BotConsFNS(BotBase):
         self.base_url = CONSFNS_CONFIG['url_base']
         self.timeout = timeout
         self.timeout_carregamento_max = CONSFNS_CONFIG['timeout_carregamento_maximo']
-        self.municipios_mg = self._carregar_municipios_mg()
+        self.city_manager = CityManager()
+        self.municipios_mg = self.city_manager.obter_municipios_mg()
         self._cancelado = False
         self._em_execucao = False
         self._campo_esfera_presente = False
@@ -65,21 +67,6 @@ class BotConsFNS(BotBase):
         except Exception as e:
             print(f"Aviso: Erro ao criar diretórios - {e}")
 
-    def _carregar_municipios_mg(self) -> List[str]:
-        """Carrega lista de municípios de MG do arquivo cidades.txt"""
-        try:
-            caminho_cidades = obter_caminho_dados("cidades.txt")
-            if os.path.exists(caminho_cidades):
-                with open(caminho_cidades, "r", encoding="utf-8") as arquivo:
-                    cidades = [linha.strip() for linha in arquivo if linha.strip()]
-                print(f"Carregados {len(cidades)} municípios de MG")
-                return cidades
-            else:
-                print("Arquivo cidades.txt não encontrado. Usando lista padrão.")
-                return ["BELO HORIZONTE", "UBERLANDIA", "CONTAGEM"]
-        except Exception as e:
-            print(f"Erro ao carregar municípios: {e}")
-            return ["BELO HORIZONTE"]
 
     def _verificar_cancelamento(self, resultado: Dict) -> bool:
         """Verifica se execução foi cancelada e atualiza resultado"""
@@ -493,4 +480,4 @@ class BotConsFNS(BotBase):
 
     def obter_lista_municipios(self) -> List[str]:
         """Retorna lista de municípios carregados"""
-        return self.municipios_mg.copy()
+        return self.city_manager.obter_municipios_mg()

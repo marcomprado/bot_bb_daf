@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from src.classes.city_splitter import CitySplitter
 from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
+from src.classes.city_manager import CityManager
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.loading_indicator import LoadingIndicator
 
@@ -66,8 +67,11 @@ class GUI1:
 
         self._configurar_datas_padrao()
         self._criar_interface()
-        self._carregar_cidades()
-        
+
+        # Carrega cidades usando CityManager
+        self.city_manager = CityManager()
+        self.lista_cidades = self.city_manager.obter_municipios_mg()
+
         # Atualiza dropdown após carregar cidades
         if hasattr(self, 'dropdown_cidade'):
             self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
@@ -488,34 +492,6 @@ class GUI1:
             else:
                 # Se não encontrou, usa como está
                 self.cidades_selecionadas = [valor]
-    
-    def _carregar_cidades(self):
-        """Carrega lista de cidades do arquivo"""
-        try:
-            caminho_arquivo = obter_caminho_dados("cidades.txt")
-            if os.path.exists(caminho_arquivo):
-                with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
-                    self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
-            
-            # Atualiza dropdown após carregar cidades
-            if hasattr(self, 'dropdown_cidade') and self.lista_cidades:
-                self.dropdown_cidade.configure(values=self._obter_opcoes_cidades())
-                self.cidade_selecionada.set("Todas as Cidades")
-                self._on_cidade_change("Todas as Cidades")
-                
-        except Exception as e:
-            self._mostrar_erro(f"Erro ao carregar cidades: {str(e)}")
-            self.lista_cidades = []
-    
-    def _salvar_cidades_selecionadas(self):
-        """Salva cidades selecionadas no arquivo listed_cities.txt"""
-        try:
-            caminho_arquivo = obter_caminho_dados("listed_cities.txt")
-            with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
-                for cidade in self.cidades_selecionadas:
-                    arquivo.write(f"{cidade}\n")
-        except Exception as e:
-            raise Exception(f"Erro ao salvar cidades: {str(e)}")
     
     def _abrir_pasta_arquivos(self):
         """Abre a pasta de arquivos BB DAF no explorador do sistema"""

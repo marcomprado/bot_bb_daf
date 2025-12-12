@@ -8,6 +8,7 @@ import platform
 import math
 from typing import List, Tuple
 from src.classes.file.path_manager import obter_caminho_dados
+from src.classes.city_manager import CityManager
 
 
 class CitySplitter:
@@ -23,34 +24,43 @@ class CitySplitter:
     def __init__(self, arquivo_cidades="cidades.txt"):
         """
         Inicializa o divisor de cidades
-        
+
         Args:
             arquivo_cidades (str): Caminho para arquivo com lista completa de cidades
         """
-        # Se não foi passado caminho absoluto, usa função para obter caminho
+        # Armazena nome do arquivo
         if not os.path.isabs(arquivo_cidades):
-            self.arquivo_cidades = obter_caminho_dados(arquivo_cidades)
+            self.arquivo_cidades = arquivo_cidades
         else:
             self.arquivo_cidades = arquivo_cidades
+        self.city_manager = CityManager()
         self.lista_cidades = []
         self._carregar_cidades()
     
     def _carregar_cidades(self):
         """
-        Carrega lista completa de cidades do arquivo
-        
+        Carrega lista completa de cidades usando CityManager
+
         Returns:
             bool: True se carregou com sucesso, False caso contrário
         """
-        try:
-            if os.path.exists(self.arquivo_cidades):
-                with open(self.arquivo_cidades, "r", encoding="utf-8") as arquivo:
-                    self.lista_cidades = [linha.strip() for linha in arquivo if linha.strip()]
-                return True
-            else:
-                return False
-        except Exception:
-            return False
+        # Usa CityManager para carregar
+        if self.arquivo_cidades == "cidades.txt":
+            self.lista_cidades = self.city_manager.obter_municipios_mg()
+            return len(self.lista_cidades) > 0
+        else:
+            # Arquivo customizado ou caminho absoluto - mantém lógica original
+            try:
+                caminho = self.arquivo_cidades if os.path.isabs(self.arquivo_cidades) else obter_caminho_dados(self.arquivo_cidades)
+                if os.path.exists(caminho):
+                    with open(caminho, "r", encoding="utf-8") as f:
+                        self.lista_cidades = [linha.strip() for linha in f if linha.strip()]
+                    return len(self.lista_cidades) > 0
+            except Exception as e:
+                print(f"⚠ Erro ao carregar {self.arquivo_cidades}: {e}")
+            # Fallback para lista completa
+            self.lista_cidades = self.city_manager.obter_municipios_mg()
+            return len(self.lista_cidades) > 0
     
     def obter_total_cidades(self):
         """

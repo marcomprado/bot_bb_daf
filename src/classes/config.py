@@ -21,12 +21,9 @@ SISTEMA_CONFIG = {
 
 # Configurações de arquivos
 ARQUIVOS_CONFIG = {
-    # Nome do arquivo dinâmico que contém as cidades selecionadas
-    'arquivo_cidades': 'listed_cities.txt',
-    
-    # Nome do arquivo estático de referência com todas as cidades
-    'arquivo_cidades_estatico': 'cidades.txt',
-    
+    # Nome do arquivo com todas as 852 cidades de MG
+    'arquivo_cidades': 'cidades.txt',
+
     # Encoding para leitura de arquivos
     'encoding_arquivo': 'utf-8',
 }
