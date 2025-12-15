@@ -35,12 +35,13 @@ AI_PROVIDER = 'openrouter'  # Options: 'openai', 'openrouter', 'custom'
 AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
 
 # Model Selection - Change this to switch models
-AI_MODEL = 'nvidia/nemotron-nano-9b-v2:free'  # Default model
+AI_MODEL = 'nvidia/nemotron-3-nano-30b-a3b:free'  # Default model
 '''
     Models for OpenRouter:
         arcee-ai/trinity-mini
         arcee-ai/trinity-mini:free       # Exceeded max tokens frequently
-        nvidia/nemotron-nano-9b-v2:free 
+        nvidia/nemotron-nano-9b-v2:free
+        nvidia/nemotron-3-nano-30b-a3b:free 
 
 '''
 # AI Parameters
