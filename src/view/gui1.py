@@ -16,7 +16,7 @@ from typing import Dict, Callable
 # Adiciona o diretório raiz do projeto ao path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.classes.city_splitter import CitySplitter
+from src.classes.city_manager import CitySplitter
 from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_recurso, copiar_arquivo_cidades_se_necessario
 from src.classes.city_manager import CityManager
 from src.view.modules.buttons import ButtonFactory
