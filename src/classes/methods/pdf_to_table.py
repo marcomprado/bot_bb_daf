@@ -167,8 +167,27 @@ env_exists, env_error = _validate_env_file()
 
 if env_exists:
     env_path = _get_env_path()
-    load_dotenv(env_path)
+
+    # Debug: Read and log .env file contents (without exposing the key)
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            env_content = f.read()
+            logger.debug(f"Conteúdo do .env (primeiras 100 chars): {env_content[:100]}")
+            logger.debug(f"Número de linhas no .env: {len(env_content.splitlines())}")
+
+            # Check if OPENAI_API_KEY line exists
+            for line_num, line in enumerate(env_content.splitlines(), 1):
+                if 'OPENAI_API_KEY' in line:
+                    # Don't log the actual key, just confirm it exists
+                    logger.debug(f"Linha {line_num}: OPENAI_API_KEY encontrada")
+                    logger.debug(f"Formato da linha: {line.split('=')[0] if '=' in line else 'SEM_IGUAL'}")
+    except Exception as e:
+        logger.error(f"Erro ao ler .env para debug: {e}")
+
+    # Try load_dotenv
+    load_result = load_dotenv(env_path, override=True)
     logger.info(f"✓ load_dotenv() executado para: {env_path}")
+    logger.debug(f"load_dotenv() retornou: {load_result}")
 else:
     logger.critical(f"FATAL: .env file validation failed: {env_error}")
 
@@ -178,6 +197,27 @@ if OPENAI_API_KEY:
     logger.info(f"✓ OPENAI_API_KEY carregada (length: {len(OPENAI_API_KEY)} chars)")
 else:
     logger.warning("⚠ OPENAI_API_KEY está vazia ou não foi encontrada")
+
+    # Additional debug: Try reading directly from .env file
+    try:
+        env_path = _get_env_path()
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip().startswith('OPENAI_API_KEY'):
+                    logger.debug(f"Tentando ler diretamente do .env...")
+                    if '=' in line:
+                        key_value = line.split('=', 1)[1].strip()
+                        # Remove quotes if present
+                        key_value = key_value.strip('"').strip("'")
+                        if key_value:
+                            logger.warning(f"⚠ Chave encontrada no arquivo mas não carregada pelo load_dotenv()")
+                            logger.warning(f"  Usando valor direto do arquivo (length: {len(key_value)})")
+                            OPENAI_API_KEY = key_value
+                            # Set in environment for future access
+                            os.environ['OPENAI_API_KEY'] = key_value
+                            break
+    except Exception as e:
+        logger.error(f"Erro ao tentar leitura direta do .env: {e}")
 
 # ============================================================================
 # LOGGING - Usando print() simples para mensagens limpas
