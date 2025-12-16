@@ -509,16 +509,9 @@ class BotFNDE(BotBase):
         return estatisticas
     
     def processar_lote_municipios(self, ano: str, municipios: List[str]) -> Dict[str, any]:
-        """
-        Processa um lote específico de municípios (para uso paralelo)
-        
-        Args:
-            ano (str): Ano para consulta
-            municipios (List[str]): Lista de municípios para processar
-            
-        Returns:
-            Dict: Estatísticas do processamento do lote
-        """
+
+        # Processa um lote específico de municípios (para uso paralelo)
+       
         print(f"\n=== PROCESSANDO LOTE DE {len(municipios)} MUNICÍPIOS - ANO {ano} ===")
 
         estatisticas = ReportGenerator.criar_estatisticas(len(municipios))
@@ -550,16 +543,9 @@ class BotFNDE(BotBase):
         return {'sucesso': True, 'estatisticas': estatisticas}
     
     def executar_paralelo(self, ano: str, num_instancias: int = 2) -> Dict[str, any]:
-        """
-        Executa processamento paralelo de municípios usando ProcessadorParalelo
+    
+        # Executa processamento paralelo de municípios usando ProcessadorParalelo
         
-        Args:
-            ano (str): Ano para consulta
-            num_instancias (int): Número de instâncias paralelas (máximo 5)
-            
-        Returns:
-            Dict: Resultados consolidados do processamento paralelo com referência ao processador
-        """
         try:
             from src.classes.methods.parallel_processor import ProcessadorParalelo
             
@@ -645,33 +631,7 @@ class BotFNDE(BotBase):
         """
         return self.city_manager.obter_municipios_mg()
 
-
-# Função de teste/exemplo
-def main():
-    """Função de teste do bot FNDE"""
-    bot = BotFNDE()
-    
-    try:
-        if not bot.configurar_navegador():
-            print("Falha ao configurar navegador")
-            return 1
         
-        # Teste com um município específico
-        resultado = bot.processar_municipio("2025", "BELO HORIZONTE")
-        
-        if resultado['sucesso']:
-            print("Teste executado com sucesso!")
-        else:
-            print(f"Teste falhou: {resultado['erro']}")
-        
-    except KeyboardInterrupt:
-        print("\nProcessamento interrompido pelo usuário")
-    finally:
-        bot.fechar_navegador()
-    
-    return 0
-
-
 if __name__ == "__main__":
     import sys
     sys.exit(main())

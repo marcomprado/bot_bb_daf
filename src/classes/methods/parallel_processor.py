@@ -259,65 +259,20 @@ class ProcessadorParalelo:
         return stats
     
     def executar_paralelo_fnde(self, bot_template, ano: str, num_instancias: int = 2) -> Dict:
-        # Executa processamento paralelo do FNDE
+        from src.bots.bot_fnde import BotFNDE
+        municipios = bot_template.obter_lista_municipios()
+        lotes = self._dividir_municipios(municipios, num_instancias)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
         try:
-            # Limita a 5 instâncias
-            if num_instancias > 5:
-                num_instancias = 5
-                print(f"Número de instâncias limitado a 5")
-            
-            # Importa dinamicamente para evitar dependência circular
-            from bots.bot_fnde import BotFNDE
-            
-            # Obtém lista de municípios e divide em lotes
-            municipios = bot_template.obter_lista_municipios()
-            lotes = self._dividir_municipios(municipios, num_instancias)
-            
-            print(f"Dividindo {len(municipios)} municípios em {len(lotes)} lotes paralelos")
+            futures = []
             for i, lote in enumerate(lotes, 1):
-                print(f"Lote {i}: {len(lote)} municípios")
-            
-            # Executa em threads paralelas
-            resultados = []
-            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
-            try:
-                futures = []
-                
-                for i, lote in enumerate(lotes, 1):
-                    # Cria nova instância do bot para cada thread
-                    bot = BotFNDE()
-                    self.bots_ativos.append(bot)  # Registra bot ativo
-                    
-                    future = self.executor.submit(
-                        self._executar_bot_fnde_thread,
-                        bot,
-                        lote,
-                        ano,
-                        i
-                    )
-                    futures.append((future, i, len(lote)))
-                
-                # Coleta resultados
-                for future, instancia, num_municipios in futures:
-                    if self._cancelado:
-                        self.executor.shutdown(wait=False, cancel_futures=True)
-                        return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-                    
-                    resultado = future.result()
-                    resultado['instancia'] = instancia
-                    resultado['municipios_lote'] = num_municipios
-                    resultados.append(resultado)
-            finally:
-                if self.executor:
-                    self.executor.shutdown(wait=True)
-                    self.executor = None
-                self.bots_ativos.clear()  # Limpa lista de bots
-            
-            # Consolida estatísticas
-            return self._consolidar_resultados_fnde(resultados)
-            
-        except Exception as e:
-            return {'sucesso': False, 'erro': str(e)}
+                bot = BotFNDE()
+                self.bots_ativos.append(bot)
+                futures.append((self.executor.submit(self._executar_bot_lote, bot, {'ano': ano, 'municipios': lote}, i), i))
+            resultados = [f.result() for f, _ in futures]
+        finally:
+            self.executor.shutdown(wait=True); self.executor = None; self.bots_ativos.clear()
+        return self._consolidar_resultados_genericos(resultados)
     
     def _dividir_municipios(self, municipios: List[str], num_instancias: int) -> List[List[str]]:
         # Divide lista de municípios em lotes para processamento paralelo
@@ -336,214 +291,47 @@ class ProcessadorParalelo:
                 lotes.append(lote)
         
         return lotes
-    
-    def _executar_bot_fnde_thread(self, bot, lote_municipios: List[str], ano: str, instancia: int) -> Dict:
-        # Executa um lote de municípios em uma instância do bot FNDE
+
+    def _executar_bot_lote(self, bot, metodo_kwargs: Dict, instancia: int) -> Dict:
+        """Worker genérico para qualquer bot (FNDE, ConsFNS, BBDAF)"""
         try:
-            print(f"Instância {instancia}: Iniciando processamento de {len(lote_municipios)} municípios...")
-            
-            # Verifica se foi cancelado antes de começar
-            if self._cancelado:
-                print(f"Instância {instancia}: Cancelada antes de iniciar")
-                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-            
-            # Configura navegador
-            if not bot.configurar_navegador():
-                return {'sucesso': False, 'erro': 'Falha ao configurar navegador'}
-            
-            # Verifica cancelamento após configurar navegador
-            if self._cancelado:
-                print(f"Instância {instancia}: Cancelada após configurar navegador")
+            # Extract municipality count for logging (works with municipios or cidades key)
+            num_mun = len(metodo_kwargs.get('municipios', metodo_kwargs.get('cidades', [])))
+            print(f"Instância {instancia}: {num_mun} municípios...")
+            if self._cancelado or not bot.configurar_navegador():
                 bot.limpar_recursos()
-                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-            
-            # Processa lote
-            resultado = bot.processar_lote_municipios(ano, lote_municipios)
-            
+                return {'sucesso': False, 'erro': 'Cancelado ou falha navegador'}
+            resultado = bot.processar_lote_municipios(**metodo_kwargs)
             return resultado
-            
         except Exception as e:
             return {'sucesso': False, 'erro': str(e)}
         finally:
-            # Garante limpeza de recursos
             bot.limpar_recursos()
-    
-    def _consolidar_resultados_fnde(self, resultados: List[Dict]) -> Dict:
-        # Consolida resultados de múltiplas instâncias FNDE
-        total_municipios = 0
-        total_sucessos = 0
-        total_erros = 0
-        instancias_sucesso = 0
-        instancias_erro = 0
-        municipios_processados = []
-        municipios_erro = []
-        
-        for resultado in resultados:
-            if resultado.get('sucesso'):
-                instancias_sucesso += 1
-                # Extrai estatísticas do resultado
-                stats = resultado.get('estatisticas', {})
-                total_municipios += stats.get('total', 0)
-                total_sucessos += stats.get('sucessos', 0)
-                total_erros += stats.get('erros', 0)
-                municipios_processados.extend(stats.get('municipios_processados', []))
-                municipios_erro.extend(stats.get('municipios_erro', []))
-            else:
-                instancias_erro += 1
-        
-        taxa_sucesso = (total_sucessos / total_municipios * 100) if total_municipios > 0 else 0
-        
-        return {
-            'sucesso': True,
-            'instancias': {
-                'total': len(resultados),
-                'sucesso': instancias_sucesso,
-                'erro': instancias_erro
-            },
-            'estatisticas': {
-                'total': total_municipios,
-                'sucessos': total_sucessos,
-                'erros': total_erros,
-                'taxa_sucesso': taxa_sucesso,
-                'municipios_processados': municipios_processados,
-                'municipios_erro': municipios_erro
-            },
-            'detalhes': resultados
-        }
+
+    def _consolidar_resultados_genericos(self, resultados: List[Dict]) -> Dict:
+        """Consolidação única para TODOS os bots"""
+        total = sucessos = erros = inst_ok = 0
+        for r in resultados:
+            if r.get('sucesso'): inst_ok += 1; s = r.get('estatisticas', {})
+            total += s.get('total', 0); sucessos += s.get('sucessos', 0); erros += s.get('erros', 0)
+        return {'sucesso': True, 'estatisticas': {'total': total, 'sucessos': sucessos,
+                'erros': erros, 'taxa_sucesso': (sucessos/total*100) if total else 0}}
 
     def executar_paralelo_consfns(self, bot_template, num_instancias: int = 2) -> Dict:
-        # Executa processamento paralelo do ConsFNS
+        from src.bots.bot_cons_fns import BotConsFNS
+        municipios = bot_template.obter_lista_municipios()
+        lotes = self._dividir_municipios(municipios, num_instancias)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
         try:
-            # Limita a 5 instâncias
-            if num_instancias > 5:
-                num_instancias = 5
-                print(f"Número de instâncias limitado a 5")
-
-            # Importa dinamicamente para evitar dependência circular
-            from src.bots.bot_cons_fns import BotConsFNS
-
-            # Obtém lista de municípios e divide em lotes
-            municipios = bot_template.obter_lista_municipios()
-            lotes = self._dividir_municipios(municipios, num_instancias)
-
-            print(f"Dividindo {len(municipios)} municípios em {len(lotes)} lotes paralelos")
+            futures = []
             for i, lote in enumerate(lotes, 1):
-                print(f"Lote {i}: {len(lote)} municípios")
-
-            # Executa em threads paralelas
-            resultados = []
-            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=num_instancias)
-            try:
-                futures = []
-
-                for i, lote in enumerate(lotes, 1):
-                    # Cria nova instância do bot para cada thread
-                    bot = BotConsFNS()
-                    self.bots_ativos.append(bot)  # Registra bot ativo
-
-                    future = self.executor.submit(
-                        self._executar_bot_consfns_thread,
-                        bot,
-                        lote,
-                        i
-                    )
-                    futures.append((future, i, len(lote)))
-
-                # Coleta resultados
-                for future, instancia, num_municipios in futures:
-                    if self._cancelado:
-                        self.executor.shutdown(wait=False, cancel_futures=True)
-                        return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-
-                    resultado = future.result()
-                    resultado['instancia'] = instancia
-                    resultado['municipios_lote'] = num_municipios
-                    resultados.append(resultado)
-            finally:
-                if self.executor:
-                    self.executor.shutdown(wait=True)
-                    self.executor = None
-                self.bots_ativos.clear()  # Limpa lista de bots
-
-            # Consolida estatísticas
-            return self._consolidar_resultados_consfns(resultados)
-
-        except Exception as e:
-            return {'sucesso': False, 'erro': str(e)}
-
-    def _executar_bot_consfns_thread(self, bot, lote_municipios: List[str], instancia: int) -> Dict:
-        # Executa um lote de municípios em uma instância do bot ConsFNS
-        try:
-            print(f"Instância {instancia}: Iniciando processamento de {len(lote_municipios)} municípios...")
-
-            # Verifica se foi cancelado antes de começar
-            if self._cancelado:
-                print(f"Instância {instancia}: Cancelada antes de iniciar")
-                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-
-            # Configura navegador
-            if not bot.configurar_navegador():
-                return {'sucesso': False, 'erro': 'Falha ao configurar navegador'}
-
-            # Verifica cancelamento após configurar navegador
-            if self._cancelado:
-                print(f"Instância {instancia}: Cancelada após configurar navegador")
-                bot.limpar_recursos()
-                return {'sucesso': False, 'erro': 'Cancelado pelo usuário'}
-
-            # Processa lote
-            resultado = bot.processar_lote_municipios(lote_municipios)
-
-            return resultado
-
-        except Exception as e:
-            return {'sucesso': False, 'erro': str(e)}
+                bot = BotConsFNS()
+                self.bots_ativos.append(bot)
+                futures.append((self.executor.submit(self._executar_bot_lote, bot, {'municipios': lote}, i), i))
+            resultados = [f.result() for f, _ in futures]
         finally:
-            # Garante limpeza de recursos
-            bot.limpar_recursos()
-
-    def _consolidar_resultados_consfns(self, resultados: List[Dict]) -> Dict:
-        # Consolida resultados de múltiplas instâncias ConsFNS
-        total_municipios = 0
-        total_sucessos = 0
-        total_erros = 0
-        instancias_sucesso = 0
-        instancias_erro = 0
-        municipios_processados = []
-        municipios_erro = []
-
-        for resultado in resultados:
-            if resultado.get('sucesso'):
-                instancias_sucesso += 1
-                # Extrai estatísticas do resultado
-                stats = resultado.get('estatisticas', {})
-                total_municipios += stats.get('total', 0)
-                total_sucessos += stats.get('sucessos', 0)
-                total_erros += stats.get('erros', 0)
-                municipios_processados.extend(stats.get('municipios_processados', []))
-                municipios_erro.extend(stats.get('municipios_erro', []))
-            else:
-                instancias_erro += 1
-
-        taxa_sucesso = (total_sucessos / total_municipios * 100) if total_municipios > 0 else 0
-
-        return {
-            'sucesso': True,
-            'instancias': {
-                'total': len(resultados),
-                'sucesso': instancias_sucesso,
-                'erro': instancias_erro
-            },
-            'estatisticas': {
-                'total': total_municipios,
-                'sucessos': total_sucessos,
-                'erros': total_erros,
-                'taxa_sucesso': taxa_sucesso,
-                'municipios_processados': municipios_processados,
-                'municipios_erro': municipios_erro
-            },
-            'detalhes': resultados
-        }
+            self.executor.shutdown(wait=True); self.executor = None; self.bots_ativos.clear()
+        return self._consolidar_resultados_genericos(resultados)
 
     def cancelar(self):
         # Cancela a execução paralela em andamento

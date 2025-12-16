@@ -456,7 +456,37 @@ class BotBBDAF(BotBase):
     def cancelar_forcado(self):
         """Mantido para compatibilidade - usar cancelar(forcado=True)"""
         self.cancelar(forcado=True)
-    
+
+    def processar_lote_municipios(self, cidades: List[str],
+                                  data_inicial: str, data_final: str) -> Dict[str, any]:
+        """Processa lote para uso paralelo - sem lógica de threading"""
+        print(f"\n=== LOTE BBDAF: {len(cidades)} cidades ===")
+        stats = ReportGenerator.criar_estatisticas(len(cidades))
+        for i, cidade in enumerate(cidades, 1):
+            # Check cancellation before processing
+            if self._cancelado:
+                print(f"\nProcessamento cancelado na cidade {i}")
+                break
+
+            print(f"{i}/{len(cidades)}: {cidade.title()}")
+            ReportGenerator.atualizar_estatisticas(stats,
+                self.processar_cidade(cidade, data_inicial, data_final, gerar_relatorio=False))
+
+            # Check cancellation immediately after processing to stop before next iteration
+            if self._cancelado:
+                print(f"\nProcessamento cancelado após processar {cidade}")
+                break
+
+            if i < len(cidades) and not self.voltar_pagina_inicial():
+                break
+
+            if not self._cancelado:
+                time.sleep(0.5)
+
+        ReportGenerator.calcular_taxa_sucesso(stats)
+        ReportGenerator.imprimir_estatisticas(stats, "LOTE CONCLUÍDO")
+        return {'sucesso': True, 'estatisticas': stats}
+
     def executar_completo(self, cidades: List[str] = None, data_inicial: str = None, 
                          data_final: str = None, arquivo_cidades: str = None):
         """

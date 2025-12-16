@@ -49,18 +49,17 @@ class BotConsFNS(BotBase):
         self._cancelado = False
         self._em_execucao = False
         self._campo_esfera_presente = False
-        self.processador_paralelo = None
         self.diretorio_consfns = obter_caminho_dados(CONSFNS_CONFIG['diretorio_saida'])
         self.data_hoje = datetime.now().strftime("%Y-%m-%d")
         self.diretorio_saida = os.path.join(self.diretorio_consfns, self.data_hoje)
-        self.diretorio_download = os.path.join(self.diretorio_consfns, "temp_downloads")
         self._criar_diretorios()
         self.report_gen = ReportGenerator(self.diretorio_consfns, "RELATORIO_CONSFNS")
+        self.processador_paralelo = None
 
     def _criar_diretorios(self):
         """Cria estrutura de diretórios necessária"""
         try:
-            for diretorio in [self.diretorio_consfns, self.diretorio_saida, self.diretorio_download]:
+            for diretorio in [self.diretorio_consfns, self.diretorio_saida]:
                 if not os.path.exists(diretorio):
                     os.makedirs(diretorio)
                     print(f"Diretório criado: {diretorio}")
@@ -84,7 +83,7 @@ class BotConsFNS(BotBase):
             opcoes.add_argument("--disable-gpu")
             opcoes.add_argument("--window-size=1920,1080")
 
-            driver_simples = ChromeDriverSimples(download_dir=self.diretorio_download)
+            driver_simples = ChromeDriverSimples(download_dir=self.diretorio_saida)
             self.navegador = driver_simples.conectar(chrome_options=opcoes)
             if self.navegador:
                 self.wait = WebDriverWait(self.navegador, self.timeout)
@@ -206,7 +205,7 @@ class BotConsFNS(BotBase):
                     print(MENSAGENS['consfns_download'])
                 else:
                     print(f"⚠️ Tentativa {tentativa}/{max_tentativas} - Tentando baixar novamente...")
-                arquivos_antes = set(os.listdir(self.diretorio_download))
+                arquivos_antes = set(os.listdir(self.diretorio_saida))
                 botao_gerar = self.navegador.find_element(By.CSS_SELECTOR, SELETORES_CONSFNS['botao_gerar_planilha'])
                 botao_gerar.click()
                 if CONSFNS_CONFIG['pausa_antes_download'] > 0:
@@ -238,12 +237,12 @@ class BotConsFNS(BotBase):
         while time.time() - tempo_inicio < timeout:
             if self._cancelado:
                 return None
-            arquivos_agora = set(os.listdir(self.diretorio_download))
+            arquivos_agora = set(os.listdir(self.diretorio_saida))
             novos_arquivos = arquivos_agora - arquivos_antes
             arquivos_xlsx = [f for f in novos_arquivos
                            if f.endswith('.xlsx') and not f.endswith(('.crdownload', '.tmp', '.html'))]
             if arquivos_xlsx:
-                arquivo_path = os.path.join(self.diretorio_download, arquivos_xlsx[0])
+                arquivo_path = os.path.join(self.diretorio_saida, arquivos_xlsx[0])
                 if os.path.exists(arquivo_path) and os.path.getsize(arquivo_path) > 0:
                     time.sleep(1)
                     print(f"✓ Arquivo .xlsx detectado: {arquivos_xlsx[0]} ({os.path.getsize(arquivo_path)} bytes)")
@@ -260,46 +259,13 @@ class BotConsFNS(BotBase):
                 extensao = '.xlsx'
             novo_nome = f"{nome_municipio_limpo}{extensao}"
             caminho_final = os.path.join(self.diretorio_saida, novo_nome)
-            import shutil
-            shutil.move(arquivo_original, caminho_final)
+            # Rename in place (file already in diretorio_saida)
+            if arquivo_original != caminho_final:
+                os.rename(arquivo_original, caminho_final)
             return caminho_final
         except Exception as e:
             print(f"Aviso: Erro ao renomear arquivo - {e}")
             return arquivo_original
-
-    def _cleanup_temp_downloads(self) -> Dict[str, bool]:
-        """
-        Remove pasta temp_downloads se estiver vazia após processamento
-
-        Returns:
-            Dict com status da limpeza:
-            - 'pasta_deletada': True se pasta foi removida
-            - 'sucesso': True se operação foi bem-sucedida
-        """
-        try:
-            # Verifica se diretório existe
-            if not os.path.exists(self.diretorio_download):
-                return {'pasta_deletada': False, 'sucesso': True}
-
-            # Lista arquivos restantes (ignora subpastas)
-            remaining_files = [
-                f for f in os.listdir(self.diretorio_download)
-                if os.path.isfile(os.path.join(self.diretorio_download, f))
-            ]
-
-            # Se vazio, remove a pasta
-            if len(remaining_files) == 0:
-                os.rmdir(self.diretorio_download)
-                print("🗑️  Pasta temp_downloads removida (vazia)")
-                return {'pasta_deletada': True, 'sucesso': True}
-            else:
-                # Mantém pasta com arquivos (possíveis downloads incompletos)
-                print(f"⚠️  Pasta temp_downloads mantida ({len(remaining_files)} arquivo(s) restante(s))")
-                return {'pasta_deletada': False, 'sucesso': True}
-
-        except Exception as e:
-            print(f"⚠️  Erro ao limpar pasta temporária: {e}")
-            return {'pasta_deletada': False, 'sucesso': False}
 
     def processar_municipio(self, municipio: str) -> Dict[str, any]:
         """Processa um município específico com sessão Chrome dedicada"""
@@ -362,10 +328,6 @@ class BotConsFNS(BotBase):
             print("Fechando Chrome...")
             self.limpar_recursos()
 
-            # Limpar pasta temporária após processamento
-            cleanup_result = self._cleanup_temp_downloads()
-            resultado['temp_cleanup'] = cleanup_result
-
         return resultado
 
     def processar_todos_municipios(self) -> Dict[str, any]:
@@ -393,52 +355,6 @@ class BotConsFNS(BotBase):
             print(f"Aviso: Erro ao gerar relatório - {e}")
         ReportGenerator.imprimir_estatisticas(estatisticas)
         return estatisticas
-
-    def processar_lote_municipios(self, municipios: List[str]) -> Dict[str, any]:
-        """Processa um lote específico de municípios (para uso paralelo)"""
-        print(f"\n=== PROCESSANDO LOTE DE {len(municipios)} MUNICÍPIOS - CONSFNS ===")
-        estatisticas = ReportGenerator.criar_estatisticas(len(municipios))
-        try:
-            for i, municipio in enumerate(municipios, 1):
-                if self._cancelado:
-                    print(f"\nProcessamento cancelado no município {i}")
-                    break
-                print(f"\nProgresso do lote: {i}/{len(municipios)} - {municipio}")
-                resultado = self.processar_municipio(municipio)
-                ReportGenerator.atualizar_estatisticas(estatisticas, resultado)
-                if not self._cancelado:
-                    time.sleep(CONSFNS_CONFIG['pausa_entre_municipios'])
-        except Exception as e:
-            print(f"Erro durante processamento do lote: {e}")
-            return {'sucesso': False, 'erro': str(e)}
-        ReportGenerator.calcular_taxa_sucesso(estatisticas)
-        ReportGenerator.imprimir_estatisticas(estatisticas, "LOTE CONCLUÍDO")
-        return {'sucesso': True, 'estatisticas': estatisticas}
-
-    def executar_paralelo(self, num_instancias: int = 2) -> Dict[str, any]:
-        """Executa processamento paralelo de municípios usando ProcessadorParalelo"""
-        try:
-            from src.classes.methods.parallel_processor import ProcessadorParalelo
-            print(f"\n=== INICIANDO PROCESSAMENTO PARALELO CONSFNS ===")
-            print(f"Instâncias: {num_instancias}")
-            self.processador_paralelo = ProcessadorParalelo()
-            resultado = self.processador_paralelo.executar_paralelo_consfns(self, num_instancias)
-            resultado['processador'] = self.processador_paralelo
-            if resultado['sucesso']:
-                stats = resultado['estatisticas']
-                ReportGenerator.imprimir_estatisticas(stats, "PROCESSAMENTO PARALELO CONCLUÍDO")
-                try:
-                    arquivo_relatorio = self.report_gen.gerar_relatorio(stats, "RELATÓRIO DE PROCESSAMENTO - CONSULTA FNS")
-                    if arquivo_relatorio:
-                        print(f"📄 Relatório gerado: {arquivo_relatorio}")
-                except Exception as e:
-                    print(f"Aviso: Erro ao gerar relatório - {e}")
-            else:
-                print(f"\n=== ERRO NO PROCESSAMENTO PARALELO ===")
-                print(f"Erro: {resultado['erro']}")
-            return resultado
-        except Exception as e:
-            return {'sucesso': False, 'erro': f'Erro ao iniciar processamento paralelo: {str(e)}'}
 
     def limpar_recursos(self):
         """Limpa todos os recursos e fecha navegador com segurança"""
@@ -468,15 +384,54 @@ class BotConsFNS(BotBase):
     def cancelar(self, forcado=False):
         """Cancela execução e limpa recursos"""
         self._em_execucao = False
-        if forcado and hasattr(self, 'processador_paralelo') and self.processador_paralelo:
-            print("Cancelando processador paralelo ConsFNS...")
-            self.processador_paralelo.cancelar()
-            self.processador_paralelo = None
         super().cancelar(forcado=forcado)
 
     def cancelar_forcado(self):
         """Mantido para compatibilidade - usar cancelar(forcado=True)"""
         self.cancelar(forcado=True)
+
+    def processar_lote_municipios(self, municipios: List[str]) -> Dict[str, any]:
+        """Processa lote para uso paralelo - sem lógica de threading"""
+        print(f"\n=== LOTE CONSFNS: {len(municipios)} municípios ===")
+        stats = ReportGenerator.criar_estatisticas(len(municipios))
+        for i, mun in enumerate(municipios, 1):
+            if self._cancelado:
+                print(f"\nProcessamento cancelado no município {i}")
+                break
+            print(f"\n{i}/{len(municipios)} - {mun}")
+            ReportGenerator.atualizar_estatisticas(stats, self.processar_municipio(mun))
+
+            # Check cancellation immediately after processing to stop before next iteration
+            if self._cancelado:
+                print(f"\nProcessamento cancelado após processar {mun}")
+                break
+
+            if not self._cancelado:
+                time.sleep(0.5)
+        ReportGenerator.calcular_taxa_sucesso(stats)
+        ReportGenerator.imprimir_estatisticas(stats, "LOTE CONCLUÍDO")
+        return {'sucesso': True, 'estatisticas': stats}
+
+    def executar_paralelo(self, num_instancias: int = 2) -> Dict[str, any]:
+        """Executa processamento paralelo de municípios usando ProcessadorParalelo"""
+        try:
+            from src.classes.methods.parallel_processor import ProcessadorParalelo
+            print(f"\n=== INICIANDO PROCESSAMENTO PARALELO CONSFNS ===")
+            print(f"Instâncias: {num_instancias}")
+            self.processador_paralelo = ProcessadorParalelo()
+            resultado = self.processador_paralelo.executar_paralelo_consfns(self, num_instancias)
+            resultado['processador'] = self.processador_paralelo
+            if resultado['sucesso']:
+                stats = resultado['estatisticas']
+                print(f"\n=== PROCESSAMENTO PARALELO CONCLUÍDO ===")
+                print(f"Total: {stats['total']} municípios")
+                print(f"Sucessos: {stats['sucessos']}")
+                print(f"Erros: {stats['erros']}")
+                print(f"Taxa de sucesso: {stats['taxa_sucesso']:.1f}%")
+            return resultado
+        except Exception as e:
+            print(f"Erro no processamento paralelo: {e}")
+            return {'sucesso': False, 'erro': str(e)}
 
     def obter_lista_municipios(self) -> List[str]:
         """Retorna lista de municípios carregados"""
