@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GUI5 - Interface grafica Resolucoes
+GUI5 - Interface grafica PDF Portal Antigo Saude MG
 """
 
 import customtkinter as ctk

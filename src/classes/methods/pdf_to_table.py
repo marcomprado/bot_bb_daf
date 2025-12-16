@@ -8,13 +8,19 @@ import sys
 import os
 from pathlib import Path
 
-# Path adjustment for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Path adjustment for imports (only needed in development mode)
+# In PyInstaller EXE, modules are already accessible
+if not hasattr(sys, '_MEIPASS'):
+    # Development mode only
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 # Standard library imports
 import json
 import re
 import time
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
@@ -25,6 +31,9 @@ from openai import OpenAI
 import openai
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+# Import logging utility
+from src.classes.methods.pdf_logger import setup_pdf_logger, log_and_print, get_log_directory
 
 # ============================================================================
 # AI CONFIGURATION - Customize provider and model here
@@ -93,12 +102,82 @@ BUDGET_CATEGORIES = {
 # ENVIRONMENT CONFIGURATION
 # ============================================================================
 
-# Load API key from .env file
-env_path = Path(__file__).parent.parent.parent / 'config' / '.env'
-load_dotenv(env_path)
+# Initialize logger first (before .env loading)
+logger = setup_pdf_logger('pdf_to_table')
+
+
+def _get_env_path():
+    """
+    Get .env file path with PyInstaller support.
+
+    Returns:
+        str or Path: Path to .env file
+    """
+    if hasattr(sys, '_MEIPASS'):
+        # Running in PyInstaller bundle - .env is in sys._MEIPASS/src/config
+        env_path = os.path.join(sys._MEIPASS, 'src', 'config', '.env')
+        logger.debug(f"PyInstaller mode - usando .env de: {env_path}")
+    else:
+        # Development mode - use relative path from this file
+        env_path = Path(__file__).parent.parent.parent / 'config' / '.env'
+        logger.debug(f"Development mode - usando .env de: {env_path}")
+
+    return env_path
+
+
+def _validate_env_file():
+    """
+    Validate .env file exists and contains OPENAI_API_KEY.
+
+    Returns:
+        tuple: (success: bool, error_message: str or None)
+    """
+    env_path = _get_env_path()
+
+    # Check if file exists
+    if not os.path.exists(env_path):
+        error_msg = (
+            f".env não encontrado: {env_path}\n"
+            f"Modo: {'PyInstaller EXE' if hasattr(sys, '_MEIPASS') else 'Development'}"
+        )
+        if hasattr(sys, '_MEIPASS'):
+            error_msg += f"\n_MEIPASS: {sys._MEIPASS}"
+        logger.error(error_msg)
+        return False, error_msg
+
+    # Check if file contains OPENAI_API_KEY
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            if 'OPENAI_API_KEY' not in content:
+                logger.warning(f".env existe mas não contém OPENAI_API_KEY: {env_path}")
+                return True, "OPENAI_API_KEY não encontrado no .env"
+    except Exception as e:
+        logger.error(f"Erro ao ler .env: {e}")
+        return False, str(e)
+
+    logger.info(f"✓ .env validado com sucesso: {env_path}")
+    logger.info(f"  Tamanho do arquivo: {os.path.getsize(env_path)} bytes")
+    return True, None
+
+
+# Load API key from .env file with validation
+logger.info("Iniciando carregamento de configurações...")
+env_exists, env_error = _validate_env_file()
+
+if env_exists:
+    env_path = _get_env_path()
+    load_dotenv(env_path)
+    logger.info(f"✓ load_dotenv() executado para: {env_path}")
+else:
+    logger.critical(f"FATAL: .env file validation failed: {env_error}")
 
 # Get API key (only thing from .env)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+if OPENAI_API_KEY:
+    logger.info(f"✓ OPENAI_API_KEY carregada (length: {len(OPENAI_API_KEY)} chars)")
+else:
+    logger.warning("⚠ OPENAI_API_KEY está vazia ou não foi encontrada")
 
 # ============================================================================
 # LOGGING - Usando print() simples para mensagens limpas
@@ -131,8 +210,15 @@ class PDFToTableConverter:
         self.client = None
 
         if not self.api_key:
-            print("⚠ API key não configurada - processamento de PDF desabilitado")
-            print("  Configure OPENAI_API_KEY em src/config/.env")
+            error_msg = "⚠ API key não configurada - processamento de PDF desabilitado"
+            logger.error(error_msg)
+            logger.error("  Configure OPENAI_API_KEY em src/config/.env")
+            logger.error(f"  Caminho .env: {_get_env_path()}")
+            logger.error(f"  Arquivo existe: {os.path.exists(_get_env_path())}")
+            logger.error(f"  Modo: {'PyInstaller' if hasattr(sys, '_MEIPASS') else 'Dev'}")
+            if hasattr(sys, '_MEIPASS'):
+                logger.error(f"  _MEIPASS: {sys._MEIPASS}")
+            log_and_print(logger, logging.ERROR, error_msg)
             return
 
         try:
@@ -153,7 +239,9 @@ class PDFToTableConverter:
             self.enabled = True
 
         except Exception as e:
-            print(f"✗ Erro ao inicializar IA: {e}")
+            error_msg = f"✗ Erro ao inicializar IA: {e}"
+            logger.exception(error_msg)
+            log_and_print(logger, logging.ERROR, error_msg)
             self.client = None
             self.enabled = False
 
@@ -178,13 +266,15 @@ class PDFToTableConverter:
         successful = 0
         failed = 0
 
-        print(f"\n→ Processando {len(pdf_files)} PDFs com IA...\n")
+        msg = f"\n→ Processando {len(pdf_files)} PDFs com IA...\n"
+        log_and_print(logger, logging.INFO, msg)
 
         for idx, pdf_info in enumerate(pdf_files, 1):
             pdf_path = pdf_info.get('caminho')
             file_link = pdf_info.get('url', 'NÃO INFORMADO')
 
-            print(f"  [{idx}/{len(pdf_files)}] {Path(pdf_path).name}")
+            msg = f"  [{idx}/{len(pdf_files)}] {Path(pdf_path).name}"
+            log_and_print(logger, logging.INFO, msg)
 
             result = self.process_single_pdf(pdf_path, file_link)
             results.append(result)
@@ -206,7 +296,8 @@ class PDFToTableConverter:
             cleanup_result = self._cleanup_successful_pdfs(results, output_dir, excel_path)
 
             if cleanup_result['pdfs_deleted'] > 0:
-                print(f"\n  🗑️  {cleanup_result['pdfs_deleted']} PDFs processados foram removidos")
+                msg = f"\n  🗑️  {cleanup_result['pdfs_deleted']} PDFs processados foram removidos"
+                log_and_print(logger, logging.INFO, msg)
 
             # Use new Excel path if folder was deleted and Excel moved
             final_excel_path = cleanup_result.get('new_excel_path', excel_path)
@@ -222,7 +313,9 @@ class PDFToTableConverter:
                 'results': results
             }
         except Exception as e:
-            print(f"✗ Erro ao gerar Excel: {e}")
+            error_msg = f"✗ Erro ao gerar Excel: {e}"
+            logger.exception(error_msg)
+            log_and_print(logger, logging.ERROR, error_msg)
             return {
                 'success': False,
                 'error': f'Excel generation failed: {e}',
@@ -284,7 +377,9 @@ class PDFToTableConverter:
 
         except Exception as e:
             # Create error row for Excel
-            print(f"    ✗ Erro: {str(e)[:80]}")
+            error_msg = f"    ✗ Erro: {str(e)[:80]}"
+            logger.error(error_msg)
+            logger.debug(f"    Stack trace completo: {str(e)}", exc_info=True)
 
             error_data = {
                 'numero_resolucao': 'ERRO',
@@ -426,7 +521,7 @@ class PDFToTableConverter:
                             deleted_pdfs += 1
                     except Exception as e:
                         pdf_filename = os.path.basename(pdf_path)
-                        print(f"    ⚠ Não foi possível apagar {pdf_filename}: {e}")
+                        logger.warning(f"    ⚠ Não foi possível apagar {pdf_filename}: {e}")
 
         # Step 2: Check each directory and delete if empty (month folders)
         for pdf_dir in pdf_directories:
@@ -442,10 +537,11 @@ class PDFToTableConverter:
                     # Folder is empty - delete it
                     os.rmdir(pdf_dir)
                     folders_deleted.append(pdf_dir)
-                    print(f"  📁 Pasta vazia removida: {os.path.basename(pdf_dir)}")
+                    msg = f"  📁 Pasta vazia removida: {os.path.basename(pdf_dir)}"
+                    log_and_print(logger, logging.INFO, msg)
 
             except Exception as e:
-                print(f"    ⚠ Erro ao limpar pasta {pdf_dir}: {e}")
+                logger.warning(f"    ⚠ Erro ao limpar pasta {pdf_dir}: {e}")
 
         return {
             'pdfs_deleted': deleted_pdfs,
@@ -475,11 +571,25 @@ class PDFToTableConverter:
             text = pymupdf4llm.to_markdown(str(pdf_path))
 
             if text:
+                logger.debug(f"    ✓ Texto extraído: {len(text)} caracteres")
                 return text
             else:
+                logger.warning(f"    ⚠ Nenhum texto extraído do PDF: {pdf_path}")
                 return ""
 
-        except (FileNotFoundError, PermissionError, ValueError, Exception):
+        except FileNotFoundError as e:
+            logger.error(f"    ✗ PDF não encontrado: {pdf_path} - {e}")
+            return ""
+        except PermissionError as e:
+            logger.error(f"    ✗ Permissão negada ao ler PDF: {pdf_path} - {e}")
+            return ""
+        except ValueError as e:
+            logger.error(f"    ✗ Dados inválidos no PDF: {pdf_path} - {e}")
+            return ""
+        except Exception as e:
+            logger.exception(f"    ✗ Erro inesperado ao extrair texto do PDF: {pdf_path}")
+            logger.error(f"    Tipo de erro: {type(e).__name__}")
+            logger.error(f"    Mensagem: {str(e)}")
             return ""
 
     def _extract_resolution_data(self, pdf_text: str) -> Dict[str, Any]:
@@ -523,8 +633,9 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
             return extracted_data
 
         except json.JSONDecodeError as e:
-            print(f"    ✗ Erro ao processar resposta da IA")
+            logger.error(f"    ✗ Erro ao processar resposta da IA: {e}")
             raw_content = response.get('content', '') if 'response' in locals() else ''
+            logger.debug(f"    Conteúdo bruto da resposta: {raw_content[:500]}...")
             return {
                 'error': 'Failed to parse AI response',
                 'raw_content': raw_content
@@ -564,21 +675,25 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
                 return result
 
             except openai.RateLimitError as e:
-                print(f"    ⏳ Rate limit - tentativa {attempt+1}/{self.max_retries}")
+                logger.warning(f"    ⏳ Rate limit - tentativa {attempt+1}/{self.max_retries}")
                 if attempt < self.max_retries - 1:
                     time.sleep(2 ** attempt)  # Exponential backoff
                 else:
-                    raise ValueError(f"Rate limit exceeded after {self.max_retries} attempts")
+                    error_msg = f"Rate limit exceeded after {self.max_retries} attempts"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
 
             except openai.AuthenticationError as e:
                 raise ValueError(f"Invalid API key: {e}")
 
             except Exception as e:
-                print(f"    ✗ Erro API (tentativa {attempt+1}/{self.max_retries})")
+                logger.warning(f"    ✗ Erro API (tentativa {attempt+1}/{self.max_retries}): {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(2 ** attempt)
                 else:
-                    raise ValueError(f"API error after {self.max_retries} attempts: {e}")
+                    error_msg = f"API error after {self.max_retries} attempts: {e}"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
 
         raise ValueError("Max retries exceeded for chat completion")
 

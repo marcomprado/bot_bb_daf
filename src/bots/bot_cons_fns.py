@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Bot de scraping para o sistema Consulta FNS (Fundo Nacional de Saúde) extraindo dados de contas bancárias para municípios de Minas Gerais
+Bot de scraping para o sistema de Consulta de saldo do FNS (Fundo Nacional de Saúde) extraindo dados de contas bancárias para municípios de Minas Gerais
 """
 
 from selenium import webdriver

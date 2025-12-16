@@ -7,7 +7,14 @@ Extrai documentos PDF do portal antigo de saude de Minas Gerais
 from selenium import webdriver
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# Path adjustment for imports (only needed in development mode)
+# In PyInstaller EXE, modules are already accessible
+if not hasattr(sys, '_MEIPASS'):
+    # Development mode only
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.methods.cancel_method import BotBase
