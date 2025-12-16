@@ -184,8 +184,8 @@ if env_exists:
     except Exception as e:
         logger.error(f"Erro ao ler .env para debug: {e}")
 
-    # Try load_dotenv
-    load_result = load_dotenv(env_path, override=True)
+    # Try load_dotenv with utf-8-sig encoding to handle Windows BOM
+    load_result = load_dotenv(env_path, override=True, encoding="utf-8-sig")
     logger.info(f"✓ load_dotenv() executado para: {env_path}")
     logger.debug(f"load_dotenv() retornou: {load_result}")
 else:
