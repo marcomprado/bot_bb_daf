@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Gerador de relatórios TXT para processamento de bots
-Fornece utilitários para criação, atualização e geração de relatórios de estatísticas
-"""
+# Gerador de relatórios TXT para processamento de bots
 
 import os
 from datetime import datetime
@@ -10,30 +7,16 @@ from typing import Dict, Optional
 
 
 class ReportGenerator:
-    """
-    Gerador de relatórios padronizados para processamento de municípios/dados por bots
-
-    Fornece métodos para:
-    - Criar e atualizar estruturas de estatísticas
-    - Calcular taxas de sucesso
-    - Imprimir estatísticas no console
-    - Gerar relatórios TXT formatados
-    """
+    # Gerador de relatórios padronizados para processamento de municípios/dados por bots
 
     def __init__(self, output_dir: str, report_prefix: str = "RELATORIO"):
-        """
-        Inicializa gerador de relatórios
-
-        Args:
-            output_dir: Diretório onde salvar relatórios
-            report_prefix: Prefixo para nome do arquivo (ex: "RELATORIO_CONSFNS")
-        """
+        # Inicializa gerador de relatórios
         self.output_dir = output_dir
         self.report_prefix = report_prefix
 
     @staticmethod
     def criar_estatisticas(total: int) -> Dict:
-        """Cria estrutura de estatísticas para processamento"""
+        # Cria estrutura de estatísticas para processamento
         return {
             'total': total,
             'sucessos': 0,
@@ -44,7 +27,7 @@ class ReportGenerator:
 
     @staticmethod
     def atualizar_estatisticas(estatisticas: Dict, resultado: Dict):
-        """Atualiza estatísticas com resultado do processamento de um município"""
+        # Atualiza estatísticas com resultado do processamento de um município
         if resultado['sucesso']:
             estatisticas['sucessos'] += 1
             estatisticas['municipios_processados'].append(resultado['municipio'])
@@ -57,7 +40,7 @@ class ReportGenerator:
 
     @staticmethod
     def calcular_taxa_sucesso(estatisticas: Dict):
-        """Calcula e adiciona taxa de sucesso às estatísticas"""
+        # Calcula e adiciona taxa de sucesso às estatísticas
         if estatisticas['total'] > 0:
             estatisticas['taxa_sucesso'] = (estatisticas['sucessos'] / estatisticas['total']) * 100
         else:
@@ -65,7 +48,7 @@ class ReportGenerator:
 
     @staticmethod
     def imprimir_estatisticas(estatisticas: Dict, titulo: str = "PROCESSAMENTO CONCLUÍDO"):
-        """Imprime resumo das estatísticas de processamento"""
+        # Imprime resumo das estatísticas de processamento
         print(f"\n=== {titulo} ===")
         print(f"Total: {estatisticas['total']}")
         print(f"Sucessos: {estatisticas['sucessos']}")
@@ -78,17 +61,7 @@ class ReportGenerator:
         titulo: str = "RELATÓRIO DE PROCESSAMENTO",
         incluir_municipios_sucesso: bool = False
     ) -> Optional[str]:
-        """
-        Gera relatório TXT com estatísticas do processamento
-
-        Args:
-            estatisticas: Dict com estatísticas (total, sucessos, erros, taxa_sucesso, municipios_erro)
-            titulo: Título do relatório
-            incluir_municipios_sucesso: Se True, inclui lista de municípios processados com sucesso
-
-        Returns:
-            str: Caminho do arquivo de relatório gerado, ou None se erro
-        """
+        # Gera relatório TXT com estatísticas do processamento
         try:
             data_hoje = datetime.now().strftime("%Y-%m-%d")
             nome_arquivo = f"{self.report_prefix}_{data_hoje}.txt"

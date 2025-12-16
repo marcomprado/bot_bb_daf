@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-ProcessadorParalelo - Gerencia execução paralela de múltiplas instâncias do bot
-"""
+# ProcessadorParalelo - Gerencia execução paralela de múltiplas instâncias do bot
 
 import os
 import sys
@@ -21,13 +19,10 @@ from src.classes.config import ARQUIVOS_CONFIG
 
 
 class ProcessadorParalelo:
-    """
-    Gerencia a execução paralela do bot BB DAF
-    Divide as cidades entre múltiplas instâncias e coordena a execução
-    """
+    # Gerencia a execução paralela do bot BB DAF
     
     def __init__(self):
-        """Inicializa o processador paralelo"""
+        # Inicializa o processador paralelo
         self.city_splitter = CitySplitter()
         self.date_calculator = DateCalculator()
         self.processos = []
@@ -39,18 +34,7 @@ class ProcessadorParalelo:
     def executar_paralelo_subprocess(self, num_instancias: int, 
                                     data_inicial: str = None, 
                                     data_final: str = None) -> Dict:
-        """
-        Executa processamento paralelo usando subprocessos
-        Útil quando executando via linha de comando
-        
-        Args:
-            num_instancias: Número de instâncias paralelas (máximo 5)
-            data_inicial: Data inicial ou None para calcular
-            data_final: Data final ou None para calcular
-            
-        Returns:
-            dict: Resultados consolidados
-        """
+        # Executa processamento paralelo usando subprocessos
         try:
             # Limita a 5 instâncias
             if num_instancias > 5:
@@ -123,18 +107,7 @@ class ProcessadorParalelo:
     def executar_paralelo_threads(self, num_instancias: int,
                                  data_inicial: str = None,
                                  data_final: str = None) -> Dict:
-        """
-        Executa processamento paralelo usando threads
-        Útil quando executando em ambiente Python direto
-        
-        Args:
-            num_instancias: Número de instâncias paralelas (máximo 5)
-            data_inicial: Data inicial ou None para calcular
-            data_final: Data final ou None para calcular
-            
-        Returns:
-            dict: Resultados consolidados
-        """
+        # Executa processamento paralelo usando threads
         try:
             # Limita a 5 instâncias
             if num_instancias > 5:
@@ -199,18 +172,7 @@ class ProcessadorParalelo:
             return {'sucesso': False, 'erro': str(e)}
     
     def _executar_bot_thread(self, bot, arquivo_info, data_inicial, data_final):
-        """
-        Executa uma instância do bot em thread
-        
-        Args:
-            bot: Instância do BotBBDAF
-            arquivo_info: Informações do arquivo de cidades
-            data_inicial: Data inicial
-            data_final: Data final
-            
-        Returns:
-            dict: Resultado da execução
-        """
+        # Executa uma instância do bot em thread
         try:
             print(f"Instância {arquivo_info['instancia']}: Iniciando processamento...")
             
@@ -232,15 +194,7 @@ class ProcessadorParalelo:
             return {'sucesso': False, 'erro': str(e)}
     
     def _consolidar_resultados(self, resultados: List[Dict]) -> Dict:
-        """
-        Consolida resultados de múltiplas instâncias
-        
-        Args:
-            resultados: Lista de resultados das instâncias
-            
-        Returns:
-            dict: Resultados consolidados
-        """
+        # Consolida resultados de múltiplas instâncias
         total_cidades = 0
         total_sucessos = 0
         total_erros = 0
@@ -281,15 +235,7 @@ class ProcessadorParalelo:
         }
     
     def _parsear_estatisticas_stdout(self, stdout: str) -> Dict:
-        """
-        Extrai estatísticas do stdout do processo
-        
-        Args:
-            stdout: Saída do processo
-            
-        Returns:
-            dict: Estatísticas extraídas
-        """
+        # Extrai estatísticas do stdout do processo
         stats = {'total': 0, 'sucessos': 0, 'erros': 0}
         
         # Procura por padrões conhecidos no stdout
@@ -313,17 +259,7 @@ class ProcessadorParalelo:
         return stats
     
     def executar_paralelo_fnde(self, bot_template, ano: str, num_instancias: int = 2) -> Dict:
-        """
-        Executa processamento paralelo do FNDE
-        
-        Args:
-            bot_template: Instância template do BotFNDE
-            ano: Ano para consulta
-            num_instancias: Número de instâncias paralelas (máximo 5)
-            
-        Returns:
-            Dict: Resultados consolidados
-        """
+        # Executa processamento paralelo do FNDE
         try:
             # Limita a 5 instâncias
             if num_instancias > 5:
@@ -384,16 +320,7 @@ class ProcessadorParalelo:
             return {'sucesso': False, 'erro': str(e)}
     
     def _dividir_municipios(self, municipios: List[str], num_instancias: int) -> List[List[str]]:
-        """
-        Divide lista de municípios em lotes para processamento paralelo
-        
-        Args:
-            municipios: Lista de municípios
-            num_instancias: Número de instâncias paralelas
-            
-        Returns:
-            List[List[str]]: Lista de lotes de municípios
-        """
+        # Divide lista de municípios em lotes para processamento paralelo
         import math
         
         total_municipios = len(municipios)
@@ -411,18 +338,7 @@ class ProcessadorParalelo:
         return lotes
     
     def _executar_bot_fnde_thread(self, bot, lote_municipios: List[str], ano: str, instancia: int) -> Dict:
-        """
-        Executa um lote de municípios em uma instância do bot FNDE
-        
-        Args:
-            bot: Instância do BotFNDE
-            lote_municipios: Lista de municípios para processar
-            ano: Ano da consulta
-            instancia: Número da instância
-            
-        Returns:
-            Dict: Resultado do processamento do lote
-        """
+        # Executa um lote de municípios em uma instância do bot FNDE
         try:
             print(f"Instância {instancia}: Iniciando processamento de {len(lote_municipios)} municípios...")
             
@@ -453,15 +369,7 @@ class ProcessadorParalelo:
             bot.limpar_recursos()
     
     def _consolidar_resultados_fnde(self, resultados: List[Dict]) -> Dict:
-        """
-        Consolida resultados de múltiplas instâncias FNDE
-        
-        Args:
-            resultados: Lista de resultados das instâncias
-            
-        Returns:
-            Dict: Resultados consolidados
-        """
+        # Consolida resultados de múltiplas instâncias FNDE
         total_municipios = 0
         total_sucessos = 0
         total_erros = 0
@@ -504,16 +412,7 @@ class ProcessadorParalelo:
         }
 
     def executar_paralelo_consfns(self, bot_template, num_instancias: int = 2) -> Dict:
-        """
-        Executa processamento paralelo do ConsFNS
-
-        Args:
-            bot_template: Instância template do BotConsFNS
-            num_instancias: Número de instâncias paralelas (máximo 5)
-
-        Returns:
-            Dict: Resultados consolidados
-        """
+        # Executa processamento paralelo do ConsFNS
         try:
             # Limita a 5 instâncias
             if num_instancias > 5:
@@ -573,17 +472,7 @@ class ProcessadorParalelo:
             return {'sucesso': False, 'erro': str(e)}
 
     def _executar_bot_consfns_thread(self, bot, lote_municipios: List[str], instancia: int) -> Dict:
-        """
-        Executa um lote de municípios em uma instância do bot ConsFNS
-
-        Args:
-            bot: Instância do BotConsFNS
-            lote_municipios: Lista de municípios para processar
-            instancia: Número da instância
-
-        Returns:
-            Dict: Resultado do processamento do lote
-        """
+        # Executa um lote de municípios em uma instância do bot ConsFNS
         try:
             print(f"Instância {instancia}: Iniciando processamento de {len(lote_municipios)} municípios...")
 
@@ -614,15 +503,7 @@ class ProcessadorParalelo:
             bot.limpar_recursos()
 
     def _consolidar_resultados_consfns(self, resultados: List[Dict]) -> Dict:
-        """
-        Consolida resultados de múltiplas instâncias ConsFNS
-
-        Args:
-            resultados: Lista de resultados das instâncias
-
-        Returns:
-            Dict: Resultados consolidados
-        """
+        # Consolida resultados de múltiplas instâncias ConsFNS
         total_municipios = 0
         total_sucessos = 0
         total_erros = 0
@@ -665,7 +546,7 @@ class ProcessadorParalelo:
         }
 
     def cancelar(self):
-        """Cancela a execução paralela em andamento"""
+        # Cancela a execução paralela em andamento
         print("Cancelando execução paralela - forçando fechamento de todos os bots...")
         self._cancelado = True
         
@@ -717,9 +598,7 @@ class ProcessadorParalelo:
 
 
 def main():
-    """
-    Função principal para execução via linha de comando
-    """
+    # Função principal para execução via linha de comando
     import argparse
     
     parser = argparse.ArgumentParser(description='Processador Paralelo BB DAF')

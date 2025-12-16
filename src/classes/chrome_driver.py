@@ -1,7 +1,4 @@
-"""
-Classe simples para conexão direta com ChromeDriver
-Remove a complexidade do webdriver-manager e conecta direto ao Chrome
-"""
+# Classe simples para conexão direta com ChromeDriver
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -12,24 +9,14 @@ import os
 
 
 class ChromeDriverSimples:
-    """
-    Classe para conectar direto ao ChromeDriver sem webdriver-manager
-    """
-    
+    # Conecta direto ao ChromeDriver sem webdriver-manager
+
     def __init__(self, download_dir=None):
         self.navegador = None
         self.download_dir = download_dir
-    
+
     def conectar(self, chrome_options=None):
-        """
-        Conecta direto ao Chrome sem webdriver-manager
-
-        Args:
-            chrome_options: Opções personalizadas do Chrome (opcional)
-
-        Returns:
-            webdriver.Chrome: Instância do navegador Chrome ou None se falhou
-        """
+        # Conecta direto ao Chrome sem webdriver-manager
         try:
             # Usa opções personalizadas se fornecidas, senão cria padrão
             if chrome_options:
@@ -43,7 +30,7 @@ class ChromeDriverSimples:
             opcoes.add_argument("--disable-blink-features=AutomationControlled")
             opcoes.add_experimental_option("excludeSwitches", ["enable-automation"])
             opcoes.add_experimental_option('useAutomationExtension', False)
-            
+
             # Configurar diretório de download se especificado
             if self.download_dir:
                 # Garantir que o caminho seja absoluto - Chrome requer isso
@@ -72,7 +59,7 @@ class ChromeDriverSimples:
                     "profile.default_content_setting_values.automatic_downloads": 1  # Permite downloads automáticos
                 }
                 opcoes.add_experimental_option("prefs", prefs)
-            
+
             # Tenta conectar direto ao Chrome (usa ChromeDriver do sistema)
             self.navegador = webdriver.Chrome(options=opcoes)
 
@@ -90,19 +77,19 @@ class ChromeDriverSimples:
 
             # Remove indicadores de automação
             self.navegador.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
+
             print("✓ ChromeDriver conectado com sucesso")
             return self.navegador
-            
+
         except WebDriverException as e:
             print(f"✗ Erro ao conectar ChromeDriver: {e}")
             return None
         except Exception as e:
             print(f"✗ Erro inesperado: {e}")
             return None
-    
+
     def fechar(self):
-        """Fecha o navegador"""
+        # Fecha o navegador
         try:
             if self.navegador:
                 self.navegador.quit()
@@ -114,9 +101,9 @@ class ChromeDriverSimples:
 
 # Função de teste
 def teste_conexao():
-    """Testa a conexão com ChromeDriver"""
+    # Testa a conexão com ChromeDriver
     driver = ChromeDriverSimples()
-    
+
     navegador = driver.conectar()
     if navegador:
         print("Teste de conexão bem-sucedido!")

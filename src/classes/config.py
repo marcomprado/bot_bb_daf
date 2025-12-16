@@ -1,7 +1,4 @@
-"""
-Arquivo de configuração centralizada para o sistema de web scraping
-Contém todas as configurações e constantes utilizadas no projeto
-"""
+# Configurações centralizadas do sistema de web scraping
 
 # Configurações do sistema
 SISTEMA_CONFIG = {

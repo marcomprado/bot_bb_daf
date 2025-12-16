@@ -1,6 +1,4 @@
-"""
-Classe responsável pela extração e organização dos dados da página de resultados
-"""
+# Classe responsável pela extração e organização dos dados da página de resultados
 
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -12,25 +10,10 @@ from src.classes.file.path_manager import obter_caminho_dados
 
 
 class DataExtractor:
-    """
-    Classe responsável por extrair dados da página de resultados e salvar em Excel
-    
-    Funcionalidades:
-    - Extrair HTML da página usando Selenium
-    - Analisar estrutura da tabela com Beautiful Soup
-    - Extrair dados de DATA, PARCELA e VALOR DISTRIBUÍDO
-    - Salvar dados em arquivo Excel organizado
-    - Nomear arquivos com nome da cidade para diferenciação
-    - Organizar arquivos em pastas por data
-    """
+    # Classe responsável por extrair dados da página de resultados e salvar em Excel
     
     def __init__(self, diretorio_base="arquivos_baixados"):
-        """
-        Inicializa o extrator de dados
-        
-        Args:
-            diretorio_base (str): Diretório base onde salvar os arquivos Excel
-        """
+        # Inicializa o extrator de dados
         # Usa caminho compatível com executável
         self.diretorio_base = obter_caminho_dados(diretorio_base)
         self.data_hoje = datetime.now().strftime("%Y-%m-%d")
@@ -41,11 +24,7 @@ class DataExtractor:
         self._criar_diretorio_saida()
     
     def _criar_diretorio_saida(self):
-        """
-        Cria a estrutura de diretórios necessária:
-        - Diretório base (arquivos_baixados)
-        - Subpasta com data atual (YYYY-MM-DD)
-        """
+        # Cria a estrutura de diretórios necessária:
         try:
             # Cria o diretório base se não existir
             if not os.path.exists(self.diretorio_base):
@@ -59,15 +38,7 @@ class DataExtractor:
             pass
     
     def extrair_html_pagina(self, navegador):
-        """
-        Extrai o HTML completo da página atual usando Selenium
-        
-        Args:
-            navegador: Instância do WebDriver do Selenium
-        
-        Returns:
-            str: HTML completo da página ou None em caso de erro
-        """
+        # Extrai o HTML completo da página atual usando Selenium
         try:
             # Obtém o HTML completo da página atual
             html_completo = navegador.page_source
@@ -81,15 +52,7 @@ class DataExtractor:
             return None
     
     def analisar_estrutura_tabela(self, html):
-        """
-        Analisa a estrutura HTML para encontrar a tabela de dados
-        
-        Args:
-            html (str): HTML completo da página
-        
-        Returns:
-            BeautifulSoup: Objeto soup com a página analisada ou None
-        """
+        # Analisa a estrutura HTML para encontrar a tabela de dados
         try:
             # Cria objeto BeautifulSoup para análise do HTML
             soup = BeautifulSoup(html, 'html.parser')
@@ -120,15 +83,7 @@ class DataExtractor:
             return None
     
     def extrair_dados_tabela(self, soup):
-        """
-        Extrai os dados específicos (DATA, PARCELA, VALOR DISTRIBUÍDO) da tabela
-        
-        Args:
-            soup: Objeto BeautifulSoup com a página analisada
-        
-        Returns:
-            list: Lista de dicionários com os dados extraídos
-        """
+        # Extrai os dados específicos (DATA, PARCELA, VALOR DISTRIBUÍDO) da tabela
         try:
             dados = []
             
@@ -152,15 +107,7 @@ class DataExtractor:
             return []
     
     def _extrair_de_tabela_html(self, tabela):
-        """
-        Extrai dados de uma tabela HTML tradicional
-        
-        Args:
-            tabela: Elemento table do BeautifulSoup
-        
-        Returns:
-            list: Lista de dicionários com dados extraídos
-        """
+        # Extrai dados de uma tabela HTML tradicional
         dados = []
         
         try:
@@ -191,15 +138,7 @@ class DataExtractor:
         return dados
     
     def _extrair_de_divs(self, soup):
-        """
-        Extrai dados de estruturas baseadas em divs
-        
-        Args:
-            soup: Objeto BeautifulSoup
-        
-        Returns:
-            list: Lista de dicionários com dados extraídos
-        """
+        # Extrai dados de estruturas baseadas em divs
         dados = []
         
         try:
@@ -225,15 +164,7 @@ class DataExtractor:
         return dados
     
     def _extrair_por_padroes_texto(self, soup):
-        """
-        Extrai dados procurando por padrões específicos no texto
-        
-        Args:
-            soup: Objeto BeautifulSoup
-        
-        Returns:
-            list: Lista de dicionários com dados extraídos
-        """
+        # Extrai dados procurando por padrões específicos no texto
         dados = []
         
         try:
@@ -256,15 +187,7 @@ class DataExtractor:
         return dados
     
     def _parece_linha_dados(self, texto):
-        """
-        Verifica se uma linha de texto parece conter dados financeiros
-        
-        Args:
-            texto (str): Linha de texto para verificar
-        
-        Returns:
-            bool: True se parece linha de dados, False caso contrário
-        """
+        # Verifica se uma linha de texto parece conter dados financeiros
         if not texto or len(texto) < 10:
             return False
         
@@ -282,15 +205,7 @@ class DataExtractor:
         return sum(indicadores) >= 2
     
     def _extrair_componentes_linha(self, linha):
-        """
-        Extrai os componentes (data, parcela, valor) de uma linha de texto
-        
-        Args:
-            linha (str): Linha de texto para processar
-        
-        Returns:
-            dict: Dicionário com componentes extraídos ou None
-        """
+        # Extrai os componentes (data, parcela, valor) de uma linha de texto
         try:
             import re
             
@@ -331,18 +246,7 @@ class DataExtractor:
             return None
     
     def salvar_dados_excel(self, dados, cidade, data_consulta=None):
-        """
-        Salva os dados extraídos em um arquivo Excel organizado
-        Arquivo salvo em: arquivos_baixados/YYYY-MM-DD/cidade_HHMMSS.xlsx
-        
-        Args:
-            dados (list): Lista de dicionários com os dados
-            cidade (str): Nome da cidade processada
-            data_consulta (str): Data da consulta (opcional)
-        
-        Returns:
-            str: Caminho do arquivo salvo ou None em caso de erro
-        """
+        # Salva os dados extraídos em um arquivo Excel organizado
         try:
             if not dados:
                 return None
@@ -372,14 +276,7 @@ class DataExtractor:
             return None
     
     def _salvar_excel_formatado(self, df, caminho_arquivo, cidade):
-        """
-        Salva o Excel com formatação personalizada incluindo cores e layout
-        
-        Args:
-            df (DataFrame): DataFrame com os dados
-            caminho_arquivo (str): Caminho onde salvar o arquivo
-            cidade (str): Nome da cidade para o cabeçalho
-        """
+        # Salva o Excel com formatação personalizada incluindo cores e layout
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -484,16 +381,7 @@ class DataExtractor:
             df.to_excel(caminho_arquivo, index=False, engine='openpyxl')
     
     def processar_pagina_resultados(self, navegador, cidade):
-        """
-        Processo completo: extrai HTML → analisa → extrai dados → salva Excel
-        
-        Args:
-            navegador: Instância do WebDriver do Selenium
-            cidade (str): Nome da cidade sendo processada
-        
-        Returns:
-            dict: Resultado do processamento com estatísticas
-        """
+        # Processo completo: extrai HTML → analisa → extrai dados → salva Excel
         try:
             # Passo 1: Extrair HTML da página
             html = self.extrair_html_pagina(navegador)

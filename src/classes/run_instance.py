@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Script auxiliar para executar uma instância do bot
-Usado pelo ProcessadorParalelo para execução via subprocess
-"""
+# Script auxiliar para executar uma instância do bot
 
 import sys
 import os
@@ -14,7 +11,7 @@ from src.bots.bot_bbdaf import BotBBDAF
 from src.classes.data_extractor import DataExtractor
 
 def main():
-    """Executa uma instância do bot com os parâmetros fornecidos"""
+    # Executa uma instância do bot com os parâmetros fornecidos
     if len(sys.argv) < 4:
         print("Uso: run_instance.py <arquivo_cidades> <data_inicial> <data_final>")
         return 1

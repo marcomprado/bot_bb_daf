@@ -403,14 +403,6 @@ class PDFToTableConverter:
         Remove PDF files that were successfully processed.
         Keeps failed PDFs for manual review.
         Checks each unique directory containing PDFs and deletes empty month folders.
-
-        Args:
-            results: List of processing results with 'success' and 'pdf_path'
-            output_dir: Directory where Excel was saved
-            excel_path: Path to generated Excel file
-
-        Returns:
-            Dict with deleted PDFs count and folders deleted
         """
         import os
 
@@ -468,12 +460,6 @@ class PDFToTableConverter:
     def _extract_text_from_pdf(self, pdf_path: str) -> str:
         """
         Extract text content from PDF using pymupdf4llm.
-
-        Args:
-            pdf_path: Path to the PDF file
-
-        Returns:
-            Extracted text content
         """
         try:
             # Validate file exists and has reasonable size
@@ -499,12 +485,6 @@ class PDFToTableConverter:
     def _extract_resolution_data(self, pdf_text: str) -> Dict[str, Any]:
         """
         Extract structured resolution data using AI with specific prompt.
-
-        Args:
-            pdf_text: Text content extracted from PDF
-
-        Returns:
-            Dict containing extracted structured data
         """
         try:
             # Create the specialized prompt for resolution extraction
@@ -557,12 +537,6 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
         """
         Call OpenAI API with retry logic.
 
-        Args:
-            messages: List of message dicts with 'role' and 'content'
-            temperature: Temperature for response generation
-
-        Returns:
-            Dict with 'content', 'usage', 'model', 'finish_reason'
         """
         for attempt in range(self.max_retries):
             try:
@@ -611,12 +585,6 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
     def _extract_json_from_response(self, content: str) -> str:
         """
         Extract JSON from AI response, handling markdown code blocks.
-
-        Args:
-            content: Response content from AI
-
-        Returns:
-            Cleaned JSON string
         """
         content = content.strip()
 
@@ -717,12 +685,6 @@ Retorne os dados extraídos no seguinte formato JSON (Se Mantenha extremamente f
     def _validate_resolution_number(self, number: str) -> bool:
         """
         Validate resolution number format (xxxxx/20XX).
-
-        Args:
-            number: Resolution number to validate
-
-        Returns:
-            True if valid format, False otherwise
         """
         if not number or number == "NÃO INFORMADO":
             return True
@@ -732,12 +694,6 @@ Retorne os dados extraídos no seguinte formato JSON (Se Mantenha extremamente f
     def _validate_date(self, date_str: str) -> bool:
         """
         Validate Brazilian date format (DD/MM/AAAA).
-
-        Args:
-            date_str: Date string to validate
-
-        Returns:
-            True if valid format, False otherwise
         """
         if not date_str or date_str == "NÃO INFORMADO":
             return True
@@ -755,12 +711,6 @@ Retorne os dados extraídos no seguinte formato JSON (Se Mantenha extremamente f
     def _categorize_by_budget_allocation(self, dotacao: str) -> str:
         """
         Map budget allocation codes to category abbreviations.
-
-        Args:
-            dotacao: Budget allocation number string
-
-        Returns:
-            Category abbreviation based on mapping table
         """
         if not dotacao or dotacao == "NÃO INFORMADO":
             return "NÃO CLASSIFICADO"

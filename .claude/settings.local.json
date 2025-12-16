@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python3:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(for file in data_extractor.py date_calculator.py report_generator.py run_instance.py file/file_converter.py file/file_manager.py file/path_manager.py methods/auto_execution.py methods/cancel_method.py methods/parallel_processor.py methods/pdf_to_table.py)",
+      "Bash(do python3 /tmp/convert_docstrings.py \"$file\")",
+      "Bash(done)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

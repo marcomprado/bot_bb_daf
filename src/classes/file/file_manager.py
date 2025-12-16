@@ -1,6 +1,4 @@
-"""
-Classe responsável por gerenciar operações com arquivos
-"""
+# Classe responsável por gerenciar operações com arquivos
 
 import os
 import sys
@@ -11,34 +9,16 @@ from src.classes.city_manager import CityManager
 
 
 class FileManager:
-    """
-    Classe responsável por gerenciar operações com arquivos
-    
-    Funcionalidades:
-    - Carregar lista de cidades do arquivo cidades.txt
-    - Validar existência e conteúdo de arquivos
-    - Tratamento de erros relacionados a arquivos
-    """
+    # Classe responsável por gerenciar operações com arquivos
     
     def __init__(self, arquivo_cidades="cidades.txt"):
-        """
-        Inicializa o gerenciador de arquivos
-
-        Args:
-            arquivo_cidades (str): Nome do arquivo que contém a lista de cidades
-                                 Por padrão usa 'cidades.txt' (852 municípios de MG)
-        """
+        # Inicializa o gerenciador de arquivos
         # Armazena nome do arquivo (sem path completo ainda)
         self.arquivo_cidades = arquivo_cidades
         self.city_manager = CityManager()
     
     def verificar_arquivo_existe(self):
-        """
-        Verifica se o arquivo de cidades existe
-
-        Returns:
-            bool: True se o arquivo existe, False caso contrário
-        """
+        # Verifica se o arquivo de cidades existe
         caminho_arquivo = obter_caminho_dados(self.arquivo_cidades)
         exists = os.path.exists(caminho_arquivo)
         if not exists:
@@ -46,12 +26,7 @@ class FileManager:
         return exists
     
     def carregar_cidades(self) -> List[str]:
-        """
-        Carrega a lista de cidades do arquivo usando CityManager
-
-        Returns:
-            list: Lista de cidades (strings) ou lista vazia em caso de erro
-        """
+        # Carrega a lista de cidades do arquivo usando CityManager
         # Delega para CityManager para cidades.txt
         if self.arquivo_cidades == "cidades.txt":
             return self.city_manager.obter_municipios_mg()
@@ -70,26 +45,13 @@ class FileManager:
             return []
     
     def _exibir_cidades_carregadas(self, cidades):
-        """
-        Exibe as cidades carregadas para confirmação visual
-        
-        Args:
-            cidades (list): Lista de cidades carregadas
-        """
+        # Exibe as cidades carregadas para confirmação visual
         print("Cidades que serão processadas:")
         for i, cidade in enumerate(cidades, 1):
             print(f"   {i}. {cidade}")
     
     def validar_lista_cidades(self, cidades):
-        """
-        Valida se a lista de cidades não está vazia
-        
-        Args:
-            cidades (list): Lista de cidades para validar
-        
-        Returns:
-            bool: True se a lista é válida, False caso contrário
-        """
+        # Valida se a lista de cidades não está vazia
         if not cidades:
             print("Nenhuma cidade encontrada para processar.")
             return False

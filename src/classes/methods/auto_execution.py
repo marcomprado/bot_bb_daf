@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Sistema de Execução Automática de Scripts
-Gerencia a execução agendada dos scripts BB DAF, FNDE e Betha
-"""
+# Sistema de Execução Automática de Scripts
 
 import os
 import sys
@@ -36,13 +33,10 @@ from src.classes.methods.parallel_processor import ProcessadorParalelo
 
 
 class AutomaticExecutor(BotBase):
-    """
-    Classe responsável pela execução automática dos scripts
-    conforme configuração definida pelo usuário
-    """
+    # Classe responsável pela execução automática dos scripts
 
     def __init__(self):
-        """Inicializa o executor automático"""
+        # Inicializa o executor automático
         super().__init__()
 
         # Gerenciadores
@@ -74,12 +68,7 @@ class AutomaticExecutor(BotBase):
         self.current_bots = []
 
     def _load_execution_config(self) -> Dict:
-        """
-        Carrega as configurações de execução automática do user_config.json
-
-        Returns:
-            Dict com configurações de execução ou dict vazio se não houver
-        """
+        # Carrega as configurações de execução automática do user_config.json
         self._config_loading = True
 
         # Apenas carrega configuração salva, sem defaults
@@ -105,13 +94,7 @@ class AutomaticExecutor(BotBase):
 
 
     def save_execution_config(self, config: Dict):
-        """
-        Atualiza as configurações de execução automática NA MEMÓRIA
-        NÃO salva em arquivo - isso é responsabilidade da UI
-
-        Args:
-            config: Configurações a atualizar
-        """
+        # Atualiza as configurações de execução automática NA MEMÓRIA
         # Evita salvamento durante carregamento
         if self._config_loading:
             return
@@ -154,16 +137,14 @@ class AutomaticExecutor(BotBase):
                 self._restart_timer.start()
 
     def _delayed_restart(self):
-        """
-        Reinicia o monitoramento após delay (debounce)
-        """
+        # Reinicia o monitoramento após delay (debounce)
         self._restart_pending = False
         self._restart_timer = None
         if self.exec_config.get('enabled', False):
             self.restart_monitoring()
 
     def start_monitoring(self):
-        """Inicia o monitoramento para execução automática"""
+        # Inicia o monitoramento para execução automática
         if not self.exec_config.get('enabled', False):
             print("⚠ Execução automática está desabilitada")
             return False
@@ -192,7 +173,7 @@ class AutomaticExecutor(BotBase):
         return True
 
     def stop_monitoring(self):
-        """Para o monitoramento de execução automática"""
+        # Para o monitoramento de execução automática
         if not self.monitoring_active:
             return
 
@@ -205,7 +186,7 @@ class AutomaticExecutor(BotBase):
         print("✓ Monitoramento de execução automática parado")
 
     def restart_monitoring(self):
-        """Reinicia o monitoramento com as novas configurações"""
+        # Reinicia o monitoramento com as novas configurações
         # Só reinicia se realmente estiver monitorando
         if self.monitoring_active:
             self.stop_monitoring()
@@ -216,7 +197,7 @@ class AutomaticExecutor(BotBase):
             self.start_monitoring()
 
     def _monitoring_loop(self):
-        """Loop principal de monitoramento"""
+        # Loop principal de monitoramento
         while self.monitoring_active:
             try:
                 # Verifica se deve executar agora
@@ -231,12 +212,7 @@ class AutomaticExecutor(BotBase):
                 time.sleep(60)  # Aguarda mais tempo em caso de erro
 
     def _should_execute_now(self) -> bool:
-        """
-        Verifica se é hora de executar os scripts
-
-        Returns:
-            True se deve executar agora
-        """
+        # Verifica se é hora de executar os scripts
         if self.is_executing:
             return False
 
@@ -309,7 +285,7 @@ class AutomaticExecutor(BotBase):
         return False
 
     def _calculate_next_execution(self):
-        """Calcula a próxima execução agendada"""
+        # Calcula a próxima execução agendada
         if not self.exec_config.get('enabled', False):
             self.next_execution_time = None
             return
@@ -359,7 +335,7 @@ class AutomaticExecutor(BotBase):
             self.next_execution_time = None
 
     def _execute_scheduled_scripts(self):
-        """Executa os scripts agendados"""
+        # Executa os scripts agendados
         self.is_executing = True
         current_time = datetime.now()
         self.last_execution_date = current_time
@@ -409,12 +385,7 @@ class AutomaticExecutor(BotBase):
                 print(f"\n⏰ Próxima execução: {self.next_execution_time.strftime('%d/%m/%Y %H:%M')}")
 
     def _execute_bbdaf(self, mode: str):
-        """
-        Executa o bot BB DAF com parâmetros padrão
-
-        Args:
-            mode: Modo de execução (Individual ou Paralela)
-        """
+        # Executa o bot BB DAF com parâmetros padrão
         try:
             # Obtém datas padrão (últimos 30 dias)
             data_final = datetime.now()
@@ -466,12 +437,7 @@ class AutomaticExecutor(BotBase):
             print(f"  ✗ Erro ao executar BB DAF: {e}")
 
     def _execute_fnde(self, mode: str):
-        """
-        Executa o bot FNDE para todas as cidades
-
-        Args:
-            mode: Modo de execução (Individual ou Paralela)
-        """
+        # Executa o bot FNDE para todas as cidades
         try:
             # Parâmetros
             ano = datetime.now().year
@@ -548,12 +514,7 @@ class AutomaticExecutor(BotBase):
             print(f"  ✗ Erro ao executar FNDE: {e}")
 
     def _execute_betha(self, mode: str):
-        """
-        Executa o bot Betha com parâmetros padrão
-
-        Args:
-            mode: Modo de execução
-        """
+        # Executa o bot Betha com parâmetros padrão
         try:
             # Carrega configurações das cidades (recurso empacotado)
             config_path = obter_caminho_recurso("src/bots/betha/city_betha.json")
@@ -618,12 +579,7 @@ class AutomaticExecutor(BotBase):
             print(f"  ✗ Erro ao executar Betha: {e}")
 
     def _execute_consfns(self, mode: str):
-        """
-        Executa o bot Consulta FNS para todos os municípios
-
-        Args:
-            mode: Modo de execução (Individual ou Paralela)
-        """
+        # Executa o bot Consulta FNS para todos os municípios
         try:
             # Carrega TODAS as cidades para execução automática
             city_manager = CityManager()
@@ -690,12 +646,7 @@ class AutomaticExecutor(BotBase):
             print(f"  ✗ Erro ao executar Consulta FNS: {e}")
 
     def cancelar(self, forcado=False):
-        """
-        Cancela a execução automática em andamento
-
-        Args:
-            forcado: Se True, força cancelamento
-        """
+        # Cancela a execução automática em andamento
         super().cancelar(forcado)
 
         # Cancela timer de restart se existir
@@ -717,12 +668,7 @@ class AutomaticExecutor(BotBase):
         print("✓ Execução automática cancelada")
 
     def get_status(self) -> Dict:
-        """
-        Obtém o status atual do executor automático
-
-        Returns:
-            Dict com informações de status
-        """
+        # Obtém o status atual do executor automático
         return {
             'enabled': self.exec_config.get('enabled', False),
             'monitoring_active': self.monitoring_active,
@@ -740,12 +686,7 @@ class AutomaticExecutor(BotBase):
 _automatic_executor_instance = None
 
 def get_automatic_executor() -> AutomaticExecutor:
-    """
-    Obtém a instância singleton do executor automático
-
-    Returns:
-        AutomaticExecutor: Instância única do executor
-    """
+    # Obtém a instância singleton do executor automático
     global _automatic_executor_instance
 
     if _automatic_executor_instance is None:
@@ -755,35 +696,25 @@ def get_automatic_executor() -> AutomaticExecutor:
 
 
 def start_automatic_execution():
-    """Inicia o sistema de execução automática"""
+    # Inicia o sistema de execução automática
     executor = get_automatic_executor()
     return executor.start_monitoring()
 
 
 def stop_automatic_execution():
-    """Para o sistema de execução automática"""
+    # Para o sistema de execução automática
     executor = get_automatic_executor()
     executor.stop_monitoring()
 
 
 def update_execution_config(config: Dict):
-    """
-    Atualiza as configurações de execução automática
-
-    Args:
-        config: Novas configurações
-    """
+    # Atualiza as configurações de execução automática
     executor = get_automatic_executor()
     executor.save_execution_config(config)
 
 
 def get_execution_status() -> Dict:
-    """
-    Obtém o status da execução automática
-
-    Returns:
-        Dict com status atual
-    """
+    # Obtém o status da execução automática
     executor = get_automatic_executor()
     return executor.get_status()
 

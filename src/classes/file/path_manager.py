@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Gerenciador de Caminhos e Arquivos
-Centraliza toda a lógica de resolução de caminhos e manipulação de arquivos
-"""
+# Gerenciador de Caminhos e Arquivos
 
 import os
 import sys
@@ -10,16 +7,7 @@ import platform
 
 
 def obter_caminho_recurso(nome_arquivo):
-    """
-    Obtém o caminho correto para um arquivo de recurso
-    Funciona tanto em desenvolvimento quanto em executável empacotado
-
-    Args:
-        nome_arquivo (str): Nome do arquivo de recurso
-
-    Returns:
-        str: Caminho completo para o arquivo
-    """
+    # Obtém o caminho correto para um arquivo de recurso
     try:
         # Se estamos em um executável PyInstaller
         if hasattr(sys, '_MEIPASS'):
@@ -36,7 +24,7 @@ def obter_caminho_recurso(nome_arquivo):
 
 
 def obter_diretorio_config():
-    """Obtém o diretório de configuração da aplicação"""
+    # Obtém o diretório de configuração da aplicação
     if hasattr(sys, '_MEIPASS'):
         if platform.system() == "Darwin":
             config_dir = os.path.expanduser("~/Library/Application Support/Sistema_FVN")
@@ -54,21 +42,7 @@ def obter_diretorio_config():
 
 
 def obter_caminho_dados(nome_arquivo):
-    """
-    Obtém o caminho correto para arquivos de dados
-
-    Arquivos de sistema (cidades.txt) ficam no diretório de configuração.
-    Arquivos de download ficam no diretório escolhido pelo usuário.
-
-    Args:
-        nome_arquivo (str): Nome do arquivo de dados
-
-    Returns:
-        str: Caminho completo para o arquivo
-
-    Raises:
-        ValueError: Se diretório de download não foi configurado
-    """
+    # Obtém o caminho correto para arquivos de dados
     # Arquivos de sistema ficam no diretório de configuração
     arquivos_sistema = ['cidades.txt']
 
@@ -101,7 +75,7 @@ def obter_caminho_dados(nome_arquivo):
 
 
 def copiar_arquivo_cidades_se_necessario():
-    """Copia cidades.txt para o diretório de configuração (apenas em executáveis)"""
+    # Copia cidades.txt para o diretório de configuração (apenas em executáveis)
     try:
         if hasattr(sys, '_MEIPASS'):
             arquivo_origem = obter_caminho_recurso("cidades.txt")
