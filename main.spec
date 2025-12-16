@@ -125,6 +125,23 @@ hiddenimports += [
     'src.classes.methods.pdf_to_table',
 ]
 
+# Processa .env para garantir UTF-8 sem BOM
+env_source = os.path.join(base_dir, 'src', 'config', '.env')
+env_temp = os.path.join(base_dir, 'src', 'config', '.env.tmp')
+
+if os.path.exists(env_source):
+    # Lê o .env removendo BOM se existir
+    with open(env_source, 'r', encoding='utf-8-sig') as f:
+        env_content = f.read()
+
+    # Salva sem BOM
+    with open(env_temp, 'w', encoding='utf-8') as f:
+        f.write(env_content)
+
+    # Substitui o original temporariamente
+    os.replace(env_temp, env_source)
+    print("✓ .env processado: UTF-8 sem BOM garantido")
+
 # Adiciona arquivos de dados
 datas += [
     ('cidades.txt', '.'),  # Arquivo de cidades
@@ -133,7 +150,7 @@ datas += [
     ('src/assets/app_icon.ico', 'src/assets'),  # Ícone principal
     ('src/assets/*.png', 'src/assets'),  # Imagens PNG
     ('src/assets/*.svg', 'src/assets'),  # Imagens SVG
-    ('src/config/.env', 'src/config'),  # Configuração API keys para pdf_to_table
+    ('src/config/.env', 'src/config'),  # Configuração API keys (processado sem BOM)
     # Adiciona toda a estrutura src
     ('src/view/*.py', 'src/view'),
     ('src/view/modules/*.py', 'src/view/modules'),
