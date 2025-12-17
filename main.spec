@@ -80,6 +80,7 @@ hiddenimports += [
     'src.view.gui3',
     'src.view.gui4',
     'src.view.gui5',
+    'src.view.gui7',
     'src.view.view_config',
     'src.view.modules',
     'src.view.modules.buttons',
@@ -95,6 +96,7 @@ hiddenimports += [
     'src.bots.bot_betha',
     'src.bots.bot_cons_fns',
     'src.bots.bot_portal_saude',
+    'src.bots.bot_mds',
     'src.bots.betha',
     'src.bots.betha.bot_ribeirao',
 ]
