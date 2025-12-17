@@ -69,7 +69,6 @@ class GUI4:
         # Define valor padrão do modo de execução
         self.modo_var.set("Individual")
 
-
     def _obter_opcoes_municipios(self):
         """Retorna lista de opções para o dropdown de municípios"""
         opcoes = ["Todos os Municípios"]

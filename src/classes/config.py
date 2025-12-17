@@ -108,6 +108,46 @@ CONSFNS_CONFIG = {
     'prefixo_arquivo': 'CONSFNS',
 }
 
+# Configurações do sistema MDS (Ministério do Desenvolvimento Social)
+MDS_CONFIG = {
+    # URLs do sistema MDS (duas URLs operando simultaneamente)
+    'url_parcelas': 'https://aplicacoes.mds.gov.br/suaswebcons/restrito/execute.jsf?b=*dpotvmubsQbsdfmbtQbhbtNC&event=*fyjcjs',
+    'url_saldo': 'https://aplicacoes.mds.gov.br/suaswebcons/restrito/execute.jsf?b=*tbmepQbsdfmbtQbhbtNC&event=*fyjcjs',
+
+    # Parâmetros padrão
+    'uf_padrao': 'MG',
+    'esfera_padrao': 'M',  # MUNICIPAL (usado no Saldo por Conta)
+
+    # Timeout para elementos MDS (em segundos)
+    'timeout_selenium': 8,
+    'max_tentativas_espera': 30,  # 30 tentativas de 1 segundo = 30 segundos total
+    'max_retries': 3,  # Tentativas por município em caso de falha
+    'timeout_aguarda_download': 3,  # Segundos após clicar gerar CSV
+    'timeout_renomear_arquivo': 10,  # Segundos aguardando arquivo aparecer
+
+    # Pausas específicas para MDS (em segundos)
+    'pausa_aguarda_download': 3.0,
+    'pausa_tentativa_espera': 1.0,
+
+    # Diretórios específicos
+    'diretorio_saida': 'mds',
+    'subdiretorios_finais': ['parcela', 'saldo'],
+    'prefixo_relatorio': 'RELATORIO_MDS',
+
+    # Formato de nome de arquivo (sem sufixo - a pasta já identifica)
+    'formato_arquivo': '{municipio}.csv',
+}
+
+
+
+
+
+
+
+
+
+
+
 # Seletores para elementos FNDE
 SELETORES_FNDE = {
     # Formulário principal
@@ -139,6 +179,28 @@ SELETORES_CONSFNS = {
     'corpo_pagina': 'body',
     'conteudo_resultados': '.ng-scope, table, .resultado',
     'loading_indicator': '.loading, .carregando, .spinner',
+}
+
+# Seletores para elementos MDS - Parcelas Pagas
+SELETORES_MDS_PARCELAS = {
+    # Formulário Parcelas Pagas (6 passos)
+    'select_ano': 'form:ano',  # ID
+    'select_uf': 'form:uf',  # ID
+    'select_municipio': 'form:municipio',  # ID
+    'botao_pesquisar': 'form:pesquisar',  # ID
+    'botao_gerar_csv': "//input[@type='submit' and @value='Gerar Relatório CSV']",  # XPATH
+}
+
+# Seletores para elementos MDS - Saldo por Conta
+SELETORES_MDS_SALDO = {
+    # Formulário Saldo por Conta (8 passos)
+    'select_ano': 'form:ano',  # ID
+    'select_uf': 'form:uf',  # ID
+    'select_mes': 'form:mes',  # ID
+    'select_esfera': 'form:esferaAdministrativa',  # ID
+    'select_municipio': 'form:municipio',  # ID
+    'botao_pesquisar': 'form:pesquisar',  # ID
+    'botao_gerar_csv': "//input[@type='submit' and @value='Gerar Relatório CSV']",  # XPATH
 }
 
 # Configuracoes do Portal Saude MG
@@ -204,4 +266,13 @@ MENSAGENS = {
     'consfns_todos_municipios': ' Processando todos os municípios de MG - ConsFNS',
     'consfns_aguardando': ' Aguardando carregamento da consulta...',
     'consfns_download': ' Gerando planilha para download...',
+
+    # Mensagens específicas MDS
+    'inicio_mds': ' SISTEMA DE AUTOMAÇÃO WEB - MDS',
+    'mds_processado': ' Município processado com sucesso - MDS',
+    'mds_erro': ' Erro ao processar município - MDS',
+    'mds_todos_municipios': ' Processando todos os municípios de MG - MDS',
+    'mds_parcelas': ' [PARCELAS] Processando município',
+    'mds_saldo': ' [SALDO] Processando município',
+    'mds_sincronizado': ' Processamento sincronizado (Parcelas + Saldo)',
 } 

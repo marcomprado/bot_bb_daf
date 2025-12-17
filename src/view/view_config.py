@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Interface Gráfica para Configurações do Sistema
-Permite ao usuário configurar preferências como diretório de download
+Interface Gráfica para a tela "Configurações do Sistema"
 """
 
 import sys
@@ -34,9 +33,6 @@ class ConfigGUI:
     def __init__(self, parent_frame):
         """
         Inicializa a GUI de configurações
-
-        Args:
-            parent_frame: Frame pai onde a GUI será renderizada
         """
         self.parent_frame = parent_frame
         self.config_manager = ConfigManager()
