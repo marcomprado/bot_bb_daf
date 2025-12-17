@@ -31,8 +31,9 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 # ============================================================================
 
 # AI Provider Settings
-AI_PROVIDER = 'openrouter'  # Options: 'openai', 'openrouter', 'custom'
+AI_PROVIDER = 'google-ai-studio'  # Options: 'openai', 'openrouter', 'google-ai-studio', 'anthropic', None (para allow fallbacks)
 AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
+# AI_ALLOW_FALLBACKS é determinado automaticamente: True se AI_PROVIDER é None, False caso contrário
 
 # Model Selection - Change this to switch models
 AI_MODEL = 'google/gemini-2.5-flash-lite-preview-09-2025'  # Default model
@@ -138,17 +139,24 @@ class PDFToTableConverter:
 
         try:
             # Configure client based on provider
-            if AI_PROVIDER == 'openrouter':
+            if AI_PROVIDER == 'openrouter' or (AI_BASE_URL and 'openrouter' in AI_BASE_URL.lower()):
+                # OpenRouter com headers de atribuição
                 self.client = OpenAI(
                     api_key=self.api_key,
-                    base_url=AI_BASE_URL
+                    base_url=AI_BASE_URL,
+                    default_headers={
+                        "HTTP-Referer": "https://github.com/marcomprado/bot_bb_daf",
+                        "X-Title": "BOT bb"
+                    }
                 )
             elif AI_BASE_URL:
+                # Outro provider personalizado
                 self.client = OpenAI(
                     api_key=self.api_key,
                     base_url=AI_BASE_URL
                 )
             else:
+                # OpenAI direto
                 self.client = OpenAI(api_key=self.api_key)
 
             self.enabled = True
@@ -157,6 +165,38 @@ class PDFToTableConverter:
             print(f"✗ Erro ao inicializar IA: {e}")
             self.client = None
             self.enabled = False
+
+    def _get_provider_config(self) -> Dict[str, Any]:
+        """
+        Retorna configuração de provider para OpenRouter via extra_body.
+        """
+        # Se não estiver usando OpenRouter, não precisa de provider config
+        if not AI_BASE_URL or 'openrouter' not in AI_BASE_URL.lower():
+            return {}
+
+        # Se AI_PROVIDER é None, permite fallbacks (OpenRouter escolhe)
+        if AI_PROVIDER is None:
+            return {
+                "extra_body": {
+                    "provider": {"allow_fallbacks": True}
+                }
+            }
+
+        # Se AI_PROVIDER é 'openai', não precisa de provider config
+        if AI_PROVIDER == 'openai':
+            return {}
+
+        # Configuração de provider para OpenRouter com provider específico
+        provider_config = {
+            "order": [AI_PROVIDER],  # Lista de providers em ordem de preferência
+            "allow_fallbacks": False  # Não permite outros providers
+        }
+
+        return {
+            "extra_body": {
+                "provider": provider_config
+            }
+        }
 
     def process_file_list(self, pdf_files: List[Dict], output_dir: str) -> Dict:
         """
@@ -544,12 +584,20 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
                 if not self.client:
                     raise ValueError("OpenAI client not initialized")
 
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=AI_MAX_TOKENS
-                )
+                # Preparar configuração base
+                request_params = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": AI_MAX_TOKENS
+                }
+
+                # Adicionar provider config se necessário (para OpenRouter)
+                provider_config = self._get_provider_config()
+                request_params.update(provider_config)
+
+                # Fazer requisição com ou sem provider config
+                response = self.client.chat.completions.create(**request_params)
 
                 result = {
                     'content': response.choices[0].message.content,
@@ -633,7 +681,7 @@ DADOS A EXTRAIR:
 4. DATA INICIAL
 • Formato esperado: "DD/MM/AAAA"
 • Localização: Data que aparece logo após o número da resolução
-• Exemplo: "15/03/2023"
+• Retornar no formato esperado "DD/MM/AAAA". -- Exemplo: "15/03/2023"
 
 5. PRAZO EXECUÇÃO
 • Descrição: Data estimada mencionada no texto para execução/vigência
@@ -646,15 +694,13 @@ DADOS A EXTRAIR:
 6. VEDADO A UTILIZAÇÃO
 • Descrição: Parágrafo ou trecho que detalha restrições de uso de recursos/verbas
 • Palavras-chave: "vedado", "proibido", "não poderá ser utilizado", "fica vedada"
-• Retornar: Texto completo do parágrafo que contém as vedações
+• Retornar: Texto completo do parágrafo que contém as vedações.
 
 7. DOTAÇÃO ORÇAMENTÁRIA
 • Descrição: Conjunto numérico que segue imediatamente após a expressão "dotação orçamentária"
 • Formato: Sequência de números, pontos e traços (ex: "12.345.67.89.123")
 • Atenção especial: Procurar pelos códigos 301, 302, 303, 304, 305, 306, 122, 242 dentro da dotação
-• Retornar: Toda a sequência numérica da dotação orçamentária completa
-
-NOTA IMPORTANTE: Os campos "link" e "abreviacao" são adicionados automaticamente pelo sistema após a extração.
+• Retornar: Toda a sequência numérica da dotação orçamentária completa.
 
 OBSERVAÇÕES IMPORTANTES:
 • Mantenha fidelidade absoluta ao texto original
