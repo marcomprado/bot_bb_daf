@@ -35,13 +35,14 @@ AI_PROVIDER = 'openrouter'  # Options: 'openai', 'openrouter', 'custom'
 AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
 
 # Model Selection - Change this to switch models
-AI_MODEL = 'nvidia/nemotron-3-nano-30b-a3b:free'  # Default model
+AI_MODEL = 'google/gemini-2.5-flash-lite-preview-09-2025'  # Default model
 '''
     Models for OpenRouter:
-        arcee-ai/trinity-mini
+    
         arcee-ai/trinity-mini:free       # Exceeded max tokens frequently
         nvidia/nemotron-nano-9b-v2:free
-        nvidia/nemotron-3-nano-30b-a3b:free 
+        nvidia/nemotron-3-nano-30b-a3b:free
+        google/gemini-2.5-flash-lite-preview-09-2025 
 
 '''
 # AI Parameters
@@ -625,9 +626,9 @@ DADOS A EXTRAIR:
 • Palavras-chave: "Altera a Resolução", "modifica", "altera", "revoga", "em substituição", "complementa"
 
 3. OBJETO
-• Descrição: Extrair integralmente o primeiro parágrafo da resolução
-• Características: Geralmente começa após o número e data, descreve o propósito da resolução.
-• Retornar: Texto completo do primeiro parágrafo, sem alterações
+• Descrição: Extrair integralmente do primeiro parágrafo da resolução
+• Características: Geralmente começa após o número e data, é a descrição do propósito da resolução.
+• Retornar: Texto completamente baseado no primeiro parágrafo, sem omissões de ideias. 
 
 4. DATA INICIAL
 • Formato esperado: "DD/MM/AAAA"
