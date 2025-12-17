@@ -100,8 +100,8 @@ class BotMDS(BotBase):
 
             # Navegador 1: Parcelas Pagas (baixa direto em mds/2025/parcela/)
             opcoes_parcelas = webdriver.ChromeOptions()
-            #opcoes_parcelas.add_argument("--headless=new")
-            #opcoes_parcelas.add_argument("--disable-gpu")
+            opcoes_parcelas.add_argument("--headless=new")
+            opcoes_parcelas.add_argument("--disable-gpu")
             opcoes_parcelas.add_argument("--window-size=1920,1080")
 
             driver_parcelas = ChromeDriverSimples(download_dir=self.dir_parcela)
@@ -110,8 +110,8 @@ class BotMDS(BotBase):
 
             # Navegador 2: Saldo por Conta (baixa direto em mds/2025/saldo/)
             opcoes_saldo = webdriver.ChromeOptions()
-            #opcoes_saldo.add_argument("--headless=new")
-            #opcoes_saldo.add_argument("--disable-gpu")
+            opcoes_saldo.add_argument("--headless=new")
+            opcoes_saldo.add_argument("--disable-gpu")
             opcoes_saldo.add_argument("--window-size=1920,1080")
 
             driver_saldo = ChromeDriverSimples(download_dir=self.dir_saldo)
