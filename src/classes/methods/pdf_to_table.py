@@ -31,7 +31,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 # ============================================================================
 
 # AI Provider Settings
-AI_PROVIDER = 'google-ai-studio'  # Options: 'openai', 'openrouter', 'google-ai-studio', 'anthropic', None (para allow fallbacks)
+AI_PROVIDER = 'google-ai-studio'  # Options: 'openai', 'openrouter', 'google-ai-studio', 'nvidia/bf16', None , 'azure'
 AI_BASE_URL = 'https://openrouter.ai/api/v1'  # Provider endpoint
 # AI_ALLOW_FALLBACKS é determinado automaticamente: True se AI_PROVIDER é None, False caso contrário
 
@@ -43,7 +43,8 @@ AI_MODEL = 'google/gemini-2.5-flash-lite-preview-09-2025'  # Default model
         arcee-ai/trinity-mini:free       # Exceeded max tokens frequently
         nvidia/nemotron-nano-9b-v2:free
         nvidia/nemotron-3-nano-30b-a3b:free
-        google/gemini-2.5-flash-lite-preview-09-2025 
+        google/gemini-2.5-flash-lite-preview-09-2025
+        openai/gpt-5-nano
 
 '''
 # AI Parameters
@@ -656,9 +657,9 @@ Proceda com a análise e retorne os dados no formato JSON especificado."""
 INSTRUÇÕES GERAIS:
 • Analise cuidadosamente todo o conteúdo do PDF fornecido
 • Extraia apenas as informações solicitadas
-• Seja preciso e literal nas extrações
+• Seja preciso nas extrações, mantendo a fidelidade ao texto original
 • Se alguma informação não estiver presente, retorne "NÃO INFORMADO"
-• Mantenha a formatação original dos dados extraídos
+• !!! Se atente para que a resposta final esteja estritamente no formato JSON especificado e nenhum texto adicional seja incluído.
 
 DADOS A EXTRAIR:
 
@@ -670,13 +671,13 @@ DADOS A EXTRAIR:
 
 2. RELACIONADA
 • Descrição: Verificar se a resolução cita, modifica, altera ou revoga outra resolução
+• Palavras-chave: "Altera a Resolução", "modifica", "altera", "revoga", "em substituição", "complementa" .
 • Retornar: O número da resolução relacionada (mesmo formato xxxxx/20XX) ou "NÃO INFORMADO"
-• Palavras-chave: "Altera a Resolução", "modifica", "altera", "revoga", "em substituição", "complementa"
 
 3. OBJETO
 • Descrição: Extrair integralmente do primeiro parágrafo da resolução
 • Características: Geralmente começa após o número e data, é a descrição do propósito da resolução.
-• Retornar: Texto completamente baseado no primeiro parágrafo, sem omissões de ideias. 
+• Retornar: Texto baseado no primeiro parágrafo, sem omissões de ideias, mas resumido.
 
 4. DATA INICIAL
 • Formato esperado: "DD/MM/AAAA"
@@ -711,16 +712,16 @@ OBSERVAÇÕES IMPORTANTES:
 
 Proceda com a análise do PDF fornecido e retorne os dados no formato especificado.
 
-FORMATO DE RESPOSTA:
-Retorne os dados extraídos no seguinte formato JSON (Se Mantenha extremamente fiel a esse formato.) :
+!!! FORMATO DE RESPOSTA FINAL:
+Retorne os dados extraídos dentro do seguinte formato JSON (Se Mantenha EXTREMAMENTE fiel a esse formato) :
 {
-  "numero_resolucao": "",
-  "relacionada": "",
-  "objeto": "",
-  "data_inicial": "",
-  "prazo_execucao": "",
-  "vedado_utilizacao": "",
-  "dotacao_orcamentaria": ""
+  "numero_resolucao": "Resposta_aqui",
+  "relacionada": "Resposta_aqui",
+  "objeto": "Resposta_aqui",
+  "data_inicial": "Resposta_aqui",
+  "prazo_execucao": "Resposta_aqui",
+  "vedado_utilizacao": "Resposta_aqui",
+  "dotacao_orcamentaria": "Resposta_aqui"
 }
 
 """
