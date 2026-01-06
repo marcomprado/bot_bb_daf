@@ -560,7 +560,15 @@ def main():
         sistema.executar()
         return 0
     except Exception as e:
-        print(f"Erro ao inicializar sistema: {e}")
+        print(f"\n{'='*60}")
+        print("ERRO AO INICIALIZAR SISTEMA")
+        print(f"{'='*60}")
+        print(f"Erro: {e}")
+        print(f"\nDetalhes completos do erro:")
+        import traceback
+        traceback.print_exc()
+        print(f"\n{'='*60}")
+        input("\nPressione Enter para fechar...")
         return 1
 
 

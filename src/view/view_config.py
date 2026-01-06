@@ -154,7 +154,7 @@ class ConfigGUI:
         current_dir = self.config_manager.get_download_directory()
         self.dir_entry.configure(state="normal")
         self.dir_entry.delete(0, "end")
-        self.dir_entry.insert(0, current_dir)
+        self.dir_entry.insert(0, current_dir if current_dir else "")
         self.dir_entry.configure(state="readonly")
         
         # Botão para selecionar diretório
@@ -808,7 +808,7 @@ class ConfigGUI:
             current_dir = self.config_manager.get_download_directory()
             self.dir_entry.configure(state="normal")
             self.dir_entry.delete(0, "end")
-            self.dir_entry.insert(0, current_dir)
+            self.dir_entry.insert(0, current_dir if current_dir else "")
             self.dir_entry.configure(state="readonly")
             
             # Mostra mensagem
@@ -826,7 +826,7 @@ class ConfigGUI:
         current_dir = self.config_manager.get_download_directory()
         self.dir_entry.configure(state="normal")
         self.dir_entry.delete(0, "end")
-        self.dir_entry.insert(0, current_dir)
+        self.dir_entry.insert(0, current_dir if current_dir else "")
         self.dir_entry.configure(state="readonly")
 
         # Carrega configuração da execução automática do user_config.json
