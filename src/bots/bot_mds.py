@@ -110,7 +110,7 @@ class BotMDS(BotBase):
 
             # Navegador 2: Saldo por Conta (baixa direto em mds/2025/saldo/)
             opcoes_saldo = webdriver.ChromeOptions()
-            opcoes_saldo.add_argument("--headless=new")
+            #opcoes_saldo.add_argument("--headless=new")
             opcoes_saldo.add_argument("--disable-gpu")
             opcoes_saldo.add_argument("--window-size=1920,1080")
 
@@ -164,6 +164,26 @@ class BotMDS(BotBase):
 
         return False
 
+    def verificar_resultado_vazio(self, navegador, wait) -> bool:
+        # Verifica se a pesquisa retornou "Nenhum registro encontrado"
+        try:
+            # Tenta encontrar a mensagem de "sem registros" com timeout curto (2 segundos)
+            mensagem = WebDriverWait(navegador, 2).until(
+                EC.presence_of_element_located((By.XPATH, "//span[@id='mensagens']//div[@class='info']"))
+            )
+            texto = mensagem.text.strip().lower()
+
+            # Verifica se contém "nenhum registro" ou similar
+            if "nenhum registro" in texto or "sem registros" in texto or "not found" in texto:
+                print(f"  ⓘ Nenhum registro encontrado para este município")
+                return True
+
+        except:
+            # Se não encontrou a mensagem em 2 segundos, assume que há resultados
+            pass
+
+        return False
+
     def processar_parcelas(self, municipio: str, ano: str, max_retries=None) -> Dict:
         # Processa URL de Parcelas Pagas: seleciona ano, UF=MG, município, pesquisar, gerar CSV, renomear (config.py)
         if self._cancelado:
@@ -189,6 +209,14 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao selecionar ano")
 
+                # Aguarda UF dropdown carregar após seleção de ano
+                try:
+                    self.wait_parcelas.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_PARCELAS['select_uf']))
+                    )
+                except:
+                    pass
+
                 # Passo 2: Selecionar UF = MG (config.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
@@ -198,6 +226,14 @@ class BotMDS(BotBase):
                     lambda el: Select(el).select_by_value(MDS_CONFIG['uf_padrao'])
                 ):
                     raise Exception("Timeout ao selecionar UF")
+
+                # Aguarda Município dropdown carregar após seleção de UF
+                try:
+                    self.wait_parcelas.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_PARCELAS['select_municipio']))
+                    )
+                except:
+                    pass
 
                 # Passo 3: Selecionar município (config.py)
                 if not self.esperar_elemento_disponivel(
@@ -209,6 +245,14 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao selecionar município")
 
+                # Aguarda botão Pesquisar estar disponível após seleção de município
+                try:
+                    self.wait_parcelas.until(
+                        EC.element_to_be_clickable((By.ID, SELETORES_MDS_PARCELAS['botao_pesquisar']))
+                    )
+                except:
+                    pass
+
                 # Passo 4: Clicar pesquisar (config.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
@@ -218,6 +262,17 @@ class BotMDS(BotBase):
                     lambda el: el.click()
                 ):
                     raise Exception("Timeout ao clicar pesquisar")
+
+                # Verificar se retornou registros
+                if self.verificar_resultado_vazio(self.navegador_parcelas, self.wait_parcelas):
+                    print(f"  ⓘ [PARCELAS] Sem dados para {municipio} - continuando")
+                    return {
+                        'sucesso': True,  # Considera sucesso (município processado, sem dados)
+                        'municipio': municipio,
+                        'tipo': 'parcelas',
+                        'arquivo': None,  # Nenhum arquivo gerado
+                        'sem_dados': True  # Flag indicando ausência de dados
+                    }
 
                 # Passo 5: Clicar gerar CSV (config.py)
                 if not self.esperar_elemento_disponivel(
@@ -292,6 +347,14 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao selecionar ano")
 
+                # Aguarda UF dropdown carregar após seleção de ano
+                try:
+                    self.wait_saldo.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_SALDO['select_uf']))
+                    )
+                except:
+                    pass
+
                 # Passo 2: Selecionar UF = MG (config.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
@@ -301,6 +364,14 @@ class BotMDS(BotBase):
                     lambda el: Select(el).select_by_value(MDS_CONFIG['uf_padrao'])
                 ):
                     raise Exception("Timeout ao selecionar UF")
+
+                # Aguarda Mês dropdown carregar após seleção de UF
+                try:
+                    self.wait_saldo.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_SALDO['select_mes']))
+                    )
+                except:
+                    pass
 
                 # Passo 3: Selecionar mês (config.py)
                 if not self.esperar_elemento_disponivel(
@@ -312,6 +383,14 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao selecionar mês")
 
+                # Aguarda Esfera dropdown carregar após seleção de mês
+                try:
+                    self.wait_saldo.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_SALDO['select_esfera']))
+                    )
+                except:
+                    pass
+
                 # Passo 4: Selecionar Esfera = MUNICIPAL (config.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
@@ -321,6 +400,14 @@ class BotMDS(BotBase):
                     lambda el: Select(el).select_by_value(MDS_CONFIG['esfera_padrao'])
                 ):
                     raise Exception("Timeout ao selecionar esfera")
+
+                # Aguarda Município dropdown carregar após seleção de esfera
+                try:
+                    self.wait_saldo.until(
+                        EC.presence_of_element_located((By.ID, SELETORES_MDS_SALDO['select_municipio']))
+                    )
+                except:
+                    pass
 
                 # Passo 5: Selecionar município (config.py)
                 if not self.esperar_elemento_disponivel(
@@ -332,6 +419,14 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao selecionar município")
 
+                # Aguarda botão Pesquisar estar disponível após seleção de município
+                try:
+                    self.wait_saldo.until(
+                        EC.element_to_be_clickable((By.ID, SELETORES_MDS_SALDO['botao_pesquisar']))
+                    )
+                except:
+                    pass
+
                 # Passo 6: Clicar pesquisar (config.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
@@ -341,6 +436,21 @@ class BotMDS(BotBase):
                     lambda el: el.click()
                 ):
                     raise Exception("Timeout ao clicar pesquisar")
+
+                # Aguardar 60 segundos após pesquisar
+                print("  ⏱ [SALDO] Aguardando 60 segundos após pesquisa...")
+                self._sleep_cancelavel(60)
+
+                # Verificar se retornou registros
+                if self.verificar_resultado_vazio(self.navegador_saldo, self.wait_saldo):
+                    print(f"  ⓘ [SALDO] Sem dados para {municipio} - continuando")
+                    return {
+                        'sucesso': True,  # Considera sucesso (município processado, sem dados)
+                        'municipio': municipio,
+                        'tipo': 'saldo',
+                        'arquivo': None,  # Nenhum arquivo gerado
+                        'sem_dados': True  # Flag indicando ausência de dados
+                    }
 
                 # Passo 7: Clicar gerar CSV (config.py)
                 if not self.esperar_elemento_disponivel(

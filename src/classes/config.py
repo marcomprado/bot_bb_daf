@@ -189,6 +189,7 @@ SELETORES_MDS_PARCELAS = {
     'select_municipio': 'form:municipio',  # ID
     'botao_pesquisar': 'form:pesquisar',  # ID
     'botao_gerar_csv': "//input[@type='submit' and @value='Gerar Relatório CSV']",  # XPATH
+    'mensagem_sem_registros': "//span[@id='mensagens']//div[@class='info']",  # XPATH - mensagem de resultado vazio
 }
 
 # Seletores para elementos MDS - Saldo por Conta
@@ -201,6 +202,7 @@ SELETORES_MDS_SALDO = {
     'select_municipio': 'form:municipio',  # ID
     'botao_pesquisar': 'form:pesquisar',  # ID
     'botao_gerar_csv': "//input[@type='submit' and @value='Gerar Relatório CSV']",  # XPATH
+    'mensagem_sem_registros': "//span[@id='mensagens']//div[@class='info']",  # XPATH - mensagem de resultado vazio
 }
 
 # Configuracoes do Portal Saude MG
