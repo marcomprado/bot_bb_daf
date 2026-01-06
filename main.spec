@@ -131,18 +131,6 @@ hiddenimports += [
 env_source = os.path.join(base_dir, 'src', 'config', '.env')
 env_temp = os.path.join(base_dir, 'src', 'config', '.env.tmp')
 
-if os.path.exists(env_source):
-    # Lê o .env removendo BOM se existir
-    with open(env_source, 'r', encoding='utf-8-sig') as f:
-        env_content = f.read()
-
-    # Salva sem BOM
-    with open(env_temp, 'w', encoding='utf-8') as f:
-        f.write(env_content)
-
-    # Substitui o original temporariamente
-    os.replace(env_temp, env_source)
-    print("✓ .env processado: UTF-8 sem BOM garantido")
 
 # Adiciona arquivos de dados
 datas += [
@@ -227,13 +215,12 @@ if sys.platform == 'darwin':
         },
     )
 else:
-    # Windows/Linux: usa onefile mode tradicional
+    # Windows/Linux: usa onedir mode para evitar problemas com antivírus e temp extraction
     exe = EXE(
         pyz,
         a.scripts,
-        a.binaries,
-        a.datas,
-        [],
+        [],  # Sem binaries e datas embutidos para onedir
+        exclude_binaries=True,
         name='Sistema_FVN',
         debug=False,
         bootloader_ignore_signals=False,
@@ -241,11 +228,22 @@ else:
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=False,  # False para ocultar console
+        console=True,   # True para ver erros durante debug (mudar para False após confirmar funcionamento)
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
         icon='src/assets/app_icon.ico',
+    )
+
+    # Cria o bundle para Windows/Linux
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name='Sistema_FVN',
     )

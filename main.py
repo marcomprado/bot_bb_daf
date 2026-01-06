@@ -9,6 +9,7 @@ import os
 import threading
 import platform
 import tkinter as tk
+from tkinter import messagebox
 import customtkinter as ctk
 from typing import Dict, Optional
 
@@ -511,8 +512,8 @@ def main():
         if sys.argv[1] == "--cli":
             # Modo CLI direto
             print("Modo CLI ativado")
-            from bots.bot_bbdaf import BotBBDAF
-            from classes.data_extractor import DataExtractor
+            from src.bots.bot_bbdaf import BotBBDAF
+            from src.classes.data_extractor import DataExtractor
             
             bot = BotBBDAF()
             bot.configurar_extrator_dados(DataExtractor("bbdaf"))
