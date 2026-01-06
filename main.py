@@ -121,12 +121,7 @@ class SistemaFVN:
     def _verificar_diretorio_download(self):
         """Verifica se o diretório de download foi configurado"""
         if not self.config_manager.is_download_directory_configured():
-            messagebox.showwarning(
-                "Configuração Necessária",
-                "Configure o diretório de downloads antes de usar o sistema.\n\n"
-                "A página de configurações será aberta."
-            )
-            self._abrir_configuracoes()
+            self._abrir_configuracoes()  
 
     def _centralizar_janela(self):
         """Centraliza janela na tela"""
