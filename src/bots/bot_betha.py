@@ -26,23 +26,15 @@ from src.classes.methods.cancel_method import BotBase
 class BotBetha(BotBase):
     """
     Classe responsável pela automação do sistema Betha Cloud
-    
-    Funcionalidades:
-    - Login automático no sistema
-    - Navegação para município e PPA específicos
-    - Seleção de exercício
-    - Execução de comandos via teclado
     """
     
     def __init__(self, cidade_config=None, ano=None):
-        """Inicializa o bot Betha
-
-        Args:
+        """
             cidade_config: Dict com 'nome', 'Login' e 'Senha' da cidade
-            ano: Ano para processar (usado para selecionar PPA e exercício)
+            ano: Ano para processar (usado para selecionar exercício)
         """
         super().__init__()  # Inicializa BotBase
-        self.url = "https://contabil.betha.cloud/#/entidades/ZGF0YWJhc2U6NjI4LGVudGl0eToxMTI4"
+        self.url = "https://contabil.betha.cloud"
         self.timeout = 30
         
         # Configuração da cidade
@@ -58,9 +50,6 @@ class BotBetha(BotBase):
         
         # Ano de processamento
         self.ano = ano if ano else datetime.now().year
-        
-        # Calcula o PPA baseado no ano
-        self.ppa_inicio, self.ppa_fim = self._calcular_ppa(self.ano)
     
     def configurar_navegador(self):
         """
@@ -214,34 +203,6 @@ class BotBetha(BotBase):
             print(f"✗ Erro ao selecionar município: {e}")
             return False
     
-    def selecionar_ppa(self):
-        """
-        Seleciona o PPA baseado no ano configurado
-        
-        Returns:
-            bool: True se selecionado com sucesso
-        """
-        try:
-            ppa_texto = f"PPA {self.ppa_inicio} - {self.ppa_fim}"
-            print(f"Selecionando {ppa_texto}...")
-            
-            # Clica no PPA
-            ppa = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH, f"//h3[@class='ng-binding' and text()='{ppa_texto}']"))
-            )
-            ppa.click()
-            time.sleep(0.2)  # Aguarda carregar
-            
-            print(f"✓ {ppa_texto} selecionado")
-            return True
-            
-        except TimeoutException:
-            print(f"✗ Timeout ao selecionar PPA {ppa_texto}")
-            return False
-        except Exception as e:
-            print(f"✗ Erro ao selecionar PPA: {e}")
-            return False
-    
     def selecionar_exercicio(self):
         """
         Seleciona o exercício baseado no ano configurado
@@ -368,25 +329,19 @@ class BotBetha(BotBase):
                 self.fechar_navegador()
                 return False
 
-            # 5. Selecionar PPA
-            if not self._cancelado and not self.selecionar_ppa():
-                print(f"✗ Falha ao selecionar PPA para {nome_relatorio}")
-                self.fechar_navegador()
-                return False
-
-            # 6. Selecionar exercício
+            # 5. Selecionar exercício
             if not self._cancelado and not self.selecionar_exercicio():
                 print(f"✗ Falha ao selecionar exercício para {nome_relatorio}")
                 self.fechar_navegador()
                 return False
 
-            # 7. Pressionar F4
+            # 6. Pressionar F4
             if not self._cancelado and not self.pressionar_f4():
                 print(f"✗ Falha ao pressionar F4 para {nome_relatorio}")
                 self.fechar_navegador()
                 return False
 
-            # 8. Navegar para Relatórios Favoritos
+            # 7. Navegar para Relatórios Favoritos
             if not self._cancelado and not self.navegar_relatorios_favoritos():
                 print(f"✗ Falha ao navegar para Relatórios Favoritos para {nome_relatorio}")
                 self.fechar_navegador()
@@ -399,7 +354,7 @@ class BotBetha(BotBase):
 
             print(f"\n--- Executando {nome_relatorio} ---")
 
-            # 9. Executar o relatório específico
+            # 8. Executar o relatório específico
             # Atualizar args com navegador e wait atuais
             args_atualizados = list(args_relatorio)
             args_atualizados[0] = self.navegador  # Substituir navegador
@@ -412,7 +367,7 @@ class BotBetha(BotBase):
             else:
                 print(f"✗ Falha ao processar {nome_relatorio}")
 
-            # 10. Fechar navegador
+            # 9. Fechar navegador
             self.fechar_navegador()
 
             print("="*50 + "\n")
@@ -492,34 +447,12 @@ class BotBetha(BotBase):
         texto_sem_acentos = ''.join(c for c in texto_normalizado if unicodedata.category(c) != 'Mn')
         return texto_sem_acentos
     
-    def _calcular_ppa(self, ano):
-        """
-        Calcula o período do PPA baseado no ano
-        PPAs são períodos de 4 anos começando em 1998
-        
-        Args:
-            ano: Ano para calcular o PPA
-            
-        Returns:
-            tuple: (ano_inicio, ano_fim) do PPA
-        """
-        # PPAs começam em 1998 e são de 4 em 4 anos
-        # 1998-2001, 2002-2005, 2006-2009, etc.
-        anos_desde_1998 = ano - 1998
-        periodo_ppa = anos_desde_1998 // 4
-        
-        ppa_inicio = 1998 + (periodo_ppa * 4)
-        ppa_fim = ppa_inicio + 3
-        
-        print(f"Ano {ano} pertence ao PPA {ppa_inicio}-{ppa_fim}")
-        return ppa_inicio, ppa_fim
-    
     def _executar_script_cidade(self):
         """
         Executa dinamicamente o script específico para cada cidade
         Procura por arquivo bot_[nome_cidade].py e executa função executar_script_[nome_cidade]
 
-        TODAS as cidades agora usam navegadores individuais.
+        TODAS as cidades usam navegadores individuais.
 
         Returns:
             bool: True se executado com sucesso
@@ -586,6 +519,7 @@ class BotBetha(BotBase):
         # Mapeamentos especiais para cidades com nomes que não seguem padrão simples
         mapeamentos_especiais = {
             'Ribeirão das Neves': ('bot_ribeirao', 'executar_script_ribeirao'),
+            'Congonhas': ('bot_congonhas', 'executar_script_congonhas'),
             # Futuros mapeamentos especiais podem ser adicionados aqui
             # 'São João del Rei': ('bot_sao_joao_del_rei', 'executar_script_sao_joao_del_rei'),
         }
@@ -600,7 +534,6 @@ class BotBetha(BotBase):
         nome_funcao = f"executar_script_{nome_normalizado}"
         return nome_modulo, nome_funcao
 
-    
     def _normalizar_nome_cidade(self, nome_cidade):
         """
         Normaliza o nome da cidade para uso em caminhos de arquivo

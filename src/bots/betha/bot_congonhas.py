@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bot Ribeirao das Neves - Script especifico para o municipio de Ribeirao das Neves
+Bot Congonhas - Script especifico para o municipio de Congonhas
 Contem a logica especifica apos navegar para Relatorios Favoritos
+
+- Baseado em @bot_ribeirao.py
 """
 
 from selenium.webdriver.common.by import By
@@ -25,7 +27,7 @@ class RelatorioProcessamento:
     Classe para gerar relatório detalhado do processamento em arquivo TXT
     """
 
-    def __init__(self, nome_cidade="ribeirao_neves", ano=None):
+    def __init__(self, nome_cidade="congonhas", ano=None):
         """
         Inicializa o relatório de processamento
 
@@ -182,9 +184,9 @@ class RelatorioProcessamento:
         
 #.  Execução principal do script Ribeirão das Neves
 
-def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_neves", cancelado_callback=None):
+def executar_script_congonhas(navegador, wait, ano=None, nome_cidade="congonhas", cancelado_callback=None):
     """
-    Executa o script especifico para Ribeirao das Neves
+    Executa o script especifico para Congonhas
 
     Este script e executado apos chegar em "Relatorios Favoritos"
     e contem a logica especifica para este municipio
@@ -201,7 +203,7 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
     """
     try:
         print("\n" + "="*60)
-        print("SCRIPT RIBEIRAO DAS NEVES")
+        print("SCRIPT CONGONHAS")
         print("="*60)
 
         # Obter configuração da cidade
@@ -355,9 +357,9 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
 
         print("\n" + "="*60)
         if foi_cancelado:
-            print("SCRIPT RIBEIRAO DAS NEVES - CANCELADO")
+            print("SCRIPT CONGONHAS - CANCELADO")
         else:
-            print("SCRIPT RIBEIRAO DAS NEVES CONCLUÍDO")
+            print("SCRIPT CONGONHAS CONCLUÍDO")
         print(f"Total processado: {len(relatorios_processados)}/{len(relatorios)} relatórios")
         print("="*60)
 
@@ -365,20 +367,13 @@ def executar_script_ribeirao(navegador, wait, ano=None, nome_cidade="ribeirao_ne
         return len(relatorios_processados) > 0 and not foi_cancelado
         
     except Exception as e:
-        print(f"\n✗ Erro no script de Ribeirao das Neves: {e}")
+        print(f"\n✗ Erro no script de Congonhas: {e}")
         return False
 
 
 def _processar_anexo_03(navegador, wait):
     """
     Processa o relatorio Anexo 03 - Demonstrativo da Receita Corrente Liquida
-    
-    Args:
-        navegador: Instancia do WebDriver
-        wait: Instancia do WebDriverWait
-        
-    Returns:
-        bool: True se processado com sucesso
     """
     try:
         print("\n--- Processando Anexo 03 ---")
@@ -431,11 +426,11 @@ def _processar_anexo_03(navegador, wait):
         
         campo_municipio.click()
         campo_municipio.clear()
-        campo_municipio.send_keys("MUNICIPIO DE RIBEIRAO DAS NEVES")
+        campo_municipio.send_keys("MUNICIPIO DE CONGONHAS")
 
         # Selecionar a opção que aparece
         opcao_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
+            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE CONGONHAS')]"))
         )
         opcao_municipio.click()
 
@@ -1107,15 +1102,15 @@ def _processar_extrato_receita(navegador, wait, ano):
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
 
-        # 3. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
-        print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
+        # 3. Selecionar "MUNICIPIO DE CONGONHAS" (ID: select2-chosen-2)
+        print("  - Selecionando 'MUNICIPIO DE CONGONHAS'...")
         dropdown_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-2']/parent::a"))
         )
         dropdown_municipio.click()
 
         opcao_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-2']//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
+            EC.element_to_be_clickable((By.XPATH, "//ul[@id='select2-results-2']//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE CONGONHAS')]"))
         )
         opcao_municipio.click()
 
@@ -1264,8 +1259,8 @@ def _processar_relacao_empenhos(navegador, wait, ano):
         campo_ano.clear()
         campo_ano.send_keys(str(ano))
 
-        # 3. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: s2id_autogen3)
-        print("  - Selecionando município 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
+        # 3. Selecionar "MUNICIPIO DE CONGONHAS" (ID: s2id_autogen3)
+        print("  - Selecionando município 'MUNICIPIO DE CONGONHAS'...")
         campo_municipio = wait.until(
             EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
@@ -1273,7 +1268,7 @@ def _processar_relacao_empenhos(navegador, wait, ano):
 
         # Selecionar a opção que aparece
         opcao_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
+            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE CONGONHAS')]"))
         )
         opcao_municipio.click()
 
@@ -1443,8 +1438,8 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
         )
         opcao_nao.click()
 
-        # 4. Selecionar opção "MUNICIPIO DE RIBEIRAO DAS NEVES" no dropdown.
-        print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
+        # 4. Selecionar opção "MUNICIPIO DE CONGONHAS" no dropdown.
+        print("  - Selecionando 'MUNICIPIO DE CONGONHAS'...")
         campo_municipio = wait.until(
             EC.element_to_be_clickable((By.ID, "s2id_autogen3"))
         )
@@ -1452,7 +1447,7 @@ def _processar_relacao_pagamentos(navegador, wait, ano):
 
         # Selecionar a opção diretamente
         opcao_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
+            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE CONGONHAS')]"))
         )
         opcao_municipio.click()
 
@@ -1553,15 +1548,15 @@ def _processar_relacao_liquidacoes(navegador, wait, ano):
         )
         relacao_liquidacoes.click()
 
-        # 2. Selecionar "MUNICIPIO DE RIBEIRAO DAS NEVES" (ID: select2-chosen-2)
-        print("  - Selecionando 'MUNICIPIO DE RIBEIRAO DAS NEVES'...")
+        # 2. Selecionar "MUNICIPIO DE CONGONHAS" (ID: select2-chosen-2)
+        print("  - Selecionando 'MUNICIPIO DE CONGONHAS'...")
         dropdown_municipio = wait.until(
             EC.element_to_be_clickable((By.XPATH, "//span[@id='select2-chosen-2']/parent::a"))
         )
         dropdown_municipio.click()
 
         opcao_municipio = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE RIBEIRAO DAS NEVES')]"))
+            EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'select2-result-label') and contains(text(), 'MUNICIPIO DE CONGONHAS')]"))
         )
         opcao_municipio.click()
 

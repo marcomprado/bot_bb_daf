@@ -139,15 +139,6 @@ MDS_CONFIG = {
 }
 
 
-
-
-
-
-
-
-
-
-
 # Seletores para elementos FNDE
 SELETORES_FNDE = {
     # Formulário principal
