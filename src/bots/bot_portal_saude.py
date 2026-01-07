@@ -18,7 +18,7 @@ if not hasattr(sys, '_MEIPASS'):
 
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.methods.cancel_method import BotBase
-from src.classes.config import PORTAL_SAUDE_CONFIG, SELETORES_PORTAL_SAUDE
+from src.classes.central import PORTAL_SAUDE_CONFIG, SELETORES_PORTAL_SAUDE
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC

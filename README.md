@@ -126,7 +126,7 @@ bot-bb/
 │   │       └── bot_ribeirao.py   # Example: Ribeirão das Neves logic
 │   │
 │   ├── classes/                   # Utility Layer
-│   │   ├── config.py             # Centralized system configuration
+│   │   ├── central.py           # Centralized system configuration
 │   │   ├── config_page.py        # User settings manager
 │   │   ├── chrome_driver.py      # Direct ChromeDriver connection
 │   │   ├── data_extractor.py     # Excel generation & formatting

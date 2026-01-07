@@ -24,7 +24,7 @@ from src.classes.data_extractor import DataExtractor
 from src.classes.date_calculator import DateCalculator
 from src.classes.file.file_manager import FileManager
 from src.classes.city_manager import CitySplitter
-from src.classes.config import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
+from src.classes.central import SISTEMA_CONFIG, SELETORES_CSS, ARQUIVOS_CONFIG
 from src.classes.methods.cancel_method import BotBase
 from src.classes.report_generator import ReportGenerator
 from src.classes.file.path_manager import obter_caminho_dados
@@ -47,8 +47,8 @@ class BotBBDAF(BotBase):
         Inicializa o bot de web scraping
         
         Args:
-            url (str): URL do sistema a ser acessado (padrão: config.py)
-            timeout (int): Tempo limite para espera de elementos (padrão: config.py)
+            url (str): URL do sistema a ser acessado (padrão: central.py)
+            timeout (int): Tempo limite para espera de elementos (padrão: central.py)
         """
         super().__init__()  # Inicializa BotBase
         self.url = url or SISTEMA_CONFIG['url_sistema']

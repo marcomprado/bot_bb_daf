@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.methods.cancel_method import BotBase
-from src.classes.config import CONSFNS_CONFIG, SELETORES_CONSFNS, MENSAGENS
+from src.classes.central import CONSFNS_CONFIG, SELETORES_CONSFNS, MENSAGENS
 from src.classes.report_generator import ReportGenerator
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

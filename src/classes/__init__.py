@@ -11,7 +11,7 @@ from .city_manager import CitySplitter
 from .methods.parallel_processor import ProcessadorParalelo
 from .methods.cancel_method import BotBase
 from .methods.auto_execution import AutomaticExecutor
-from .config import *
+from .central import *
 
 __all__ = [
     'ChromeDriverSimples',

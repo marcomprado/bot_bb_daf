@@ -34,17 +34,17 @@ from src.classes.methods.cancel_method import BotBase
 from src.classes.report_generator import ReportGenerator
 from src.classes.file.path_manager import obter_caminho_dados
 from src.classes.city_manager import CityManager
-from src.classes.config import MDS_CONFIG, SELETORES_MDS_PARCELAS, SELETORES_MDS_SALDO, MENSAGENS
+from src.classes.central import MDS_CONFIG, SELETORES_MDS_PARCELAS, SELETORES_MDS_SALDO, MENSAGENS
 
 
 class BotMDS(BotBase):
     # Bot de scraping MDS com sincronização de duas URLs simultâneas
 
     def __init__(self, timeout=None):
-        # Inicializa o bot MDS usando configurações centralizadas de config.py
+        # Inicializa o bot MDS usando configurações centralizadas de central.py
         super().__init__()
 
-        # URLs do MDS (config.py)
+        # URLs do MDS (central.py)
         self.url_parcelas = MDS_CONFIG['url_parcelas']
         self.url_saldo = MDS_CONFIG['url_saldo']
 
@@ -54,7 +54,7 @@ class BotMDS(BotBase):
         self.wait_parcelas = None
         self.wait_saldo = None
 
-        # Configurações (config.py)
+        # Configurações (central.py)
         self.timeout = timeout or MDS_CONFIG['timeout_selenium']
         self.max_tentativas = MDS_CONFIG['max_tentativas_espera']
         self.max_retries = MDS_CONFIG['max_retries']
@@ -65,7 +65,7 @@ class BotMDS(BotBase):
         self._cancelado = False
         self._em_execucao = False
 
-        # Configuração de diretórios (config.py)
+        # Configuração de diretórios (central.py)
         self.diretorio_mds = obter_caminho_dados(MDS_CONFIG['diretorio_saida'])
         self.diretorio_base = os.path.dirname(self.diretorio_mds)
         self.ano_atual = datetime.now().strftime("%Y")
@@ -88,7 +88,7 @@ class BotMDS(BotBase):
         return self.configurar_navegadores()
 
     def configurar_navegadores(self) -> bool:
-        # Configura DUAS instâncias Chrome com diretórios de download separados (config.py)
+        # Configura DUAS instâncias Chrome com diretórios de download separados (central.py)
         try:
             print("Configurando navegadores MDS...")
 
@@ -139,7 +139,7 @@ class BotMDS(BotBase):
             time.sleep(0.1)  # Verifica a cada 100ms
 
     def esperar_elemento_disponivel(self, navegador, wait, by, seletor, acao_callback, max_tentativas=None):
-        # Tenta realizar ação até N vezes devido ao loading do site MDS (config.py)
+        # Tenta realizar ação até N vezes devido ao loading do site MDS (central.py)
         max_tentativas = max_tentativas or self.max_tentativas
         for tentativa in range(1, max_tentativas + 1):
             if self._cancelado:
@@ -160,7 +160,7 @@ class BotMDS(BotBase):
                 if tentativa == max_tentativas:
                     print(f"  ✗ Timeout após {max_tentativas} tentativas")
                     return False
-                time.sleep(MDS_CONFIG['pausa_tentativa_espera'])  # Aguarda antes de tentar novamente (config.py)
+                time.sleep(MDS_CONFIG['pausa_tentativa_espera'])  # Aguarda antes de tentar novamente (central.py)
 
         return False
 
@@ -185,7 +185,7 @@ class BotMDS(BotBase):
         return False
 
     def processar_parcelas(self, municipio: str, ano: str, max_retries=None) -> Dict:
-        # Processa URL de Parcelas Pagas: seleciona ano, UF=MG, município, pesquisar, gerar CSV, renomear (config.py)
+        # Processa URL de Parcelas Pagas: seleciona ano, UF=MG, município, pesquisar, gerar CSV, renomear (central.py)
         if self._cancelado:
             return {'sucesso': False, 'municipio': municipio, 'tipo': 'parcelas', 'erro': 'Cancelado'}
 
@@ -199,7 +199,7 @@ class BotMDS(BotBase):
             try:
                 print(f"  [PARCELAS] Processando {municipio} (tentativa {tentativa})")
 
-                # Passo 1: Selecionar ano (config.py)
+                # Passo 1: Selecionar ano (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
                     self.wait_parcelas,
@@ -217,7 +217,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 2: Selecionar UF = MG (config.py)
+                # Passo 2: Selecionar UF = MG (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
                     self.wait_parcelas,
@@ -235,7 +235,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 3: Selecionar município (config.py)
+                # Passo 3: Selecionar município (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
                     self.wait_parcelas,
@@ -253,7 +253,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 4: Clicar pesquisar (config.py)
+                # Passo 4: Clicar pesquisar (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
                     self.wait_parcelas,
@@ -274,7 +274,7 @@ class BotMDS(BotBase):
                         'sem_dados': True  # Flag indicando ausência de dados
                     }
 
-                # Passo 5: Clicar gerar CSV (config.py)
+                # Passo 5: Clicar gerar CSV (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_parcelas,
                     self.wait_parcelas,
@@ -284,10 +284,10 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao gerar CSV")
 
-                # Aguarda download (config.py)
+                # Aguarda download (central.py)
                 self._sleep_cancelavel(MDS_CONFIG['pausa_aguarda_download'])
 
-                # Passo 6: Renomear arquivo (config.py)
+                # Passo 6: Renomear arquivo (central.py)
                 arquivo_renomeado = self._renomear_ultimo_download(
                     self.dir_parcela,
                     MDS_CONFIG['formato_arquivo'].format(municipio=municipio)
@@ -323,7 +323,7 @@ class BotMDS(BotBase):
         return {'sucesso': False, 'municipio': municipio, 'tipo': 'parcelas', 'erro': 'Max retries'}
 
     def processar_saldo(self, municipio: str, ano: str, mes: str, max_retries=None) -> Dict:
-        # Processa URL de Saldo por Conta: seleciona ano, UF=MG, mês, esfera=MUNICIPAL, município, pesquisar, gerar CSV, renomear (config.py)
+        # Processa URL de Saldo por Conta: seleciona ano, UF=MG, mês, esfera=MUNICIPAL, município, pesquisar, gerar CSV, renomear (central.py)
         if self._cancelado:
             return {'sucesso': False, 'municipio': municipio, 'tipo': 'saldo', 'erro': 'Cancelado'}
 
@@ -337,7 +337,7 @@ class BotMDS(BotBase):
             try:
                 print(f"  [SALDO] Processando {municipio} (tentativa {tentativa})")
 
-                # Passo 1: Selecionar ano (config.py)
+                # Passo 1: Selecionar ano (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -355,7 +355,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 2: Selecionar UF = MG (config.py)
+                # Passo 2: Selecionar UF = MG (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -373,7 +373,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 3: Selecionar mês (config.py)
+                # Passo 3: Selecionar mês (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -391,7 +391,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 4: Selecionar Esfera = MUNICIPAL (config.py)
+                # Passo 4: Selecionar Esfera = MUNICIPAL (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -409,7 +409,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 5: Selecionar município (config.py)
+                # Passo 5: Selecionar município (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -427,7 +427,7 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Passo 6: Clicar pesquisar (config.py)
+                # Passo 6: Clicar pesquisar (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -452,7 +452,7 @@ class BotMDS(BotBase):
                         'sem_dados': True  # Flag indicando ausência de dados
                     }
 
-                # Passo 7: Clicar gerar CSV (config.py)
+                # Passo 7: Clicar gerar CSV (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
                     self.wait_saldo,
@@ -462,10 +462,10 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao gerar CSV")
 
-                # Aguarda download (config.py)
+                # Aguarda download (central.py)
                 self._sleep_cancelavel(MDS_CONFIG['pausa_aguarda_download'])
 
-                # Passo 8: Renomear arquivo (config.py)
+                # Passo 8: Renomear arquivo (central.py)
                 arquivo_renomeado = self._renomear_ultimo_download(
                     self.dir_saldo,
                     MDS_CONFIG['formato_arquivo'].format(municipio=municipio)
@@ -608,7 +608,7 @@ class BotMDS(BotBase):
         return estatisticas
 
     def _renomear_ultimo_download(self, diretorio: str, novo_nome: str) -> str:
-        # Renomeia o último arquivo CSV baixado no diretório (config.py)
+        # Renomeia o último arquivo CSV baixado no diretório (central.py)
         for _ in range(MDS_CONFIG['timeout_renomear_arquivo']):
             if self._cancelado:
                 raise Exception("Cancelado pelo usuário")
@@ -629,12 +629,12 @@ class BotMDS(BotBase):
             except Exception:
                 pass
 
-            time.sleep(MDS_CONFIG['pausa_tentativa_espera'])  # Aguarda antes de tentar novamente (config.py)
+            time.sleep(MDS_CONFIG['pausa_tentativa_espera'])  # Aguarda antes de tentar novamente (central.py)
 
         raise Exception("Arquivo CSV não foi baixado")
 
     def _reconfigurar_navegador_parcelas(self):
-        # Reconfigura navegador de parcelas após erro (config.py)
+        # Reconfigura navegador de parcelas após erro (central.py)
         opcoes = webdriver.ChromeOptions()
         opcoes.add_argument("--headless=new")
         opcoes.add_argument("--disable-gpu")
@@ -646,7 +646,7 @@ class BotMDS(BotBase):
         self.navegador_parcelas.get(self.url_parcelas)
 
     def _reconfigurar_navegador_saldo(self):
-        # Reconfigura navegador de saldo após erro (config.py)
+        # Reconfigura navegador de saldo após erro (central.py)
         opcoes = webdriver.ChromeOptions()
         opcoes.add_argument("--headless=new")
         opcoes.add_argument("--disable-gpu")
