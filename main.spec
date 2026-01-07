@@ -233,7 +233,7 @@ else:
         upx=True,
         upx_exclude=[],
         runtime_tmpdir=None,
-        console=True,   # True para ver erros durante debug (mudar para False após confirmar funcionamento)
+        console=False,   # True para ver erros durante debug (mudar para False após confirmar funcionamento)
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
