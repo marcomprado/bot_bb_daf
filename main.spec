@@ -47,6 +47,8 @@ hiddenimports += [
     'urllib3',
     'concurrent.futures',
     'threading',
+    'subprocess',    # Para cancelamento forçado de processos
+    'platform',      # Para detectar sistema operacional
     'dateutil',      # python-dateutil (nome correto do módulo)
     'dotenv',        # python-dotenv (para .env config)
     'pymupdf4llm',   # PDF text extraction com IA
@@ -80,6 +82,7 @@ hiddenimports += [
     'src.view.gui3',
     'src.view.gui4',
     'src.view.gui5',
+    'src.view.gui6',
     'src.view.gui7',
     'src.view.view_config',
     'src.view.modules',
@@ -97,6 +100,7 @@ hiddenimports += [
     'src.bots.bot_cons_fns',
     'src.bots.bot_portal_saude',
     'src.bots.bot_mds',
+    'src.bots.bot_pagamentos_res',
     'src.bots.betha',
     'src.bots.betha.bot_ribeirao',
 ]
@@ -105,6 +109,7 @@ hiddenimports += [
 hiddenimports += [
     'src.classes',
     'src.classes.__init__',
+    'src.classes.central',
     'src.classes.chrome_driver',
     'src.classes.city_manager',
     'src.classes.city_splitter',
