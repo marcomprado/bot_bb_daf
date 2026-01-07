@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Interface gráfica para o segundo scraper - FNDE
-Versão simplificada com dropdown estilizado para municípios
+Interface gráfica - FNDE
 """
 
 import customtkinter as ctk
