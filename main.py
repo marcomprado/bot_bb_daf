@@ -19,6 +19,7 @@ from src.view.gui2 import GUI2
 from src.view.gui3 import GUI3
 from src.view.gui4 import GUI4
 from src.view.gui5 import GUI5
+from src.view.gui6 import GUI6
 from src.view.gui7 import GUI7
 from src.view.view_config import ConfigGUI
 
@@ -207,6 +208,9 @@ class SistemaFVN:
         # Cria GUI5 (Resoluçoes PDF)
         self.gui5 = GUI5(self.container_conteudo)
 
+        # Cria GUI6 (Pagamentos de Resoluções)
+        self.gui6 = GUI6(self.container_conteudo)
+
         # Cria GUI7 (MDS)
         self.gui7 = GUI7(self.container_conteudo)
 
@@ -220,10 +224,11 @@ class SistemaFVN:
             "betha": {"nome": "Sistema Betha", "gui": self.gui3},
             "consfns": {"nome": "Saldo FNS", "gui": self.gui4},
             "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
+            "pagamentos_res": {"nome": "Pagamentos de Resoluções", "gui": self.gui6},
             "mds": {"nome": "Sistema MDS", "gui": self.gui7},
             "config": {"nome": None, "gui": self.config_gui}
         }
-        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.gui5, self.gui7, self.config_gui]
+        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.gui5, self.gui6, self.gui7, self.config_gui]
         self.gui_atual = None  # Rastreia GUI atualmente visível
 
         # Mostra aba inicial
@@ -251,6 +256,7 @@ class SistemaFVN:
                 "Sistema Betha": "betha",
                 "Saldo FNS": "consfns",
                 "Resoluçoes PDF": "resolucoes",
+                "Pagamentos de Resoluções": "pagamentos_res",
                 "Sistema MDS": "mds"
             }
             aba = mapa_sistemas.get(valor)
@@ -259,7 +265,7 @@ class SistemaFVN:
 
         self.dropdown_sistemas = ctk.CTkOptionMenu(
             container_abas,
-            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Saldo FNS", "Resoluçoes PDF", "Sistema MDS"],
+            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Saldo FNS", "Resoluçoes PDF", "Pagamentos de Resoluções", "Sistema MDS"],
             variable=self.sistema_var,
             command=on_sistema_change,
             font=ctk.CTkFont(size=14, weight="bold"),

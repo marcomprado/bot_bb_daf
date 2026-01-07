@@ -68,8 +68,6 @@ class BotMDS(BotBase):
         # Configuração de diretórios (central.py)
         self.diretorio_mds = obter_caminho_dados(MDS_CONFIG['diretorio_saida'])
         self.diretorio_base = os.path.dirname(self.diretorio_mds)
-        self.ano_atual = datetime.now().strftime("%Y")
-        self.diretorio_saida = os.path.join(self.diretorio_mds, self.ano_atual)
 
         self._criar_diretorios()
         self.report_gen = ReportGenerator(self.diretorio_mds, MDS_CONFIG['prefixo_relatorio'])
@@ -77,7 +75,7 @@ class BotMDS(BotBase):
     def _criar_diretorios(self):
         # Cria estrutura de diretórios necessária
         try:
-            for diretorio in [self.diretorio_base, self.diretorio_mds, self.diretorio_saida]:
+            for diretorio in [self.diretorio_base, self.diretorio_mds]:
                 if not os.path.exists(diretorio):
                     os.makedirs(diretorio)
         except Exception as e:
@@ -93,12 +91,12 @@ class BotMDS(BotBase):
             print("Configurando navegadores MDS...")
 
             # Criar diretórios finais
-            self.dir_parcela = os.path.join(self.diretorio_saida, MDS_CONFIG['subdiretorios_finais'][0])
-            self.dir_saldo = os.path.join(self.diretorio_saida, MDS_CONFIG['subdiretorios_finais'][1])
+            self.dir_parcela = os.path.join(self.diretorio_mds, MDS_CONFIG['subdiretorios_finais'][0])
+            self.dir_saldo = os.path.join(self.diretorio_mds, MDS_CONFIG['subdiretorios_finais'][1])
             os.makedirs(self.dir_parcela, exist_ok=True)
             os.makedirs(self.dir_saldo, exist_ok=True)
 
-            # Navegador 1: Parcelas Pagas (baixa direto em mds/2025/parcela/)
+            # Navegador 1: Parcelas Pagas (baixa direto em mds/parcela/)
             opcoes_parcelas = webdriver.ChromeOptions()
             opcoes_parcelas.add_argument("--headless=new")
             opcoes_parcelas.add_argument("--disable-gpu")
@@ -108,7 +106,7 @@ class BotMDS(BotBase):
             self.navegador_parcelas = driver_parcelas.conectar(chrome_options=opcoes_parcelas)
             self.wait_parcelas = WebDriverWait(self.navegador_parcelas, self.timeout)
 
-            # Navegador 2: Saldo por Conta (baixa direto em mds/2025/saldo/)
+            # Navegador 2: Saldo por Conta (baixa direto em mds/saldo/)
             opcoes_saldo = webdriver.ChromeOptions()
             #opcoes_saldo.add_argument("--headless=new")
             opcoes_saldo.add_argument("--disable-gpu")
@@ -678,45 +676,31 @@ class BotMDS(BotBase):
             print(f"Aviso: Erro ao fechar navegador saldo - {e}")
 
     def cancelar_forcado(self):
-        # Cancela execução e fecha navegadores
-        try:
-            self._cancelado = True
-            print("\n⚠ Cancelamento forçado iniciado...")
+        """Cancela execução e fecha navegadores imediatamente"""
+        self._cancelado = True
+        print("\n⚠ Cancelamento forçado iniciado...")
 
-            # Fecha navegador parcelas
-            if self.navegador_parcelas:
-                try:
-                    janelas = self.navegador_parcelas.window_handles
-                    for janela in janelas:
-                        self.navegador_parcelas.switch_to.window(janela)
-                        self.navegador_parcelas.close()
-                except:
-                    pass
+        # Fecha navegador parcelas diretamente
+        if self.navegador_parcelas:
+            try:
+                self.navegador_parcelas.quit()
+                time.sleep(0.5)  # Aguarda processo finalizar
+            except Exception as e:
+                print(f"⚠ Erro ao fechar navegador parcelas: {e}")
+            finally:
+                self.navegador_parcelas = None
 
-                try:
-                    self.navegador_parcelas.quit()
-                except:
-                    pass
+        # Fecha navegador saldo diretamente
+        if self.navegador_saldo:
+            try:
+                self.navegador_saldo.quit()
+                time.sleep(0.5)  # Aguarda processo finalizar
+            except Exception as e:
+                print(f"⚠ Erro ao fechar navegador saldo: {e}")
+            finally:
+                self.navegador_saldo = None
 
-            # Fecha navegador saldo
-            if self.navegador_saldo:
-                try:
-                    janelas = self.navegador_saldo.window_handles
-                    for janela in janelas:
-                        self.navegador_saldo.switch_to.window(janela)
-                        self.navegador_saldo.close()
-                except:
-                    pass
-
-                try:
-                    self.navegador_saldo.quit()
-                except:
-                    pass
-
-            print("✓ Cancelamento forçado concluído")
-
-        except Exception as e:
-            print(f"⚠ Erro durante cancelamento forçado: {e}")
+        print("✓ Cancelamento forçado concluído")
 
 
 if __name__ == "__main__":

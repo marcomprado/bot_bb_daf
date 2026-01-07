@@ -268,4 +268,64 @@ MENSAGENS = {
     'mds_parcelas': ' [PARCELAS] Processando município',
     'mds_saldo': ' [SALDO] Processando município',
     'mds_sincronizado': ' Processamento sincronizado (Parcelas + Saldo)',
-} 
+
+    # Mensagens específicas Pagamentos de Resoluções
+    'inicio_pagamentos_res': ' SISTEMA DE AUTOMAÇÃO WEB - PAGAMENTOS DE RESOLUÇÕES',
+    'pagamentos_res_processado': ' Município processado com sucesso - Pagamentos de Resoluções',
+    'pagamentos_res_erro': ' Erro ao processar município - Pagamentos de Resoluções',
+    'pagamentos_res_todos_municipios': ' Processando todos os municípios de MG - Pagamentos de Resoluções',
+    'pagamentos_res_orcamentarios': ' [ORÇAMENTÁRIOS] Processando município',
+    'pagamentos_res_restos': ' [RESTOS A PAGAR] Processando município',
+    'pagamentos_res_sincronizado': ' Processamento sincronizado (Orçamentários + Restos a Pagar)',
+}
+
+# Configurações do sistema Pagamentos de Resoluções
+PAGAMENTOS_RES_CONFIG = {
+    # URLs do sistema (duas URLs operando simultaneamente)
+    'url_orcamentarios': 'http://pagamentoderesolucoes.saude.mg.gov.br/pagamentos-orcamentarios',
+    'url_restos_a_pagar': 'http://pagamentoderesolucoes.saude.mg.gov.br/restos-a-pagar',
+
+    # Parâmetros padrão
+    'uf_padrao': 'MG',
+
+    # Timeout para elementos (em segundos)
+    'timeout_selenium': 5,  # Reduzido de 10 para 5 segundos para carregamento mais rápido
+    'max_tentativas_espera': 5,  # Reduzido de 10 para 5 tentativas
+    'max_retries': 3,  # Tentativas por município em caso de falha
+    'timeout_aguarda_download': 3,  # Segundos após clicar em download
+    'timeout_renomear_arquivo': 10,  # Segundos aguardando arquivo aparecer
+
+    # Pausas específicas (em segundos)
+    'pausa_aguarda_download': 3.0,
+    'pausa_tentativa_espera': 0.5,  # Reduzido de 1.0 para 0.5 segundos
+    'pausa_apos_consulta': 1.0,  # Reduzido de 2.0 para 1.0 segundo
+
+    # Diretórios específicos
+    'diretorio_saida': 'pagamentos_resolucoes',
+    'subdiretorios_finais': ['orcamentarios', 'restos_a_pagar'],
+    'prefixo_relatorio': 'RELATORIO_PAGAMENTOS_RES',
+
+    # Formato de nome de arquivo
+    'formato_arquivo_orcamentarios': '{municipio}_orcamentarios.csv',
+    'formato_arquivo_restos': '{municipio}_restos_a_pagar.csv',
+}
+
+# Seletores para Pagamentos Orçamentários
+SELETORES_PAGAMENTOS_RES_ORCAMENTARIOS = {
+    # Formulário Pagamentos Orçamentários (4 passos)
+    'select_ano': 'ano_pagamento',  # ID do select
+    'select_municipio': 'dsc_municipio',  # ID do select
+    'botao_consultar': 'input.btn.btn-success[type="submit"][value="Consultar"]',  # CSS Selector
+    'botao_gerar_csv': 'button.dt-button.buttons-csv.buttons-html5',  # CSS Selector
+    'mensagem_sem_registros': '//td[@class="dataTables_empty"]',  # XPATH - mensagem de tabela vazia
+}
+
+# Seletores para Restos a Pagar
+SELETORES_PAGAMENTOS_RES_RESTOS = {
+    # Formulário Restos a Pagar (4 passos)
+    'select_ano': 'ano_pagamento',  # ID do select
+    'select_municipio': 'dsc_municipio',  # ID do select
+    'botao_consultar': 'input.btn.btn-success[type="submit"][value="Consultar"]',  # CSS Selector
+    'botao_gerar_csv': 'button.dt-button.buttons-csv.buttons-html5',  # CSS Selector
+    'mensagem_sem_registros': '//td[@class="dataTables_empty"]',  # XPATH - mensagem de tabela vazia
+}
