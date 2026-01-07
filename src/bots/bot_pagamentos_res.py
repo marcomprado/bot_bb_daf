@@ -102,7 +102,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 1: Pagamentos Orçamentários
             opcoes_orcamentarios = webdriver.ChromeOptions()
-            opcoes_orcamentarios.add_argument("--headless=new")
+            #opcoes_orcamentarios.add_argument("--headless=new")
             opcoes_orcamentarios.add_argument("--disable-gpu")
             opcoes_orcamentarios.add_argument("--window-size=1920,1080")
 
@@ -122,7 +122,7 @@ class BotPagamentosRes(BotBase):
             prefs_orcamentarios = {
                 "profile.default_content_setting_values.mixed_content": 1,
                 "profile.block_third_party_cookies": False,
-                "profile.cookie_controls_mode": 0
+                "profile.cookie_controls_mode": 0,
             }
             opcoes_orcamentarios.add_experimental_option("prefs", prefs_orcamentarios)
 
@@ -152,7 +152,7 @@ class BotPagamentosRes(BotBase):
             prefs_restos = {
                 "profile.default_content_setting_values.mixed_content": 1,
                 "profile.block_third_party_cookies": False,
-                "profile.cookie_controls_mode": 0
+                "profile.cookie_controls_mode": 0,
             }
             opcoes_restos.add_experimental_option("prefs", prefs_restos)
 
@@ -290,6 +290,10 @@ class BotPagamentosRes(BotBase):
             # Verificar se retornou registros
             if self.verificar_resultado_vazio(self.navegador_orcamentarios, self.wait_orcamentarios):
                 print(f"  ⓘ [ORÇAMENTÁRIOS] Sem dados para {municipio} - continuando")
+
+                # Recarrega página para voltar ao estado inicial (próximo município)
+                self.navegador_orcamentarios.get(self.url_orcamentarios)
+
                 return {
                     'sucesso': True,
                     'municipio': municipio,
@@ -318,6 +322,10 @@ class BotPagamentosRes(BotBase):
             )
 
             print(f"  ✓ [ORÇAMENTÁRIOS] {municipio} processado com sucesso")
+
+            # Recarrega página para voltar ao estado inicial (próximo município)
+            self.navegador_orcamentarios.get(self.url_orcamentarios)
+
             return {
                 'sucesso': True,
                 'municipio': municipio,
@@ -327,6 +335,13 @@ class BotPagamentosRes(BotBase):
 
         except Exception as e:
             print(f"  ✗ [ORÇAMENTÁRIOS] Erro em {municipio}: {e}")
+
+            # Recarrega página mesmo em caso de erro (próximo município)
+            try:
+                self.navegador_orcamentarios.get(self.url_orcamentarios)
+            except:
+                pass
+
             return {
                 'sucesso': False,
                 'municipio': municipio,
@@ -397,6 +412,10 @@ class BotPagamentosRes(BotBase):
             # Verificar se retornou registros
             if self.verificar_resultado_vazio(self.navegador_restos, self.wait_restos):
                 print(f"  ⓘ [RESTOS A PAGAR] Sem dados para {municipio} - continuando")
+
+                # Recarrega página para voltar ao estado inicial (próximo município)
+                self.navegador_restos.get(self.url_restos_a_pagar)
+
                 return {
                     'sucesso': True,
                     'municipio': municipio,
@@ -425,6 +444,10 @@ class BotPagamentosRes(BotBase):
             )
 
             print(f"  ✓ [RESTOS A PAGAR] {municipio} processado com sucesso")
+
+            # Recarrega página para voltar ao estado inicial (próximo município)
+            self.navegador_restos.get(self.url_restos_a_pagar)
+
             return {
                 'sucesso': True,
                 'municipio': municipio,
@@ -434,6 +457,13 @@ class BotPagamentosRes(BotBase):
 
         except Exception as e:
             print(f"  ✗ [RESTOS A PAGAR] Erro em {municipio}: {e}")
+
+            # Recarrega página mesmo em caso de erro (próximo município)
+            try:
+                self.navegador_restos.get(self.url_restos_a_pagar)
+            except:
+                pass
+
             return {
                 'sucesso': False,
                 'municipio': municipio,
@@ -593,31 +623,84 @@ class BotPagamentosRes(BotBase):
             print(f"Aviso: Erro ao fechar navegador restos a pagar - {e}")
 
     def cancelar_forcado(self):
-        """Cancela execução e fecha navegadores imediatamente"""
+        """Cancela execução e fecha navegadores imediatamente, matando processos Chrome"""
+        import subprocess
+        import platform
+
         self._cancelado = True
         print("\n⚠ Cancelamento forçado iniciado...")
 
-        # Fecha navegador orçamentários diretamente
+        # Fecha navegador orçamentários de forma agressiva
         if self.navegador_orcamentarios:
+            print("  → Fechando navegador orçamentários...")
             try:
+                # Mata o processo do ChromeDriver service primeiro
+                if hasattr(self.navegador_orcamentarios, 'service') and hasattr(self.navegador_orcamentarios.service, 'process'):
+                    try:
+                        print("    • Terminando processo ChromeDriver (orçamentários)...")
+                        self.navegador_orcamentarios.service.process.terminate()
+                        self.navegador_orcamentarios.service.process.wait(timeout=2)
+                    except:
+                        try:
+                            print("    • Matando processo ChromeDriver (orçamentários)...")
+                            self.navegador_orcamentarios.service.process.kill()
+                        except:
+                            pass
+
+                # Depois tenta quit() normal
+                print("    • Chamando quit() (orçamentários)...")
                 self.navegador_orcamentarios.quit()
-                time.sleep(0.5)  # Aguarda processo finalizar
+                print("    ✓ Navegador orçamentários fechado")
             except Exception as e:
-                print(f"⚠ Erro ao fechar navegador orçamentários: {e}")
+                print(f"    ⚠ Erro ao fechar navegador orçamentários: {e}")
             finally:
                 self.navegador_orcamentarios = None
 
-        # Fecha navegador restos a pagar diretamente
+        # Fecha navegador restos a pagar de forma agressiva
         if self.navegador_restos:
+            print("  → Fechando navegador restos a pagar...")
             try:
+                # Mata o processo do ChromeDriver service primeiro
+                if hasattr(self.navegador_restos, 'service') and hasattr(self.navegador_restos.service, 'process'):
+                    try:
+                        print("    • Terminando processo ChromeDriver (restos)...")
+                        self.navegador_restos.service.process.terminate()
+                        self.navegador_restos.service.process.wait(timeout=2)
+                    except:
+                        try:
+                            print("    • Matando processo ChromeDriver (restos)...")
+                            self.navegador_restos.service.process.kill()
+                        except:
+                            pass
+
+                # Depois tenta quit() normal
+                print("    • Chamando quit() (restos)...")
                 self.navegador_restos.quit()
-                time.sleep(0.5)  # Aguarda processo finalizar
+                print("    ✓ Navegador restos a pagar fechado")
             except Exception as e:
-                print(f"⚠ Erro ao fechar navegador restos: {e}")
+                print(f"    ⚠ Erro ao fechar navegador restos: {e}")
             finally:
                 self.navegador_restos = None
 
-        print("✓ Cancelamento forçado concluído")
+        # Mata todos os processos Chrome/ChromeDriver restantes (fallback)
+        print("  → Limpando processos Chrome restantes...")
+        try:
+            sistema = platform.system()
+            if sistema == "Darwin":  # macOS
+                subprocess.run(["pkill", "-f", "Chrome"], stderr=subprocess.DEVNULL, timeout=3)
+                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
+            elif sistema == "Windows":
+                subprocess.run(["taskkill", "/F", "/IM", "chrome.exe"], stderr=subprocess.DEVNULL, timeout=3)
+                subprocess.run(["taskkill", "/F", "/IM", "chromedriver.exe"], stderr=subprocess.DEVNULL, timeout=3)
+            elif sistema == "Linux":
+                subprocess.run(["pkill", "-f", "chrome"], stderr=subprocess.DEVNULL, timeout=3)
+                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
+        except Exception as e:
+            print(f"    ⚠ Erro ao limpar processos: {e}")
+
+        # Aguarda processos terminarem completamente
+        time.sleep(1)
+        print("✓ Cancelamento forçado concluído - todos os processos Chrome fechados")
 
 
 if __name__ == "__main__":

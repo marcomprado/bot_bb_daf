@@ -142,14 +142,14 @@ class GUI6:
 
         label_ano_campo = ctk.CTkLabel(
             frame_ano_campo,
-            text="Selecione o Ano:",
+            text="Selecione o Ano (não aceita o ano de 2026 ainda!) :",
             font=ctk.CTkFont(size=14, weight="bold"),
             text_color="#495057"
         )
         label_ano_campo.pack(pady=(0, 5))
 
         # Dropdown com anos de 2000 a 2025
-        anos_disponiveis = [str(ano) for ano in range(2025, 1999, -1)]  # 2025 até 2000
+        anos_disponiveis = [str(ano) for ano in range(2025, 2018, -1)]  # 2025 até 2019
         self.dropdown_ano = ctk.CTkOptionMenu(
             frame_ano_campo,
             values=anos_disponiveis,
@@ -402,9 +402,9 @@ class GUI6:
         try:
             self._cancelado = True
 
-            # TODO: Usa o método de cancelamento forçado quando bot estiver implementado
-            # if self.bot_pagamentos_res:
-            #     self.bot_pagamentos_res.cancelar_forcado()
+            # Chama cancelamento forçado do bot para fechar navegadores
+            if hasattr(self, 'bot_pagamentos_res') and self.bot_pagamentos_res:
+                self.bot_pagamentos_res.cancelar_forcado()
 
             self._habilitar_interface(True)
             self._mostrar_info("Processamento cancelado")
