@@ -312,20 +312,18 @@ class BotPagamentosRes(BotBase):
             ):
                 raise Exception("Timeout ao gerar CSV")
 
-            # Passo 5: Aguardar arquivo CSV ser baixado (30s timeout)
-            arquivo_baixado = self._aguardar_download_csv(self.dir_orcamentarios, timeout=30)
+            # Passo 5: Aguardar arquivo CSV e renomear imediatamente (atomic operation)
+            arquivo_renomeado = self._aguardar_e_renomear_download(
+                self.dir_orcamentarios,
+                PAGAMENTOS_RES_CONFIG['formato_arquivo_orcamentarios'].format(municipio=municipio_arquivo),
+                timeout=30
+            )
 
-            if arquivo_baixado is None:
+            if arquivo_renomeado is None:
                 if self._cancelado:
                     raise Exception("Download cancelado pelo usuário")
                 else:
                     raise Exception("Arquivo CSV não foi baixado (timeout 30s)")
-
-            # Passo 6: Renomear com retry (Windows file locking)
-            arquivo_renomeado = self._renomear_arquivo_com_retry(
-                arquivo_baixado,
-                PAGAMENTOS_RES_CONFIG['formato_arquivo_orcamentarios'].format(municipio=municipio_arquivo)
-            )
 
             print(f"  ✓ [ORÇAMENTÁRIOS] {municipio} processado com sucesso")
 
@@ -440,20 +438,18 @@ class BotPagamentosRes(BotBase):
             ):
                 raise Exception("Timeout ao gerar CSV")
 
-            # Passo 5: Aguardar arquivo CSV ser baixado (30s timeout)
-            arquivo_baixado = self._aguardar_download_csv(self.dir_restos_a_pagar, timeout=30)
+            # Passo 5: Aguardar arquivo CSV e renomear imediatamente (atomic operation)
+            arquivo_renomeado = self._aguardar_e_renomear_download(
+                self.dir_restos_a_pagar,
+                PAGAMENTOS_RES_CONFIG['formato_arquivo_restos'].format(municipio=municipio_arquivo),
+                timeout=30
+            )
 
-            if arquivo_baixado is None:
+            if arquivo_renomeado is None:
                 if self._cancelado:
                     raise Exception("Download cancelado pelo usuário")
                 else:
                     raise Exception("Arquivo CSV não foi baixado (timeout 30s)")
-
-            # Passo 6: Renomear com retry (Windows file locking)
-            arquivo_renomeado = self._renomear_arquivo_com_retry(
-                arquivo_baixado,
-                PAGAMENTOS_RES_CONFIG['formato_arquivo_restos'].format(municipio=municipio_arquivo)
-            )
 
             print(f"  ✓ [RESTOS A PAGAR] {municipio} processado com sucesso")
 
@@ -588,8 +584,8 @@ class BotPagamentosRes(BotBase):
 
         return estatisticas
 
-    def _aguardar_download_csv(self, diretorio: str, timeout: int = 30) -> Optional[str]:
-        """Aguarda arquivo CSV usando timestamp (compatível com Windows .exe)"""
+    def _aguardar_e_renomear_download(self, diretorio: str, novo_nome: str, timeout: int = 30) -> Optional[str]:
+        """Aguarda download e renomeia IMEDIATAMENTE (previne Chrome overwrite) - MDS style"""
         self._sleep_cancelavel(3.0)
 
         for tentativa in range(timeout):
@@ -597,70 +593,37 @@ class BotPagamentosRes(BotBase):
                 return None
 
             try:
+                # APENAS Chrome default names (previne detectar renamed files)
                 arquivos = [f for f in os.listdir(diretorio)
-                           if f.endswith('.csv') and not f.endswith(('.crdownload', '.tmp')) and not f.startswith('.')]
+                           if f.endswith('.csv') and not f.endswith(('.crdownload', '.tmp'))
+                           and not f.startswith('.') and 'Pagamento de Resoluções' in f]
 
                 if arquivos:
                     arquivo_mais_recente = max([os.path.join(diretorio, f) for f in arquivos], key=os.path.getctime)
+
                     if os.path.exists(arquivo_mais_recente) and os.path.getsize(arquivo_mais_recente) > 0:
-                        print(f"  ✓ CSV detectado: {os.path.basename(arquivo_mais_recente)} ({os.path.getsize(arquivo_mais_recente)} bytes)")
-                        return arquivo_mais_recente
+                        # RENOMEIA IMEDIATAMENTE (atomic operation)
+                        caminho_final = os.path.join(diretorio, novo_nome)
+
+                        # Retry loop para Windows file locking
+                        for retry in range(3):
+                            try:
+                                os.rename(arquivo_mais_recente, caminho_final)
+                                print(f"  ✓ CSV detectado e renomeado: {novo_nome} ({os.path.getsize(caminho_final)} bytes)")
+                                return caminho_final
+                            except PermissionError:
+                                if retry < 2:
+                                    time.sleep(0.5)
+                                else:
+                                    raise
             except:
                 if tentativa % 5 == 0:
-                    print(f"  ⓘ Aguardando arquivo CSV ({tentativa}s/{timeout}s)...")
+                    print(f"  ⓘ Aguardando CSV ({tentativa}s/{timeout}s)...")
 
             time.sleep(1.0)
 
-        print(f"  ✗ Timeout ({timeout}s) - arquivo CSV não foi baixado")
+        print(f"  ✗ Timeout ({timeout}s) - CSV não baixado")
         return None
-
-    def _renomear_arquivo_com_retry(self, arquivo_original: str, novo_nome: str, max_tentativas: int = 3) -> str:
-        """Renomeia arquivo com retry para lidar com file locking do Windows
-
-        Args:
-            arquivo_original: Caminho completo do arquivo original
-            novo_nome: Apenas o nome do arquivo (sem path)
-            max_tentativas: Número máximo de tentativas (padrão: 3)
-
-        Returns:
-            Caminho completo do arquivo renomeado
-
-        Notes:
-            - Windows pode bloquear arquivo temporariamente após download
-            - Tenta até max_tentativas vezes com 0.5s de pausa entre tentativas
-            - Retorna arquivo original se rename falhar (não-fatal, preserva dados)
-        """
-        diretorio = os.path.dirname(arquivo_original)
-        caminho_final = os.path.join(diretorio, novo_nome)
-
-        # Se já está com o nome correto, retorna
-        if arquivo_original == caminho_final:
-            return caminho_final
-
-        # Tenta renomear com retry
-        for tentativa in range(1, max_tentativas + 1):
-            try:
-                os.rename(arquivo_original, caminho_final)
-                if tentativa > 1:
-                    print(f"  ✓ Arquivo renomeado (tentativa {tentativa})")
-                return caminho_final
-
-            except PermissionError as e:
-                # Windows file locking - tenta novamente
-                if tentativa < max_tentativas:
-                    print(f"  ⓘ Arquivo bloqueado (tentativa {tentativa}/{max_tentativas}) - aguardando...")
-                    time.sleep(0.5)
-                else:
-                    # Última tentativa falhou - avisa mas não quebra
-                    print(f"  ⚠ Aviso: Não foi possível renomear arquivo após {max_tentativas} tentativas: {e}")
-                    return arquivo_original
-
-            except Exception as e:
-                # Outro erro - avisa mas não quebra
-                print(f"  ⚠ Aviso: Erro ao renomear arquivo - {e}")
-                return arquivo_original
-
-        return arquivo_original
 
     def fechar_navegador(self):
         """Método compatível com GUI6 - fecha AMBOS os navegadores"""
