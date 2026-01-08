@@ -589,82 +589,28 @@ class BotPagamentosRes(BotBase):
         return estatisticas
 
     def _aguardar_download_csv(self, diretorio: str, timeout: int = 30) -> Optional[str]:
-        """Aguarda arquivo CSV ser baixado (adaptado de bot_cons_fns.py)
+        """Aguarda arquivo CSV usando timestamp (compatível com Windows .exe)"""
+        self._sleep_cancelavel(3.0)
 
-        Args:
-            diretorio: Diretório onde o arquivo será baixado
-            timeout: Tempo máximo de espera em segundos (padrão: 30)
-
-        Returns:
-            Caminho completo do arquivo baixado ou None se timeout/cancelado
-
-        Notes:
-            - Monitora apenas arquivos NOVOS (não existentes antes do download)
-            - Exclui .crdownload, .tmp, arquivos ocultos (começam com '.')
-            - Verifica tamanho > 0 e estabilidade (duas verificações com 0.5s de intervalo)
-            - Respeita flag self._cancelado para cancelamento via GUI
-        """
-        tempo_inicio = time.time()
-
-        # Registra arquivos existentes ANTES do download
-        try:
-            arquivos_antes = set(os.listdir(diretorio))
-        except Exception as e:
-            print(f"  ✗ Erro ao listar diretório {diretorio}: {e}")
-            return None
-
-        # Loop de monitoramento
-        while time.time() - tempo_inicio < timeout:
-            # Verifica cancelamento (GUI cancel button)
+        for tentativa in range(timeout):
             if self._cancelado:
-                print("  ⓘ Download cancelado pelo usuário")
                 return None
 
             try:
-                # Obtém arquivos atuais
-                arquivos_agora = set(os.listdir(diretorio))
+                arquivos = [f for f in os.listdir(diretorio)
+                           if f.endswith('.csv') and not f.endswith(('.crdownload', '.tmp')) and not f.startswith('.')]
 
-                # Identifica APENAS arquivos novos (KEY FIX: elimina race condition de timestamps)
-                novos_arquivos = arquivos_agora - arquivos_antes
+                if arquivos:
+                    arquivo_mais_recente = max([os.path.join(diretorio, f) for f in arquivos], key=os.path.getctime)
+                    if os.path.exists(arquivo_mais_recente) and os.path.getsize(arquivo_mais_recente) > 0:
+                        print(f"  ✓ CSV detectado: {os.path.basename(arquivo_mais_recente)} ({os.path.getsize(arquivo_mais_recente)} bytes)")
+                        return arquivo_mais_recente
+            except:
+                if tentativa % 5 == 0:
+                    print(f"  ⓘ Aguardando arquivo CSV ({tentativa}s/{timeout}s)...")
 
-                # Filtra por CSV válidos (exclui temporários e ocultos)
-                arquivos_csv = [
-                    f for f in novos_arquivos
-                    if f.endswith('.csv')
-                    and not f.endswith(('.crdownload', '.tmp'))
-                    and not f.startswith('.')
-                ]
+            time.sleep(1.0)
 
-                if arquivos_csv:
-                    # Pega o primeiro arquivo CSV novo encontrado
-                    arquivo_path = os.path.join(diretorio, arquivos_csv[0])
-
-                    # Verifica se arquivo existe e tem tamanho > 0
-                    if os.path.exists(arquivo_path) and os.path.getsize(arquivo_path) > 0:
-                        # STABILITY CHECK: Verifica se arquivo parou de crescer
-                        tamanho_inicial = os.path.getsize(arquivo_path)
-                        time.sleep(0.5)  # Aguarda 0.5 segundos
-
-                        # Verifica novamente se ainda existe e se tamanho está estável
-                        if os.path.exists(arquivo_path):
-                            tamanho_final = os.path.getsize(arquivo_path)
-
-                            if tamanho_inicial == tamanho_final:
-                                # Arquivo estável - download completo
-                                print(f"  ✓ CSV detectado: {arquivos_csv[0]} ({tamanho_final} bytes)")
-                                return arquivo_path
-                            else:
-                                # Arquivo ainda crescendo - continua aguardando
-                                print(f"  ⓘ Arquivo ainda sendo baixado ({tamanho_inicial} → {tamanho_final} bytes)...")
-
-            except Exception as e:
-                # Em caso de erro, continua tentando (pode ser acesso temporário bloqueado)
-                print(f"  ⓘ Erro ao verificar arquivos: {e}")
-
-            # Aguarda 0.5s antes da próxima verificação
-            time.sleep(0.5)
-
-        # Timeout atingido
         print(f"  ✗ Timeout ({timeout}s) - arquivo CSV não foi baixado")
         return None
 

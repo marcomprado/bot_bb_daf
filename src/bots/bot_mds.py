@@ -2,7 +2,7 @@
 """
 Bot de scraping para o sistema MDS (Ministério do Desenvolvimento Social)
 URLs:
-    Parcelas pagas : https://aplicacoes.mds.gov.br/suaswebcons/restrito/execute.jsf?b=*dpotvmubsQbsdfmbtQbhbtNC&event=*fyjcjs
+    Parcelas pagas :  https://aplicacoes.mds.gov.br/suaswebcons/restrito/execute.jsf?b=*dpotvmubsQbsdfmbtQbhbtNC&event=*fyjcjs
     Saldo por Conta : https://aplicacoes.mds.gov.br/suaswebcons/restrito/execute.jsf?b=*tbmepQbsdfmbtQbhbtNC&event=*fyjcjs
 
 """

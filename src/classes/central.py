@@ -289,16 +289,16 @@ PAGAMENTOS_RES_CONFIG = {
     'uf_padrao': 'MG',
 
     # Timeout para elementos (em segundos)
-    'timeout_selenium': 2,  # Reduzido de 10 para 5 segundos para carregamento mais rápido
-    'max_tentativas_espera': 5,  # Reduzido de 10 para 5 tentativas
-    'max_retries': 3,  # Tentativas por município em caso de falha
-    'timeout_aguarda_download': 1,  # Segundos após clicar em download
-    'timeout_renomear_arquivo': 1,  # Segundos aguardando arquivo aparecer
+    'timeout_selenium': 2,
+    'max_tentativas_espera': 5,
+    'max_retries': 3,
+    'timeout_aguarda_download': 30,  # Timeout para aguardar CSV baixar
+    'timeout_renomear_arquivo': 10,  # Aumentado para Windows executables
 
     # Pausas específicas (em segundos)
-    'pausa_aguarda_download': 0.5,
-    'pausa_tentativa_espera': 0.5,  # Reduzido de 1.0 para 0.5 segundos
-    'pausa_apos_consulta': 0.5,  # Reduzido de 2.0 para 1.0 segundo
+    'pausa_aguarda_download': 3.0,  # Aumentado para Windows executables
+    'pausa_tentativa_espera': 0.5,
+    'pausa_apos_consulta': 0.5,
 
     # Diretórios específicos
     'diretorio_saida': 'pagamentos_resolucoes',
