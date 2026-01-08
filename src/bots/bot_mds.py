@@ -371,6 +371,9 @@ class BotMDS(BotBase):
                 except:
                     pass
 
+                # Aguarda dropdown mês ficar completamente interativo
+                time.sleep(1)
+
                 # Passo 3: Selecionar mês (central.py)
                 if not self.esperar_elemento_disponivel(
                     self.navegador_saldo,
