@@ -306,8 +306,8 @@ PAGAMENTOS_RES_CONFIG = {
     'prefixo_relatorio': 'RELATORIO_PAGAMENTOS_RES',
 
     # Formato de nome de arquivo
-    'formato_arquivo_orcamentarios': '{municipio}_orcamentarios.csv',
-    'formato_arquivo_restos': '{municipio}_restos_a_pagar.csv',
+    'formato_arquivo_orcamentarios': '{municipio}_orcamentarios.xlsx',
+    'formato_arquivo_restos': '{municipio}_restos_a_pagar.xlsx',
 }
 
 # Seletores para Pagamentos Orçamentários
@@ -316,7 +316,7 @@ SELETORES_PAGAMENTOS_RES_ORCAMENTARIOS = {
     'select_ano': 'ano_pagamento',  # ID do select
     'select_municipio': 'dsc_municipio',  # ID do select
     'botao_consultar': 'input.btn.btn-success[type="submit"][value="Consultar"]',  # CSS Selector
-    'botao_gerar_csv': 'button.dt-button.buttons-csv.buttons-html5',  # CSS Selector
+    'botao_gerar_excel': 'button.dt-button.buttons-excel.buttons-html5',  # CSS Selector
     'mensagem_sem_registros': '//td[@class="dataTables_empty"]',  # XPATH - mensagem de tabela vazia
 }
 
@@ -326,6 +326,6 @@ SELETORES_PAGAMENTOS_RES_RESTOS = {
     'select_ano': 'ano_pagamento',  # ID do select
     'select_municipio': 'dsc_municipio',  # ID do select
     'botao_consultar': 'input.btn.btn-success[type="submit"][value="Consultar"]',  # CSS Selector
-    'botao_gerar_csv': 'button.dt-button.buttons-csv.buttons-html5',  # CSS Selector
+    'botao_gerar_excel': 'button.dt-button.buttons-excel.buttons-html5',  # CSS Selector
     'mensagem_sem_registros': '//td[@class="dataTables_empty"]',  # XPATH - mensagem de tabela vazia
 }

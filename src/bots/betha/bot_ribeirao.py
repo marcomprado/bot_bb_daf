@@ -1763,6 +1763,7 @@ def converter_arquivos_finais(file_converter):
 
     return total, convertidos
 
+#mudar nomes dos arquivos.
 
 def gerar_relatorio_final(relatorios_processados, relatorios_falhados, total_baixados, total_convertidos, ano, nome_cidade):
     

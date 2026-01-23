@@ -102,7 +102,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 1: Pagamentos Orçamentários
             opcoes_orcamentarios = webdriver.ChromeOptions()
-            #opcoes_orcamentarios.add_argument("--headless=new")
+            opcoes_orcamentarios.add_argument("--headless=new")
             opcoes_orcamentarios.add_argument("--disable-gpu")
             opcoes_orcamentarios.add_argument("--window-size=1920,1080")
 
@@ -132,7 +132,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 2: Restos a Pagar
             opcoes_restos = webdriver.ChromeOptions()
-            #opcoes_restos.add_argument("--headless=new")
+            opcoes_restos.add_argument("--headless=new")
             opcoes_restos.add_argument("--disable-gpu")
             opcoes_restos.add_argument("--window-size=1920,1080")
 
@@ -302,17 +302,17 @@ class BotPagamentosRes(BotBase):
                     'sem_dados': True
                 }
 
-            # Passo 4: Clicar gerar CSV e aguardar download
+            # Passo 4: Clicar gerar Excel e aguardar download
             if not self.esperar_elemento_disponivel(
                 self.navegador_orcamentarios,
                 self.wait_orcamentarios,
                 By.CSS_SELECTOR,
-                SELETORES_PAGAMENTOS_RES_ORCAMENTARIOS['botao_gerar_csv'],
+                SELETORES_PAGAMENTOS_RES_ORCAMENTARIOS['botao_gerar_excel'],
                 lambda el: el.click()
             ):
-                raise Exception("Timeout ao gerar CSV")
+                raise Exception("Timeout ao gerar Excel")
 
-            # Passo 5: Aguardar arquivo CSV e renomear imediatamente (atomic operation)
+            # Passo 5: Aguardar arquivo Excel e renomear imediatamente (atomic operation)
             arquivo_renomeado = self._aguardar_e_renomear_download(
                 self.dir_orcamentarios,
                 PAGAMENTOS_RES_CONFIG['formato_arquivo_orcamentarios'].format(municipio=municipio_arquivo),
@@ -323,7 +323,7 @@ class BotPagamentosRes(BotBase):
                 if self._cancelado:
                     raise Exception("Download cancelado pelo usuário")
                 else:
-                    raise Exception("Arquivo CSV não foi baixado (timeout 30s)")
+                    raise Exception("Arquivo Excel não foi baixado (timeout 30s)")
 
             print(f"  ✓ [ORÇAMENTÁRIOS] {municipio} processado com sucesso")
 
@@ -428,17 +428,17 @@ class BotPagamentosRes(BotBase):
                     'sem_dados': True
                 }
 
-            # Passo 4: Clicar gerar CSV e aguardar download
+            # Passo 4: Clicar gerar Excel e aguardar download
             if not self.esperar_elemento_disponivel(
                 self.navegador_restos,
                 self.wait_restos,
                 By.CSS_SELECTOR,
-                SELETORES_PAGAMENTOS_RES_RESTOS['botao_gerar_csv'],
+                SELETORES_PAGAMENTOS_RES_RESTOS['botao_gerar_excel'],
                 lambda el: el.click()
             ):
-                raise Exception("Timeout ao gerar CSV")
+                raise Exception("Timeout ao gerar Excel")
 
-            # Passo 5: Aguardar arquivo CSV e renomear imediatamente (atomic operation)
+            # Passo 5: Aguardar arquivo Excel e renomear imediatamente (atomic operation)
             arquivo_renomeado = self._aguardar_e_renomear_download(
                 self.dir_restos_a_pagar,
                 PAGAMENTOS_RES_CONFIG['formato_arquivo_restos'].format(municipio=municipio_arquivo),
@@ -449,7 +449,7 @@ class BotPagamentosRes(BotBase):
                 if self._cancelado:
                     raise Exception("Download cancelado pelo usuário")
                 else:
-                    raise Exception("Arquivo CSV não foi baixado (timeout 30s)")
+                    raise Exception("Arquivo Excel não foi baixado (timeout 30s)")
 
             print(f"  ✓ [RESTOS A PAGAR] {municipio} processado com sucesso")
 
@@ -595,7 +595,7 @@ class BotPagamentosRes(BotBase):
             try:
                 # APENAS Chrome default names (previne detectar renamed files)
                 arquivos = [f for f in os.listdir(diretorio)
-                           if f.endswith('.csv') and not f.endswith(('.crdownload', '.tmp'))
+                           if f.endswith('.xlsx') and not f.endswith(('.crdownload', '.tmp'))
                            and not f.startswith('.') and 'Pagamento de Resoluções' in f]
 
                 if arquivos:
@@ -609,7 +609,7 @@ class BotPagamentosRes(BotBase):
                         for retry in range(3):
                             try:
                                 os.rename(arquivo_mais_recente, caminho_final)
-                                print(f"  ✓ CSV detectado e renomeado: {novo_nome} ({os.path.getsize(caminho_final)} bytes)")
+                                print(f"  ✓ Excel detectado e renomeado: {novo_nome} ({os.path.getsize(caminho_final)} bytes)")
                                 return caminho_final
                             except PermissionError:
                                 if retry < 2:
@@ -618,11 +618,11 @@ class BotPagamentosRes(BotBase):
                                     raise
             except:
                 if tentativa % 5 == 0:
-                    print(f"  ⓘ Aguardando CSV ({tentativa}s/{timeout}s)...")
+                    print(f"  ⓘ Aguardando Excel ({tentativa}s/{timeout}s)...")
 
             time.sleep(1.0)
 
-        print(f"  ✗ Timeout ({timeout}s) - CSV não baixado")
+        print(f"  ✗ Timeout ({timeout}s) - Excel não baixado")
         return None
 
     def fechar_navegador(self):
