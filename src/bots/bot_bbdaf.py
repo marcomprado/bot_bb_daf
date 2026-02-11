@@ -32,14 +32,7 @@ from src.classes.file.path_manager import obter_caminho_dados
 
 class BotBBDAF(BotBase):
     """
-    Classe principal responsável pela automação web do sistema de arrecadação federal
-    
-    Funcionalidades:
-    - Configuração e inicialização do navegador Chrome
-    - Navegação e interação com elementos da página
-    - Preenchimento automático de formulários
-    - Processamento de múltiplas cidades
-    - Tratamento de erros e recuperação automática
+    Classe principal responsável pela automação web do sistema de arrecadação federal do Banco do Brasil (BB DAF)
     """
     
     def __init__(self, url=None, timeout=None):

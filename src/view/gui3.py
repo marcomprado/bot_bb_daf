@@ -182,7 +182,7 @@ class GUI3:
         label_ano_campo.pack(pady=(0, 5))
 
         # Dropdown com anos (usado em todas as plataformas)
-        anos_disponiveis = ["Todos os Anos"] + [str(ano) for ano in range(2029, 1997, -1)]
+        anos_disponiveis = ["Todos os Anos"] + [str(ano) for ano in range(datetime.now().year, 1997, -1)]
         self.dropdown_ano = ctk.CTkOptionMenu(
             frame_ano_campo,
             values=anos_disponiveis,
@@ -533,7 +533,7 @@ class GUI3:
         # Validar anos (usando dropdown)
         ano_selecionado = self.ano_var.get()
         if ano_selecionado == "Todos os Anos":
-            self.anos_selecionados = [str(ano) for ano in range(1998, 2030)]
+            self.anos_selecionados = [str(ano) for ano in range(1998, datetime.now().year + 1)]
         else:
             self.anos_selecionados = [ano_selecionado]
 

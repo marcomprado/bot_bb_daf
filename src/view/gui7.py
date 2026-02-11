@@ -160,7 +160,7 @@ class GUI7:
         label_ano_campo.pack(pady=(0, 5))
 
         # Dropdown com anos de 2000 a 2025
-        anos_disponiveis = [str(ano) for ano in range(2025, 1999, -1)]  # 2025 até 2000
+        anos_disponiveis = [str(ano) for ano in range(datetime.now().year, 1999, -1)]
         self.dropdown_ano = ctk.CTkOptionMenu(
             frame_ano_campo,
             values=anos_disponiveis,
