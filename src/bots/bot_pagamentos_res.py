@@ -102,7 +102,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 1: Pagamentos Orçamentários
             opcoes_orcamentarios = webdriver.ChromeOptions()
-            opcoes_orcamentarios.add_argument("--headless=new")
+            #opcoes_orcamentarios.add_argument("--headless=new")
             opcoes_orcamentarios.add_argument("--disable-gpu")
             opcoes_orcamentarios.add_argument("--window-size=1920,1080")
 
@@ -132,7 +132,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 2: Restos a Pagar
             opcoes_restos = webdriver.ChromeOptions()
-            opcoes_restos.add_argument("--headless=new")
+            #opcoes_restos.add_argument("--headless=new")
             opcoes_restos.add_argument("--disable-gpu")
             opcoes_restos.add_argument("--window-size=1920,1080")
 
@@ -286,6 +286,7 @@ class BotPagamentosRes(BotBase):
 
             # Aguarda após consulta
             self._sleep_cancelavel(PAGAMENTOS_RES_CONFIG['pausa_apos_consulta'])
+            time.sleep(1.5)
 
             # Verificar se retornou registros
             if self.verificar_resultado_vazio(self.navegador_orcamentarios, self.wait_orcamentarios):
@@ -412,6 +413,7 @@ class BotPagamentosRes(BotBase):
 
             # Aguarda após consulta
             self._sleep_cancelavel(PAGAMENTOS_RES_CONFIG['pausa_apos_consulta'])
+            time.sleep(1.5)
 
             # Verificar se retornou registros
             if self.verificar_resultado_vazio(self.navegador_restos, self.wait_restos):
@@ -587,6 +589,7 @@ class BotPagamentosRes(BotBase):
     def _aguardar_e_renomear_download(self, diretorio: str, novo_nome: str, timeout: int = 30) -> Optional[str]:
         """Aguarda download e renomeia IMEDIATAMENTE (previne Chrome overwrite) - MDS style"""
         self._sleep_cancelavel(3.0)
+        time.sleep(1.5)
 
         for tentativa in range(timeout):
             if self._cancelado:

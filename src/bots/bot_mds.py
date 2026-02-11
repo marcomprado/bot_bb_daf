@@ -98,7 +98,7 @@ class BotMDS(BotBase):
 
             # Navegador 1: Parcelas Pagas (baixa direto em mds/parcela/)
             opcoes_parcelas = webdriver.ChromeOptions()
-            opcoes_parcelas.add_argument("--headless=new")
+            #opcoes_parcelas.add_argument("--headless=new")
             opcoes_parcelas.add_argument("--disable-gpu")
             opcoes_parcelas.add_argument("--window-size=1920,1080")
 
@@ -371,7 +371,6 @@ class BotMDS(BotBase):
                 except:
                     pass
 
-                # Aguarda dropdown mês ficar completamente interativo
                 time.sleep(1)
 
                 # Passo 3: Selecionar mês (central.py)
@@ -438,27 +437,42 @@ class BotMDS(BotBase):
                 ):
                     raise Exception("Timeout ao clicar pesquisar")
 
-                # Aguardar 60 segundos após pesquisar
-                print("  ⏱ [SALDO] Aguardando 60 segundos após pesquisa...")
-                self._sleep_cancelavel(60)
+                # Verificar se retornou registros
+                if self.verificar_resultado_vazio(self.navegador_saldo, self.wait_saldo):
+                    print(f"  ⓘ [SALDO] Sem dados para {municipio} - continuando")
+                    return {
+                        'sucesso': True,
+                        'municipio': municipio,
+                        'tipo': 'saldo',
+                        'arquivo': None,
+                        'sem_dados': True
+                    }
 
-                # APÓS 60 SEGUNDOS: Recarrega URL e passa para próxima cidade
-                print(f"  ⏭ [SALDO] Tempo esgotado (60s) - recarregando página e passando para próxima cidade")
-                try:
-                    self.navegador_saldo.get(self.url_saldo)
-                    # Aguarda formulário carregar completamente antes de passar para próxima cidade
-                    self.wait_saldo.until(
-                        EC.presence_of_element_located((By.ID, SELETORES_MDS_SALDO['select_ano']))
-                    )
-                except Exception as e:
-                    print(f"  ⚠ Aviso ao recarregar página de saldo: {e}")
+                # Passo 7: Clicar gerar CSV (central.py)
+                if not self.esperar_elemento_disponivel(
+                    self.navegador_saldo,
+                    self.wait_saldo,
+                    By.XPATH,
+                    SELETORES_MDS_SALDO['botao_gerar_csv'],
+                    lambda el: el.click()
+                ):
+                    raise Exception("Timeout ao gerar CSV")
 
+                # Aguarda download (central.py)
+                self._sleep_cancelavel(MDS_CONFIG['pausa_aguarda_download'])
+
+                # Passo 8: Renomear arquivo (central.py)
+                arquivo_renomeado = self._renomear_ultimo_download(
+                    self.dir_saldo,
+                    MDS_CONFIG['formato_arquivo'].format(municipio=municipio)
+                )
+
+                print(f"  ✓ [SALDO] {municipio} processado com sucesso")
                 return {
-                    'sucesso': True,  # Considera sucesso (município processado)
+                    'sucesso': True,
                     'municipio': municipio,
                     'tipo': 'saldo',
-                    'arquivo': None,  # Arquivo não gerado (timeout 60s)
-                    'timeout_60s': True  # Flag indicando timeout
+                    'arquivo': arquivo_renomeado
                 }
 
             except Exception as e:
