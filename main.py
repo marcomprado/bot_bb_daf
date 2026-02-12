@@ -202,7 +202,7 @@ class SistemaFVN:
         # Cria GUI3 (Betha)
         self.gui3 = GUI3(self.container_conteudo)
 
-        # Cria GUI4 (Saldo FNS)
+        # Cria GUI4 (Consulta de Saldo FNS)
         self.gui4 = GUI4(self.container_conteudo)
 
         # Cria GUI5 (Resoluçoes PDF)
@@ -222,8 +222,8 @@ class SistemaFVN:
             "bbdaf": {"nome": "Sistema BB DAF", "gui": self.gui1},
             "fnde": {"nome": "Sistema FNDE", "gui": self.gui2},
             "betha": {"nome": "Sistema Betha", "gui": self.gui3},
-            "consfns": {"nome": "Saldo FNS", "gui": self.gui4},
-            "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
+            "consfns": {"nome": "Consulta de Saldo FNS", "gui": self.gui4},
+        "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
             "pagamentos_res": {"nome": "Pagamentos de Resoluções", "gui": self.gui6},
             "mds": {"nome": "Sistema MDS", "gui": self.gui7},
             "config": {"nome": None, "gui": self.config_gui}
@@ -254,7 +254,7 @@ class SistemaFVN:
                 "Sistema BB DAF": "bbdaf",
                 "Sistema FNDE": "fnde",
                 "Sistema Betha": "betha",
-                "Saldo FNS": "consfns",
+                "Consulta de Saldo FNS": "consfns",
                 "Resoluçoes PDF": "resolucoes",
                 "Pagamentos de Resoluções": "pagamentos_res",
                 "Sistema MDS": "mds"
@@ -265,7 +265,7 @@ class SistemaFVN:
 
         self.dropdown_sistemas = ctk.CTkOptionMenu(
             container_abas,
-            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Saldo FNS", "Resoluçoes PDF", "Pagamentos de Resoluções", "Sistema MDS"],
+            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta de Saldo FNS", "Resoluçoes PDF", "Pagamentos de Resoluções", "Sistema MDS"],
             variable=self.sistema_var,
             command=on_sistema_change,
             font=ctk.CTkFont(size=14, weight="bold"),

@@ -102,7 +102,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 1: Pagamentos Orçamentários
             opcoes_orcamentarios = webdriver.ChromeOptions()
-            #opcoes_orcamentarios.add_argument("--headless=new")
+            opcoes_orcamentarios.add_argument("--headless=new")
             opcoes_orcamentarios.add_argument("--disable-gpu")
             opcoes_orcamentarios.add_argument("--window-size=1920,1080")
 
@@ -132,7 +132,7 @@ class BotPagamentosRes(BotBase):
 
             # Navegador 2: Restos a Pagar
             opcoes_restos = webdriver.ChromeOptions()
-            #opcoes_restos.add_argument("--headless=new")
+            opcoes_restos.add_argument("--headless=new")
             opcoes_restos.add_argument("--disable-gpu")
             opcoes_restos.add_argument("--window-size=1920,1080")
 
