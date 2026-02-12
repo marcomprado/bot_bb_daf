@@ -136,6 +136,10 @@ MDS_CONFIG = {
 
     # Formato de nome de arquivo (sem sufixo - a pasta já identifica)
     'formato_arquivo': '{municipio}.csv',
+
+    # Nomes exatos dos arquivos que o Chrome baixa (fixos pelo site MDS)
+    'nome_download_parcela': 'ConsultarParcelasPagas.csv',
+    'nome_download_saldo': 'RelatorioSaldoParcelasPagas.csv',
 }
 
 
