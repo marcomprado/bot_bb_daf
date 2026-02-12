@@ -98,7 +98,7 @@ class BotMDS(BotBase):
 
             # Navegador 1: Parcelas Pagas (baixa direto em mds/parcela/)
             opcoes_parcelas = webdriver.ChromeOptions()
-            #opcoes_parcelas.add_argument("--headless=new")
+            opcoes_parcelas.add_argument("--headless=new")
             opcoes_parcelas.add_argument("--disable-gpu")
             opcoes_parcelas.add_argument("--window-size=1920,1080")
 
@@ -108,7 +108,7 @@ class BotMDS(BotBase):
 
             # Navegador 2: Saldo por Conta (baixa direto em mds/saldo/)
             opcoes_saldo = webdriver.ChromeOptions()
-            #opcoes_saldo.add_argument("--headless=new")
+            opcoes_saldo.add_argument("--headless=new")
             opcoes_saldo.add_argument("--disable-gpu")
             opcoes_saldo.add_argument("--window-size=1920,1080")
 
@@ -604,13 +604,19 @@ class BotMDS(BotBase):
         return estatisticas
 
     def _renomear_ultimo_download(self, diretorio: str, novo_nome: str) -> str:
-        # Renomeia o último arquivo CSV baixado no diretório (central.py)
-        for _ in range(MDS_CONFIG['timeout_renomear_arquivo']):
+        # Renomeia o último CSV baixado, com retry para Windows file locking (central.py)
+        for tentativa in range(MDS_CONFIG['timeout_renomear_arquivo']):
             if self._cancelado:
                 raise Exception("Cancelado pelo usuário")
 
             try:
-                arquivos = [f for f in os.listdir(diretorio) if f.endswith('.csv') and not f.startswith('.')]
+                # Filtra apenas CSVs completos (ignora .crdownload, .tmp do Chrome)
+                arquivos = [
+                    f for f in os.listdir(diretorio)
+                    if f.endswith('.csv')
+                    and not f.endswith(('.crdownload', '.tmp'))
+                    and not f.startswith('.')
+                ]
                 if arquivos:
                     # Pega o arquivo mais recente
                     arquivo_mais_recente = max(
@@ -618,12 +624,27 @@ class BotMDS(BotBase):
                         key=os.path.getctime
                     )
 
-                    # Renomeia no mesmo diretório (já está no lugar final)
-                    caminho_final = os.path.join(diretorio, novo_nome)
-                    os.rename(arquivo_mais_recente, caminho_final)
-                    return caminho_final
-            except Exception:
-                pass
+                    # Valida que o arquivo está completo (não vazio)
+                    if os.path.exists(arquivo_mais_recente) and os.path.getsize(arquivo_mais_recente) > 0:
+                        caminho_final = os.path.join(diretorio, novo_nome)
+
+                        # Retry para Windows file locking
+                        for retry in range(3):
+                            try:
+                                # Remove destino se já existir (Windows não faz overwrite automático)
+                                if os.path.exists(caminho_final):
+                                    os.remove(caminho_final)
+                                os.rename(arquivo_mais_recente, caminho_final)
+                                print(f"  ✓ CSV renomeado: {novo_nome} ({os.path.getsize(caminho_final)} bytes)")
+                                return caminho_final
+                            except PermissionError:
+                                if retry < 2:
+                                    time.sleep(0.5)
+                                else:
+                                    raise
+            except Exception as e:
+                if tentativa % 5 == 0 and tentativa > 0:
+                    print(f"  ⓘ Aguardando CSV ({tentativa}s)...")
 
             time.sleep(MDS_CONFIG['pausa_tentativa_espera'])  # Aguarda antes de tentar novamente (central.py)
 
