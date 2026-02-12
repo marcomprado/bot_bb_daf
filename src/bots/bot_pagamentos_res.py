@@ -129,6 +129,7 @@ class BotPagamentosRes(BotBase):
             driver_orcamentarios = ChromeDriverSimples(download_dir=self.dir_orcamentarios)
             self.navegador_orcamentarios = driver_orcamentarios.conectar(chrome_options=opcoes_orcamentarios)
             self.wait_orcamentarios = WebDriverWait(self.navegador_orcamentarios, self.timeout)
+            self.registrar_navegador("orcamentarios", self.navegador_orcamentarios)
 
             # Navegador 2: Restos a Pagar
             opcoes_restos = webdriver.ChromeOptions()
@@ -159,6 +160,7 @@ class BotPagamentosRes(BotBase):
             driver_restos = ChromeDriverSimples(download_dir=self.dir_restos_a_pagar)
             self.navegador_restos = driver_restos.conectar(chrome_options=opcoes_restos)
             self.wait_restos = WebDriverWait(self.navegador_restos, self.timeout)
+            self.registrar_navegador("restos", self.navegador_restos)
 
             # Abre as URLs
             print("Abrindo URLs do sistema Pagamentos de Resoluções...")
@@ -631,102 +633,6 @@ class BotPagamentosRes(BotBase):
     def fechar_navegador(self):
         """Método compatível com GUI6 - fecha AMBOS os navegadores"""
         self.fechar_navegadores()
-
-    def fechar_navegadores(self):
-        """Fecha ambos os navegadores"""
-        try:
-            if self.navegador_orcamentarios:
-                self.navegador_orcamentarios.quit()
-                print("✓ Navegador orçamentários fechado")
-        except Exception as e:
-            print(f"Aviso: Erro ao fechar navegador orçamentários - {e}")
-
-        try:
-            if self.navegador_restos:
-                self.navegador_restos.quit()
-                print("✓ Navegador restos a pagar fechado")
-        except Exception as e:
-            print(f"Aviso: Erro ao fechar navegador restos a pagar - {e}")
-
-    def cancelar_forcado(self):
-        """Cancela execução e fecha navegadores imediatamente, matando processos Chrome"""
-        import subprocess
-        import platform
-
-        self._cancelado = True
-        print("\n⚠ Cancelamento forçado iniciado...")
-
-        # Fecha navegador orçamentários de forma agressiva
-        if self.navegador_orcamentarios:
-            print("  → Fechando navegador orçamentários...")
-            try:
-                # Mata o processo do ChromeDriver service primeiro
-                if hasattr(self.navegador_orcamentarios, 'service') and hasattr(self.navegador_orcamentarios.service, 'process'):
-                    try:
-                        print("    • Terminando processo ChromeDriver (orçamentários)...")
-                        self.navegador_orcamentarios.service.process.terminate()
-                        self.navegador_orcamentarios.service.process.wait(timeout=2)
-                    except:
-                        try:
-                            print("    • Matando processo ChromeDriver (orçamentários)...")
-                            self.navegador_orcamentarios.service.process.kill()
-                        except:
-                            pass
-
-                # Depois tenta quit() normal
-                print("    • Chamando quit() (orçamentários)...")
-                self.navegador_orcamentarios.quit()
-                print("    ✓ Navegador orçamentários fechado")
-            except Exception as e:
-                print(f"    ⚠ Erro ao fechar navegador orçamentários: {e}")
-            finally:
-                self.navegador_orcamentarios = None
-
-        # Fecha navegador restos a pagar de forma agressiva
-        if self.navegador_restos:
-            print("  → Fechando navegador restos a pagar...")
-            try:
-                # Mata o processo do ChromeDriver service primeiro
-                if hasattr(self.navegador_restos, 'service') and hasattr(self.navegador_restos.service, 'process'):
-                    try:
-                        print("    • Terminando processo ChromeDriver (restos)...")
-                        self.navegador_restos.service.process.terminate()
-                        self.navegador_restos.service.process.wait(timeout=2)
-                    except:
-                        try:
-                            print("    • Matando processo ChromeDriver (restos)...")
-                            self.navegador_restos.service.process.kill()
-                        except:
-                            pass
-
-                # Depois tenta quit() normal
-                print("    • Chamando quit() (restos)...")
-                self.navegador_restos.quit()
-                print("    ✓ Navegador restos a pagar fechado")
-            except Exception as e:
-                print(f"    ⚠ Erro ao fechar navegador restos: {e}")
-            finally:
-                self.navegador_restos = None
-
-        # Mata todos os processos Chrome/ChromeDriver restantes (fallback)
-        print("  → Limpando processos Chrome restantes...")
-        try:
-            sistema = platform.system()
-            if sistema == "Darwin":  # macOS
-                subprocess.run(["pkill", "-f", "Chrome"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
-            elif sistema == "Windows":
-                subprocess.run(["taskkill", "/F", "/IM", "chrome.exe"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["taskkill", "/F", "/IM", "chromedriver.exe"], stderr=subprocess.DEVNULL, timeout=3)
-            elif sistema == "Linux":
-                subprocess.run(["pkill", "-f", "chrome"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
-        except Exception as e:
-            print(f"    ⚠ Erro ao limpar processos: {e}")
-
-        # Aguarda processos terminarem completamente
-        time.sleep(1)
-        print("✓ Cancelamento forçado concluído - todos os processos Chrome fechados")
 
 
 if __name__ == "__main__":

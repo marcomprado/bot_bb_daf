@@ -442,14 +442,6 @@ class BotBBDAF(BotBase):
         print("\nVerifique os resultados na janela do navegador.")
         input("Pressione Enter para fechar o navegador...")
     
-    # Métodos de cancelamento e fechamento herdados de BotBase
-
-    # Métodos de cancelamento e fechamento herdados de BotBase
-
-    def cancelar_forcado(self):
-        """Mantido para compatibilidade - usar cancelar(forcado=True)"""
-        self.cancelar(forcado=True)
-
     def processar_lote_municipios(self, cidades: List[str],
                                   data_inicial: str, data_final: str) -> Dict[str, any]:
         """Processa lote para uso paralelo - sem lógica de threading"""
