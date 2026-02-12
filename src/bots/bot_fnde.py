@@ -618,10 +618,6 @@ class BotFNDE(BotBase):
         # Chama método da classe pai
         super().cancelar(forcado=forcado)
     
-    def cancelar_forcado(self):
-        """Mantido para compatibilidade - usar cancelar(forcado=True)"""
-        self.cancelar(forcado=True)
-    
     def obter_lista_municipios(self) -> List[str]:
         """
         Retorna lista de municípios carregados

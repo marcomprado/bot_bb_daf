@@ -105,6 +105,7 @@ class BotMDS(BotBase):
             driver_parcelas = ChromeDriverSimples(download_dir=self.dir_parcela)
             self.navegador_parcelas = driver_parcelas.conectar(chrome_options=opcoes_parcelas)
             self.wait_parcelas = WebDriverWait(self.navegador_parcelas, self.timeout)
+            self.registrar_navegador("parcelas", self.navegador_parcelas)
 
             # Navegador 2: Saldo por Conta (baixa direto em mds/saldo/)
             opcoes_saldo = webdriver.ChromeOptions()
@@ -115,6 +116,7 @@ class BotMDS(BotBase):
             driver_saldo = ChromeDriverSimples(download_dir=self.dir_saldo)
             self.navegador_saldo = driver_saldo.conectar(chrome_options=opcoes_saldo)
             self.wait_saldo = WebDriverWait(self.navegador_saldo, self.timeout)
+            self.registrar_navegador("saldo", self.navegador_saldo)
 
             # Abre as URLs
             print("Abrindo URLs do MDS...")
@@ -636,6 +638,7 @@ class BotMDS(BotBase):
         driver = ChromeDriverSimples(download_dir=self.dir_parcela)
         self.navegador_parcelas = driver.conectar(chrome_options=opcoes)
         self.wait_parcelas = WebDriverWait(self.navegador_parcelas, self.timeout)
+        self.registrar_navegador("parcelas", self.navegador_parcelas)
         self.navegador_parcelas.get(self.url_parcelas)
 
     def _reconfigurar_navegador_saldo(self):
@@ -648,107 +651,12 @@ class BotMDS(BotBase):
         driver = ChromeDriverSimples(download_dir=self.dir_saldo)
         self.navegador_saldo = driver.conectar(chrome_options=opcoes)
         self.wait_saldo = WebDriverWait(self.navegador_saldo, self.timeout)
+        self.registrar_navegador("saldo", self.navegador_saldo)
         self.navegador_saldo.get(self.url_saldo)
 
     def fechar_navegador(self):
         # Método compatível com GUI7 - fecha AMBOS os navegadores
         self.fechar_navegadores()
-
-    def fechar_navegadores(self):
-        # Fecha ambos os navegadores
-        try:
-            if self.navegador_parcelas:
-                self.navegador_parcelas.quit()
-                print("✓ Navegador parcelas fechado")
-        except Exception as e:
-            print(f"Aviso: Erro ao fechar navegador parcelas - {e}")
-
-        try:
-            if self.navegador_saldo:
-                self.navegador_saldo.quit()
-                print("✓ Navegador saldo fechado")
-        except Exception as e:
-            print(f"Aviso: Erro ao fechar navegador saldo - {e}")
-
-    def cancelar_forcado(self):
-        """Cancela execução e fecha navegadores imediatamente, matando processos Chrome"""
-        import subprocess
-        import platform
-
-        self._cancelado = True
-        print("\n⚠ Cancelamento forçado iniciado...")
-
-        # Fecha navegador parcelas de forma agressiva
-        if self.navegador_parcelas:
-            print("  → Fechando navegador parcelas...")
-            try:
-                # Mata o processo do ChromeDriver service primeiro
-                if hasattr(self.navegador_parcelas, 'service') and hasattr(self.navegador_parcelas.service, 'process'):
-                    try:
-                        print("    • Terminando processo ChromeDriver (parcelas)...")
-                        self.navegador_parcelas.service.process.terminate()
-                        self.navegador_parcelas.service.process.wait(timeout=2)
-                    except:
-                        try:
-                            print("    • Matando processo ChromeDriver (parcelas)...")
-                            self.navegador_parcelas.service.process.kill()
-                        except:
-                            pass
-
-                # Depois tenta quit() normal
-                print("    • Chamando quit() (parcelas)...")
-                self.navegador_parcelas.quit()
-                print("    ✓ Navegador parcelas fechado")
-            except Exception as e:
-                print(f"    ⚠ Erro ao fechar navegador parcelas: {e}")
-            finally:
-                self.navegador_parcelas = None
-
-        # Fecha navegador saldo de forma agressiva
-        if self.navegador_saldo:
-            print("  → Fechando navegador saldo...")
-            try:
-                # Mata o processo do ChromeDriver service primeiro
-                if hasattr(self.navegador_saldo, 'service') and hasattr(self.navegador_saldo.service, 'process'):
-                    try:
-                        print("    • Terminando processo ChromeDriver (saldo)...")
-                        self.navegador_saldo.service.process.terminate()
-                        self.navegador_saldo.service.process.wait(timeout=2)
-                    except:
-                        try:
-                            print("    • Matando processo ChromeDriver (saldo)...")
-                            self.navegador_saldo.service.process.kill()
-                        except:
-                            pass
-
-                # Depois tenta quit() normal
-                print("    • Chamando quit() (saldo)...")
-                self.navegador_saldo.quit()
-                print("    ✓ Navegador saldo fechado")
-            except Exception as e:
-                print(f"    ⚠ Erro ao fechar navegador saldo: {e}")
-            finally:
-                self.navegador_saldo = None
-
-        # Mata todos os processos Chrome/ChromeDriver restantes (fallback)
-        print("  → Limpando processos Chrome restantes...")
-        try:
-            sistema = platform.system()
-            if sistema == "Darwin":  # macOS
-                subprocess.run(["pkill", "-f", "Chrome"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
-            elif sistema == "Windows":
-                subprocess.run(["taskkill", "/F", "/IM", "chrome.exe"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["taskkill", "/F", "/IM", "chromedriver.exe"], stderr=subprocess.DEVNULL, timeout=3)
-            elif sistema == "Linux":
-                subprocess.run(["pkill", "-f", "chrome"], stderr=subprocess.DEVNULL, timeout=3)
-                subprocess.run(["pkill", "-f", "chromedriver"], stderr=subprocess.DEVNULL, timeout=3)
-        except Exception as e:
-            print(f"    ⚠ Erro ao limpar processos: {e}")
-
-        # Aguarda processos terminarem completamente
-        time.sleep(1)
-        print("✓ Cancelamento forçado concluído - todos os processos Chrome fechados")
 
 
 if __name__ == "__main__":

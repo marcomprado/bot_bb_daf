@@ -386,10 +386,6 @@ class BotConsFNS(BotBase):
         self._em_execucao = False
         super().cancelar(forcado=forcado)
 
-    def cancelar_forcado(self):
-        """Mantido para compatibilidade - usar cancelar(forcado=True)"""
-        self.cancelar(forcado=True)
-
     def processar_lote_municipios(self, municipios: List[str]) -> Dict[str, any]:
         """Processa lote para uso paralelo - sem lógica de threading"""
         print(f"\n=== LOTE CONSFNS: {len(municipios)} municípios ===")
