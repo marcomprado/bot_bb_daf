@@ -72,4 +72,5 @@ tmp/
 # Arquivos do sistema operacional
 *.tmp
 .Trashes
-ehthumbs.db 
+ehthumbs.db
+.claude
