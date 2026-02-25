@@ -5,6 +5,7 @@ from src.view.gui4 import GUI4
 from src.view.gui5 import GUI5
 from src.view.gui6 import GUI6
 from src.view.gui7 import GUI7
+from src.view.gui8 import GUI8
 
 SYSTEMS = [
     {"id": "bbdaf", "nome": "Sistema BB DAF", "gui_class": GUI1},
@@ -14,4 +15,5 @@ SYSTEMS = [
     {"id": "resolucoes", "nome": "Resoluçoes PDF", "gui_class": GUI5},
     {"id": "pagamentos_res", "nome": "Pagamentos de Resoluções", "gui_class": GUI6},
     {"id": "mds", "nome": "Sistema MDS", "gui_class": GUI7},
+    {"id": "gestcom_mariana", "nome": "Mariana Gestcom", "gui_class": GUI8},
 ]
