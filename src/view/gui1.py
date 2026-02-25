@@ -50,8 +50,7 @@ class GUI1:
         self.cidades_selecionadas = []
         self.cidade_selecionada = ctk.StringVar()  # Para o dropdown
         
-        # Variáveis de data
-        self.data_inicial_var = ctk.StringVar()
+        # Variável de data
         self.data_final_var = ctk.StringVar()
         
         # Sistema de divisão de cidades
@@ -80,12 +79,7 @@ class GUI1:
                 self.cidade_selecionada.set("Todas as Cidades")
     
     def _configurar_datas_padrao(self):
-        """Configura datas padrão"""
-        data_atual = datetime.now()
-        data_inicial = data_atual - timedelta(days=30)
-        
-        self.data_inicial_var.set(data_inicial.strftime("%d/%m/%Y"))
-        self.data_final_var.set(data_atual.strftime("%d/%m/%Y"))
+        self.data_final_var.set(datetime.now().strftime("%d/%m/%Y"))
     
     def _criar_interface(self):
         """Cria a interface da GUI1"""
@@ -137,98 +131,32 @@ class GUI1:
         label_subtitulo.pack(pady=(0, 30))
     
     def _criar_secao_datas(self, parent):
-        """Cria seção de seleção de datas - RESPONSIVA"""
-        # Frame das datas
         frame_datas = ctk.CTkFrame(
-            parent,
-            corner_radius=20,
-            fg_color="#f8f9fa",
-            border_width=1,
-            border_color="#dee2e6"
+            parent, corner_radius=20, fg_color="#f8f9fa",
+            border_width=1, border_color="#dee2e6"
         )
         frame_datas.pack(fill="x", padx=20, pady=(0, 20))
-        
-        # Título da seção
-        label_datas = ctk.CTkLabel(
-            frame_datas,
-            text="Período de Consulta",
-            font=ctk.CTkFont(size=18, weight="bold"),
-            text_color="#495057"
-        )
-        label_datas.pack(pady=(15, 5))
-        
-        # Subtítulo com informação sobre limite
-        label_subtitulo_datas = ctk.CTkLabel(
-            frame_datas,
-            text="O sistema abrange no máximo o periodo de um mês por pesquisa",
-            font=ctk.CTkFont(size=12),
-            text_color="#6c757d"
-        )
-        label_subtitulo_datas.pack(pady=(0, 10))
-        
-        # Container dos campos de data - RESPONSIVO
-        container_campos = ctk.CTkFrame(frame_datas, fg_color="transparent")
-        container_campos.pack(fill="x", padx=15, pady=(0, 15))
-        
-        # Configurar grid responsivo
-        container_campos.grid_columnconfigure(0, weight=1)
-        container_campos.grid_columnconfigure(1, weight=1)
-        
-        # Data Inicial
-        frame_data_inicial = ctk.CTkFrame(container_campos, fg_color="transparent")
-        frame_data_inicial.grid(row=0, column=0, sticky="ew", padx=(0, 5))
-        
-        label_inicial = ctk.CTkLabel(
-            frame_data_inicial,
-            text="Data Inicial:",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#495057"
-        )
-        label_inicial.pack()
-        
-        self.entry_data_inicial = ctk.CTkEntry(
-            frame_data_inicial,
-            textvariable=self.data_inicial_var,
-            placeholder_text="DD/MM/AAAA",
-            font=ctk.CTkFont(size=14),
-            height=40,
-            corner_radius=15,
-            justify="center",
-            border_width=2,
-            border_color="#ced4da"
-        )
-        self.entry_data_inicial.pack(fill="x", pady=(5, 0))
-        
-        # Adiciona validação para aceitar apenas números e barras
-        self.entry_data_inicial.bind('<KeyPress>', self._validar_tecla_data)
-        self.entry_data_inicial.bind('<FocusOut>', lambda e: self._formatar_data_completa(self.data_inicial_var))
-        
-        # Data Final
-        frame_data_final = ctk.CTkFrame(container_campos, fg_color="transparent")
-        frame_data_final.grid(row=0, column=1, sticky="ew", padx=(5, 0))
-        
-        label_final = ctk.CTkLabel(
-            frame_data_final,
-            text="Data Final:",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color="#495057"
-        )
-        label_final.pack()
-        
+
+        ctk.CTkLabel(
+            frame_datas, text="Data de Referencia",
+            font=ctk.CTkFont(size=18, weight="bold"), text_color="#495057"
+        ).pack(pady=(15, 5))
+
+        ctk.CTkLabel(
+            frame_datas, text="O sistema consulta os 30 dias anteriores a esta data",
+            font=ctk.CTkFont(size=12), text_color="#6c757d"
+        ).pack(pady=(0, 10))
+
+        container_campo = ctk.CTkFrame(frame_datas, fg_color="transparent")
+        container_campo.pack(pady=(0, 15))
+
         self.entry_data_final = ctk.CTkEntry(
-            frame_data_final,
-            textvariable=self.data_final_var,
-            placeholder_text="DD/MM/AAAA",
-            font=ctk.CTkFont(size=14),
-            height=40,
-            corner_radius=15,
-            justify="center",
-            border_width=2,
-            border_color="#ced4da"
+            container_campo, textvariable=self.data_final_var,
+            placeholder_text="DD/MM/AAAA", font=ctk.CTkFont(size=14),
+            height=40, width=200, corner_radius=15, justify="center",
+            border_width=2, border_color="#ced4da"
         )
-        self.entry_data_final.pack(fill="x", pady=(5, 0))
-        
-        # Adiciona validação para aceitar apenas números e barras
+        self.entry_data_final.pack()
         self.entry_data_final.bind('<KeyPress>', self._validar_tecla_data)
         self.entry_data_final.bind('<FocusOut>', lambda e: self._formatar_data_completa(self.data_final_var))
     
@@ -551,34 +479,15 @@ class GUI1:
             pass
     
     def _validar_dados(self):
-        """Valida se os dados estão corretos"""
-        # Atualiza cidades selecionadas com base no dropdown
         self._atualizar_cidades_selecionadas()
-        
-        # Verifica se há cidades selecionadas
         if not self.cidades_selecionadas:
             self._mostrar_erro("Por favor, selecione pelo menos uma cidade!")
             return False
-        
-        # Verifica formato das datas
         try:
-            data_inicial = datetime.strptime(self.data_inicial_var.get(), "%d/%m/%Y")
-            data_final = datetime.strptime(self.data_final_var.get(), "%d/%m/%Y")
+            datetime.strptime(self.data_final_var.get(), "%d/%m/%Y")
         except ValueError:
-            self._mostrar_erro("Formato de data inválido! Use DD/MM/AAAA")
+            self._mostrar_erro("Formato de data invalido! Use DD/MM/AAAA")
             return False
-        
-        # Verifica se a data inicial é anterior à data final
-        if data_inicial >= data_final:
-            self._mostrar_erro("A data inicial deve ser anterior à data final!")
-            return False
-        
-        # Verifica se o período não excede 30 dias
-        diferenca_dias = (data_final - data_inicial).days
-        if diferenca_dias > 30:
-            self._mostrar_erro(f"O período selecionado é de {diferenca_dias} dias. O sistema permite no máximo 30 dias por pesquisa!")
-            return False
-        
         return True
     
     def _habilitar_interface(self, habilitado=True):
@@ -688,16 +597,12 @@ class GUI1:
         self._habilitar_interface(True)
     
     def obter_parametros(self) -> Dict:
-        """
-        Obtém os parâmetros configurados na interface
-        
-        Returns:
-            dict: Parâmetros para execução
-        """
+        data_final = datetime.strptime(self.data_final_var.get(), "%d/%m/%Y")
+        data_inicial = data_final - timedelta(days=30)
         return {
             'modo': self.modo_execucao,
             'cidades': self.cidades_selecionadas.copy(),
-            'data_inicial': self.data_inicial_var.get(),
+            'data_inicial': data_inicial.strftime("%d/%m/%Y"),
             'data_final': self.data_final_var.get(),
             'num_instancias': self.num_instancias if self.modo_execucao == 'paralelo' else 1
         }
