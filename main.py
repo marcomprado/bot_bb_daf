@@ -6,21 +6,12 @@ Coordena as interfaces gráficas e gerencia a execução do sistema
 
 import sys
 import os
-import threading
 import platform
 import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
-from typing import Dict, Optional
 
-# Importa as GUIs
-from src.view.gui1 import GUI1
-from src.view.gui2 import GUI2
-from src.view.gui3 import GUI3
-from src.view.gui4 import GUI4
-from src.view.gui5 import GUI5
-from src.view.gui6 import GUI6
-from src.view.gui7 import GUI7
+from src.config.systems_registry import SYSTEMS
 from src.view.view_config import ConfigGUI
 
 # Importa funções de gerenciamento de caminhos
@@ -28,11 +19,6 @@ from src.classes.file.path_manager import obter_caminho_dados, copiar_arquivo_ci
 
 # Importa gerenciador de configurações
 from src.classes.config_page import ConfigManager
-
-# Importa o bot principal e processador paralelo
-from src.bots.bot_bbdaf import BotBBDAF
-from src.classes.methods.parallel_processor import ProcessadorParalelo
-from src.classes.data_extractor import DataExtractor
 
 # Importa ButtonFactory para botões de aba
 from src.view.modules.buttons import ButtonFactory
@@ -77,10 +63,6 @@ class SistemaFVN:
         # Estado do sistema
         self.aba_atual = "bbdaf"
         self.sistema_var = ctk.StringVar()
-        self.executando = False
-        self.bot_atual = None
-        self.thread_execucao = None
-        self.processador_paralelo = None
         
         # Configura ícone
         self._configurar_icone()
@@ -162,8 +144,7 @@ class SistemaFVN:
         self._salvar_geometria()
 
         # Cancela qualquer execução em andamento
-        if self.executando:
-            self._cancelar_execucao()
+        self._cancelar_execucao()
 
         # Fecha a janela
         self.janela.destroy()
@@ -189,46 +170,15 @@ class SistemaFVN:
         )
         self.container_conteudo.pack(fill="both", expand=True)
         
-        # Cria GUI1 (BB DAF)
-        self.gui1 = GUI1(
-            parent_frame=self.container_conteudo,
-            on_executar=self._executar_bbdaf,
-            on_cancelar=self._cancelar_execucao
-        )
+        self.guis = {}
+        for system in SYSTEMS:
+            self.guis[system["id"]] = system["gui_class"](self.container_conteudo)
 
-        # Cria GUI2 (FNDE)
-        self.gui2 = GUI2(self.container_conteudo)
-
-        # Cria GUI3 (Betha)
-        self.gui3 = GUI3(self.container_conteudo)
-
-        # Cria GUI4 (Consulta de Saldo FNS)
-        self.gui4 = GUI4(self.container_conteudo)
-
-        # Cria GUI5 (Resoluçoes PDF)
-        self.gui5 = GUI5(self.container_conteudo)
-
-        # Cria GUI6 (Pagamentos de Resoluções)
-        self.gui6 = GUI6(self.container_conteudo)
-
-        # Cria GUI7 (MDS)
-        self.gui7 = GUI7(self.container_conteudo)
-
-        # Cria ConfigGUI (Configurações)
         self.config_gui = ConfigGUI(self.container_conteudo)
 
-        # Mapeamento centralizado de abas para navegação eficiente
-        self.mapa_abas = {
-            "bbdaf": {"nome": "Sistema BB DAF", "gui": self.gui1},
-            "fnde": {"nome": "Sistema FNDE", "gui": self.gui2},
-            "betha": {"nome": "Sistema Betha", "gui": self.gui3},
-            "consfns": {"nome": "Consulta de Saldo FNS", "gui": self.gui4},
-        "resolucoes": {"nome": "Resoluçoes PDF", "gui": self.gui5},
-            "pagamentos_res": {"nome": "Pagamentos de Resoluções", "gui": self.gui6},
-            "mds": {"nome": "Sistema MDS", "gui": self.gui7},
-            "config": {"nome": None, "gui": self.config_gui}
-        }
-        self.todas_guis = [self.gui1, self.gui2, self.gui3, self.gui4, self.gui5, self.gui6, self.gui7, self.config_gui]
+        self.mapa_abas = {s["id"]: {"nome": s["nome"], "gui": self.guis[s["id"]]} for s in SYSTEMS}
+        self.mapa_abas["config"] = {"nome": None, "gui": self.config_gui}
+        self.todas_guis = list(self.guis.values()) + [self.config_gui]
         self.gui_atual = None  # Rastreia GUI atualmente visível
 
         # Mostra aba inicial
@@ -246,26 +196,17 @@ class SistemaFVN:
         container_abas.pack(fill="x")
         container_abas.pack_propagate(False)
 
-        # Dropdown de sistemas (esquerda)
+        mapa_sistemas = {s["nome"]: s["id"] for s in SYSTEMS}
+        nomes_sistemas = [s["nome"] for s in SYSTEMS]
+
         def on_sistema_change(valor):
-            """Callback quando sistema é alterado no dropdown"""
-            # Mapeia nome do sistema para identificador da aba
-            mapa_sistemas = {
-                "Sistema BB DAF": "bbdaf",
-                "Sistema FNDE": "fnde",
-                "Sistema Betha": "betha",
-                "Consulta de Saldo FNS": "consfns",
-                "Resoluçoes PDF": "resolucoes",
-                "Pagamentos de Resoluções": "pagamentos_res",
-                "Sistema MDS": "mds"
-            }
             aba = mapa_sistemas.get(valor)
             if aba:
                 self._mostrar_aba(aba)
 
         self.dropdown_sistemas = ctk.CTkOptionMenu(
             container_abas,
-            values=["Sistema BB DAF", "Sistema FNDE", "Sistema Betha", "Consulta de Saldo FNS", "Resoluçoes PDF", "Pagamentos de Resoluções", "Sistema MDS"],
+            values=nomes_sistemas,
             variable=self.sistema_var,
             command=on_sistema_change,
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -326,91 +267,10 @@ class SistemaFVN:
         config["gui"].mostrar()
         self.gui_atual = config["gui"]
     
-    def _executar_bbdaf(self, parametros: Dict):
-        """
-        Executa o bot BB DAF com os parâmetros fornecidos
-        
-        Args:
-            parametros: Dicionário com os parâmetros de execução
-        """
-        if self.executando:
-            return
-        
-        self.executando = True
-
-        # Executa em thread separada
-        self.thread_execucao = threading.Thread(
-            target=self._executar_bot_thread,
-            args=(parametros,),
-            daemon=True
-        )
-        self.thread_execucao.start()
-    
-    def _executar_bot_thread(self, parametros: Dict):
-        """
-        Executa o bot em thread separada
-        
-        Args:
-            parametros: Parâmetros de execução
-        """
-        try:
-            modo = parametros.get('modo', 'individual')
-            
-            if modo == 'paralelo':
-                # Execução paralela
-                self.processador_paralelo = ProcessadorParalelo()
-                resultado = self.processador_paralelo.executar_paralelo_threads(
-                    num_instancias=parametros.get('num_instancias', 2),
-                    data_inicial=parametros.get('data_inicial'),
-                    data_final=parametros.get('data_final')
-                )
-            else:
-                # Execução individual
-                self.bot_atual = BotBBDAF()
-                self.bot_atual.configurar_extrator_dados(DataExtractor("bbdaf"))
-                
-                resultado = self.bot_atual.executar_completo(
-                    cidades=parametros.get('cidades'),
-                    data_inicial=parametros.get('data_inicial'),
-                    data_final=parametros.get('data_final')
-                )
-            
-            # Processa resultado na thread principal
-            self.janela.after(0, self._processar_resultado, resultado)
-            
-        except Exception as e:
-            resultado = {'sucesso': False, 'erro': str(e)}
-            self.janela.after(0, self._processar_resultado, resultado)
-    
-    def _processar_resultado(self, resultado: Dict):
-        """
-        Processa o resultado da execução
-        
-        Args:
-            resultado: Resultado da execução
-        """
-        self.executando = False
-        
-        # Passa resultado para a GUI processar
-        self.gui1.processar_resultado(resultado)
-        
-        # Limpa referências
-        self.bot_atual = None
-        self.processador_paralelo = None
-    
     def _cancelar_execucao(self):
-        """Cancela a execução em andamento"""
-        if self.processador_paralelo:
-            self.processador_paralelo.cancelar()
-        
-        if self.bot_atual:
-            self.bot_atual.fechar_navegador()
-        
-        # Cancela execução da GUI3 se estiver rodando
-        if hasattr(self, 'gui3') and self.gui3:
-            self.gui3.cancelar_execucao()
-        
-        self.executando = False
+        """Cancela execuções em andamento"""
+        if self.gui_atual and hasattr(self.gui_atual, 'cancelar_execucao'):
+            self.gui_atual.cancelar_execucao()
     
     def _abrir_pasta_arquivos(self):
         """Abre a pasta de downloads no explorador do sistema"""

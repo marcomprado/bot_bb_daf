@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 GUI1 - Interface gráfica para o sistema BB DAF
-Interface de usuário pura, sem lógica de negócio
 """
 
 import customtkinter as ctk
@@ -10,8 +9,9 @@ import os
 import sys
 import platform
 import subprocess
+import threading
 from datetime import datetime, timedelta
-from typing import Dict, Callable
+from typing import Dict
 
 # Adiciona o diretório raiz do projeto ao path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -21,28 +21,29 @@ from src.classes.file.path_manager import obter_caminho_dados, obter_caminho_rec
 from src.classes.city_manager import CityManager
 from src.view.modules.buttons import ButtonFactory
 from src.view.modules.loading_indicator import LoadingIndicator
+from src.bots.bot_bbdaf import BotBBDAF
+from src.classes.data_extractor import DataExtractor
+from src.classes.methods.parallel_processor import ProcessadorParalelo
 
 
 class GUI1:
     """Interface gráfica principal para o sistema BB DAF"""
     
-    def __init__(self, parent_frame: ctk.CTkFrame = None, 
-                 on_executar: Callable = None,
-                 on_cancelar: Callable = None):
+    def __init__(self, parent_frame: ctk.CTkFrame = None):
         """
         Inicializa a GUI1
-        
+
         Args:
             parent_frame: Frame pai onde a GUI será criada
-            on_executar: Callback quando usuário clica em executar
-            on_cancelar: Callback quando usuário clica em cancelar
         """
         self.parent_frame = parent_frame
-        self.on_executar = on_executar
-        self.on_cancelar = on_cancelar
-        
-        # Estado da interface
+
+        # Estado da execução
         self.executando = False
+        self._cancelado = False
+        self.bot_atual = None
+        self.processador_paralelo = None
+        self.thread_execucao = None
         
         # Dados
         self.lista_cidades = []
@@ -619,27 +620,72 @@ class GUI1:
             )
     
     def _executar_main(self):
-        """Dispara callback de execução ou cancelamento"""
+        """Executa o bot ou cancela execução em andamento"""
         if self.executando:
-            # Se está executando, dispara callback de cancelar
-            if self.on_cancelar:
-                self.on_cancelar()
-            self._habilitar_interface(True)
+            self._cancelar_execucao()
             return
-        
-        # Valida dados
+
         if not self._validar_dados():
             return
-        
-        # Prepara parâmetros
+
         parametros = self.obter_parametros()
-        
-        # Desabilita interface
         self._habilitar_interface(False)
-        
-        # Dispara callback de execução
-        if self.on_executar:
-            self.on_executar(parametros)
+        self._executar_processo(parametros)
+
+    def _executar_processo(self, parametros: Dict):
+        """Inicia execução do bot em thread separada"""
+        self._cancelado = False
+
+        def executar_thread():
+            try:
+                modo = parametros.get('modo', 'individual')
+
+                if modo == 'paralelo':
+                    self.processador_paralelo = ProcessadorParalelo()
+                    resultado = self.processador_paralelo.executar_paralelo_threads(
+                        num_instancias=parametros.get('num_instancias', 2),
+                        data_inicial=parametros.get('data_inicial'),
+                        data_final=parametros.get('data_final')
+                    )
+                else:
+                    self.bot_atual = BotBBDAF()
+                    self.bot_atual.configurar_extrator_dados(DataExtractor("bbdaf"))
+                    resultado = self.bot_atual.executar_completo(
+                        cidades=parametros.get('cidades'),
+                        data_inicial=parametros.get('data_inicial'),
+                        data_final=parametros.get('data_final')
+                    )
+
+                if not self._cancelado:
+                    self.parent_frame.after(0, self._finalizar_execucao, resultado)
+
+            except Exception as e:
+                if not self._cancelado:
+                    resultado = {'sucesso': False, 'erro': str(e)}
+                    self.parent_frame.after(0, self._finalizar_execucao, resultado)
+
+        self.thread_execucao = threading.Thread(target=executar_thread, daemon=True)
+        self.thread_execucao.start()
+
+    def _finalizar_execucao(self, resultado: Dict):
+        """Processa resultado e limpa referências"""
+        self.bot_atual = None
+        self.processador_paralelo = None
+        self.processar_resultado(resultado)
+
+    def _cancelar_execucao(self):
+        """Cancela a execução em andamento"""
+        self._cancelado = True
+
+        if self.processador_paralelo:
+            self.processador_paralelo.cancelar()
+
+        if self.bot_atual:
+            self.bot_atual.fechar_navegador()
+
+        self.bot_atual = None
+        self.processador_paralelo = None
+        self._habilitar_interface(True)
     
     def obter_parametros(self) -> Dict:
         """
