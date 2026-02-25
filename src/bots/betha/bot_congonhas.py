@@ -4,8 +4,9 @@
 Bot Congonhas - Script especifico para o municipio de Congonhas
 Contem a logica especifica apos navegar para Relatorios Favoritos
 
-- Baseado em @bot_ribeirao.py
-"""
+- Baseado em @bot_ribeirao.py 
+
+- Bot não finzalizado, em desenvolvimento março 2026 !!!
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
