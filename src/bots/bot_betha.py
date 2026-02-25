@@ -15,12 +15,23 @@ import os
 import time
 from typing import Dict, Optional
 from datetime import datetime
+from pathlib import Path
 import unicodedata
+from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.classes.chrome_driver import ChromeDriverSimples
 from src.classes.file.file_converter import FileConverter
 from src.classes.methods.cancel_method import BotBase
+
+# Carrega variaveis do .env
+env_path = Path(__file__).parent.parent / 'config' / '.env'
+load_dotenv(env_path, encoding='utf-8-sig')
+
+def _resolve_env(value):
+    if isinstance(value, str) and value.startswith('env:'):
+        return os.getenv(value[4:], '')
+    return value
 
 
 class BotBetha(BotBase):
@@ -40,13 +51,12 @@ class BotBetha(BotBase):
         # Configuração da cidade
         if cidade_config:
             self.nome_cidade = cidade_config.get('nome', '')
-            self.usuario = cidade_config.get('Login', '')
-            self.senha = cidade_config.get('Senha', '')
+            self.usuario = _resolve_env(cidade_config.get('Login', ''))
+            self.senha = _resolve_env(cidade_config.get('Senha', ''))
         else:
-            # Valores padrão para testes
             self.nome_cidade = 'Ribeirão das Neves'
-            self.usuario = "breno.ribeirao"
-            self.senha = "Brc123456789!"
+            self.usuario = os.getenv('BETHA_RIBEIRAO_LOGIN', '')
+            self.senha = os.getenv('BETHA_RIBEIRAO_SENHA', '')
         
         # Ano de processamento
         self.ano = ano if ano else datetime.now().year
